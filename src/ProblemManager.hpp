@@ -42,8 +42,6 @@ class ProblemManager
         ProblemManager( const std::shared_ptr<Mesh<MemorySpace>>& mesh, const InitFunc& create_functor, const ExecutionSpace& exec_space ) 
         : _mesh ( mesh )
         {
-            initialize( create_functor, exec_space );
-
             auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );
             auto cell_scalar_layout = Cajita::createArrayLayout( _mesh->localGrid(), 1, Cajita::Cell() );
 
@@ -52,6 +50,9 @@ class ProblemManager
 
             _cell_vector_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_vector_layout, Cajita::HaloPattern() );
             _cell_scalar_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_scalar_layout, Cajita::HaloPattern() );
+
+            initialize( create_functor, exec_space );
+
         };
 
         template<class InitFunctor, class ExecutionSpace>
