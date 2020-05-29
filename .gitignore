@@ -1,0 +1,11 @@
+Learning/
+build/
+libs/
+examples/
+src/Old
+include/
+scripts/stats.sh
+scripts/docs.sh
+Doxyfile
+html/
+latex/
