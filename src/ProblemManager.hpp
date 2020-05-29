@@ -69,8 +69,8 @@ class ProblemManager
 
             auto owned_cells = local_grid.indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 
-	    auto u_i = get(Location::Cell(), Field::Velocity());
-	    auto h_i = get(Location::Cell(), Field::Height());
+	        auto u_i = get(Location::Cell(), Field::Velocity());
+	        auto h_i = get(Location::Cell(), Field::Height());
 
             Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
                 int cid = i + owned_cells.extent( 1 ) * ( j + owned_cells.extent( 2 ) * k );
@@ -79,15 +79,18 @@ class ProblemManager
                 printf("Extent: %d, %d, %d\n", owned_cells.extent(0), owned_cells.extent(1), owned_cells.extent(2));
                 printf( "i: %d\tj: %d\tk: %d\tpid: %d\n", i, j, k, cid );
                 */
+               
+                int coords[3] = { i, j, k };
+                state_t x[3];
+                local_mesh.coordinates( Cajita::Cell(), coords, x );
 
-		state_t x[3] = {0.5, 0.5, 0.5};
                 state_t velocity[2];
                 state_t height;
 
                 create_functor(x, velocity, height);
 
-		u_i(i, j, k, 0) = velocity[0];
-		u_i(i, j, k, 1) = velocity[1];
+		        u_i(i, j, k, 0) = velocity[0];
+		        u_i(i, j, k, 1) = velocity[1];
                 h_i(i, j, k, 0) = height;
 
             });

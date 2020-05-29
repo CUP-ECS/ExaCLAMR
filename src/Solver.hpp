@@ -16,6 +16,7 @@
 
 #include <Mesh.hpp>
 #include <ProblemManager.hpp>
+#include <TimeIntegration.hpp>
 
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
@@ -82,7 +83,7 @@ class Solver : public SolverBase
                     printf( "Current Time: %.4f\n", current_time );
                 }
 
-        // TimeIntegrator::step();
+                TimeIntegrator::step();
             }
         };
 

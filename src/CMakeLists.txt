@@ -2,6 +2,7 @@ set(HEADERS
   Solver.hpp
   Mesh.hpp
   ProblemManager.hpp
+  TimeIntegration.hpp
   )
 
 set(SOURCES
