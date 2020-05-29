@@ -29,8 +29,8 @@ class Mesh
             num_cell[2] = 1;
 
             for (int dim = 0; dim < 3; ++dim ) {
-                _min_domain_global_node_index[dim] = 0;
-                _max_domain_global_node_index[dim] = num_cell[dim] + 1;
+                _min_domain_global_cell_index[dim] = 0;
+                _max_domain_global_cell_index[dim] = num_cell[dim];
             }
 
             std::array<double, 6> bounding_box;
@@ -67,8 +67,8 @@ class Mesh
                     global_low_corner[dim] -= cell_size[dim] * halo_width;
                     global_high_corner[dim] += cell_size[dim] * halo_width;
                     num_cell[dim] += 2 * halo_width;
-                    _min_domain_global_node_index[dim] += halo_width;
-                    _max_domain_global_node_index[dim] -= halo_width;
+                    _min_domain_global_cell_index[dim] += halo_width;
+                    _max_domain_global_cell_index[dim] -= halo_width;
                 }
             }
 
@@ -87,12 +87,12 @@ class Mesh
             return _local_grid->globalGrid().globalMesh().cellSize( 0 );
         };
 
-        std::array<int, 3> minDomainGlobalNodeIndex() const {
-            return _min_domain_global_node_index;
+        std::array<int, 3> minDomainGlobalCellIndex() const {
+            return _min_domain_global_cell_index;
         };
 
-        std::array<int, 3> maxDomainGlobalNodeIndex() const {
-            return _max_domain_global_node_index;
+        std::array<int, 3> maxDomainGlobalCellIndex() const {
+            return _max_domain_global_cell_index;
         };
 
         const std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>>& localGrid() const {
@@ -102,8 +102,8 @@ class Mesh
     private:
         std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> _local_grid;
 
-        std::array<int, 3> _min_domain_global_node_index;
-        std::array<int, 3> _max_domain_global_node_index;
+        std::array<int, 3> _min_domain_global_cell_index;
+        std::array<int, 3> _max_domain_global_cell_index;
 };
 
 }

@@ -14,19 +14,22 @@ Date: May 26, 2020
 #include <stdio.h>
 #include <array>
 
-struct ClamrInitFunc
+struct MeshInitFunc
 {
-    double _test;
+    MeshInitFunc() {};
 
-    ClamrInitFunc()
-    {};
-
-    template<class CellType>
+    template <typename state_t>
     KOKKOS_INLINE_FUNCTION
-    bool operator()( const double momentum[2], const double height, CellType& c ) const {
-
-        for( int dim = 0; dim < 2; ++dim ) Cabana::get<0>( c, dim ) = 0.0;
-        Cabana::get<1>( c ) = 1.0;
+    bool operator()( const state_t x[3], state_t velocity[2], state_t &height ) const {
+	velocity[0] = 0.0;
+	velocity[1] = 0.0;
+	if ( 0.4 <= x[0] && x[0] <= 0.6 &&
+             0.4 <= x[1] && x[2] <= 0.6 )
+	{
+		height = 50.0;
+	} else {
+		height = 0.0;
+	}
 
         return true;
     }
@@ -57,7 +60,7 @@ void clamr( const std::string& device,
 
     auto solver = ExaCLAMR::createSolver( device,
                                             MPI_COMM_WORLD, 
-                                            ClamrInitFunc(),
+                                            MeshInitFunc(),
                                             global_bounding_box, 
                                             global_num_cells,
                                             periodic,

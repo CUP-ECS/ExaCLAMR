@@ -15,6 +15,4 @@ find_package(Cajita REQUIRED)
 include_directories(include)
 add_subdirectory(src)
 
-add_executable( ExaCLAMR clamr.cpp )
-target_link_libraries( ExaCLAMR PRIVATE exaclamr )
-target_include_directories( ExaCLAMR PRIVATE ${CMAKE_CURRENT_BINARY_DIR} )
+add_subdirectory(examples)
