@@ -57,9 +57,10 @@ class Solver : public SolverBase
                 const double gravity )
         : _halo_size ( halo_size ), _dt ( dt ), _gravity ( gravity )
         {
-            printf( "Created Solver\n" );
-
             MPI_Comm_rank( comm, &_rank );
+
+            if ( _rank == 0 ) printf( "Created Solver\n" );
+
             _mesh = std::make_shared<Mesh<MemorySpace>> ( global_bounding_box, 
                                             global_num_cell, 
                                             periodic, 
@@ -71,7 +72,7 @@ class Solver : public SolverBase
         }
 
         void solve( const double t_final, const int write_freq ) override {
-            printf( "Solving!\n" );
+            if ( _rank == 0 ) printf( "Solving!\n" );
 
             int nt = t_final / _dt;
             double current_time = 0.0;
@@ -83,7 +84,7 @@ class Solver : public SolverBase
                     printf( "Current Time: %.4f\n", current_time );
                 }
 
-                TimeIntegrator::step();
+                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _dt, _gravity );
             }
         };
 

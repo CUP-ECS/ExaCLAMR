@@ -23,8 +23,8 @@ struct MeshInitFunc
     bool operator()( const state_t x[3], state_t velocity[2], state_t &height ) const {
 	velocity[0] = 0.0;
 	velocity[1] = 0.0;
-	if ( 0.4 <= x[0] && x[0] <= 0.6 &&
-             0.4 <= x[1] && x[2] <= 0.6 )
+	if ( 0.375 <= x[0] && x[0] <= 0.625 &&
+             0.375 <= x[1] && x[1] <= 0.625 )
 	{
 		height = 50.0;
 	} else {
@@ -49,9 +49,10 @@ void clamr( const std::string& device,
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
-    printf( "CLAMR\n" );
-    printf( "Nx: %d\tNy: %d\tNz: %d\tHalo Size: %.4f\t dt: %.4f\tGravity: %.4f\n", global_num_cells[0], global_num_cells[1], global_num_cells[2], halo_size, dt, gravity );
-
+    if ( rank == 0 ) {
+        printf( "CLAMR\n" );
+        printf( "Nx: %d\tNy: %d\tNz: %d\tHalo Size: %d\t dt: %.4f\tGravity: %.4f\n", global_num_cells[0], global_num_cells[1], global_num_cells[2], halo_size, dt, gravity );
+    }
 
     std::array<bool, 3> periodic = { false, false, false };
 
@@ -68,6 +69,9 @@ void clamr( const std::string& device,
                                             halo_size, 
                                             dt, 
                                             gravity );
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
     solver->solve( t_final, write_freq );
 
 }
@@ -79,7 +83,7 @@ int main( int argc, char* argv[] ) {
 
     std::string device = "serial";
 
-    double hx = 1.0, hy = 1.0, hz = 0.25;
+    double hx = 1.0, hy = 1.0, hz = 1.0;
     std::array<double, 6> global_bounding_box = { 0, 0, 0, hx, hy, hz };
 
     int nx = 4, ny = 4, nz = 1;
@@ -87,8 +91,8 @@ int main( int argc, char* argv[] ) {
 
     int halo_size = 2;
     double dt = 0.1;
-    double gravity = 10.0;
-    double t_final = 40.0;
+    double gravity = 9.81;
+    double t_final = 0.1;
     int write_freq = 10;
 
     clamr( device,

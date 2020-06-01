@@ -57,29 +57,35 @@ class ProblemManager
 
         template<class InitFunctor, class ExecutionSpace>
         void initialize( const InitFunctor& create_functor, const ExecutionSpace& exec_space ) {
-            printf( "Initializing\n" );
+            if ( _mesh->rank() == 0 ) printf( "Initializing Cell Fields\n" );
 
             using device_type = typename cell_array::device_type;
-
-            auto domain = _mesh->maxDomainGlobalCellIndex();
-            printf( "Mesh Info: Domain Size: %d, %d, %d\n",  domain[0], domain[1], domain[2] );
 
             auto local_grid = *( _mesh->localGrid() );
             auto local_mesh = Cajita::createLocalMesh<device_type>( local_grid );
 
+            /*
+            printf( "Rank: %d\tLow Corner: %.4f, %.4f, %.4f\tHigh Corner: %.4f, %.4f, %.4f\n", _mesh->rank(), \
+            local_mesh.lowCorner( Cajita::Own() , 0 ),  local_mesh.lowCorner( Cajita::Own() , 1 ), local_mesh.lowCorner( Cajita::Own() , 2 ), \
+            local_mesh.highCorner( Cajita::Own() , 0 ), local_mesh.highCorner( Cajita::Own() , 1 ), local_mesh.highCorner( Cajita::Own() , 2 ));
+            */
+
+            auto ghost_cells = local_grid.indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
             auto owned_cells = local_grid.indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 
 	        auto u_i = get(Location::Cell(), Field::Velocity());
 	        auto h_i = get(Location::Cell(), Field::Height());
 
-            Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-                int cid = i + owned_cells.extent( 1 ) * ( j + owned_cells.extent( 2 ) * k );
+            Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( ghost_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+                int i_own = i - owned_cells.min( Cajita::Dim::I );
+                int j_own = j - owned_cells.min( Cajita::Dim::J );
+                int k_own = k - owned_cells.min( Cajita::Dim::K );
 
                 /*
-                printf("Extent: %d, %d, %d\n", owned_cells.extent(0), owned_cells.extent(1), owned_cells.extent(2));
-                printf( "i: %d\tj: %d\tk: %d\tpid: %d\n", i, j, k, cid );
+                printf("Rank: %d\tExtent: %d, %d, %d\n", _mesh->rank(), owned_cells.extent(0), owned_cells.extent(1), owned_cells.extent(2));
+                printf( "Rank: %d\ti: %d\tj: %d\tk: %d\tiown: %d\tjown: %d\tkown: %d\n", _mesh->rank(), i, j, k, i_own, j_own, k_own);
                 */
-               
+                
                 int coords[3] = { i, j, k };
                 state_t x[3];
                 local_mesh.coordinates( Cajita::Cell(), coords, x );
@@ -89,11 +95,31 @@ class ProblemManager
 
                 create_functor(x, velocity, height);
 
-		        u_i(i, j, k, 0) = velocity[0];
-		        u_i(i, j, k, 1) = velocity[1];
-                h_i(i, j, k, 0) = height;
+                /*
+                printf( "Rank: %d\ti: %d\tj: %d\tk: %d\t x: %.4f\ty: %.4f\tz: %.4f\tvx: %.4f\tvy: %.4f\th: %.4f\n", \
+                _mesh->rank(), i, j, k, x[0], x[1], x[2], velocity[0], velocity[1], height );
+                */
 
-            });
+		        u_i( i, j, k, 0 ) = velocity[0];
+		        u_i( i, j, k, 1 ) = velocity[1];
+                h_i( i, j, k, 0 ) = height;
+
+            } );
+
+            /*
+            if ( _mesh->rank() == 0 ) {
+                for ( int i = 0; i < owned_cells.extent( 0 ); i++ ) {
+                    for ( int j = 0; j < owned_cells.extent( 1 ); j++ ) {
+                        for ( int k = 0; k < owned_cells.extent( 2 ); k++ ) {
+                            printf( "%.4f\t", h_i( i, j, k, 0 ) );
+                        }
+                    }
+                    printf("\n");
+                }
+            }
+            */
+            
+            
 
         };
 
