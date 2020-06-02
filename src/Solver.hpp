@@ -76,25 +76,23 @@ class Solver : public SolverBase
         void solve( const double t_final, const int write_freq ) override {
             if ( _rank == 0 ) printf( "Solving!\n" );
 
-            int nt = t_final / _dt;
+            int nt = round( t_final / _dt );
             double current_time = 0.0;
 
-            for (int t = 0; t < nt; t++) {
+            if (_rank == 0 ) {
+                printf( "Current Time: %.4f\n", current_time );
+            }
+
+            for (int t = 1; t <= nt; t++) {
+
+                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _dt, _gravity, t );
                 current_time += _dt;
 
                 if ( 0 == _rank && 0 == t % write_freq ) {
                     printf( "Current Time: %.4f\n", current_time );
-                    // Write to file or stdout
-                    output();
                 }
-
-                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _dt, _gravity, t );
             }
         };
-
-        void output() {
-            printf( "Writing Current State\n" );
-        }
 
     private:
 

@@ -36,6 +36,7 @@ void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
                     auto shared_recv_cells = local_grid->sharedIndexSpace( Cajita::Ghost(), Cajita::Cell(), i, j, 0 );
                     auto shared_send_cells = local_grid->sharedIndexSpace( Cajita::Own(), Cajita::Cell(), i, j, 0 );
 
+                    /*
                     printf( "Rank: %d\t i: %d\tj: %d\tk: %d\t Neighbor: %d\n", pm.mesh()->rank(), i, j, 0, neighbor );
                     printf( "Rank (Recv): %d\txmin: %d\t xmax: %d\tymin: %d\tymax: %d\tzmin: %d\tzmax: %d\tsize: %d\n", pm.mesh()->rank(), \
                     shared_recv_cells.min( 0 ), shared_recv_cells.max( 0 ), shared_recv_cells.min( 1 ), shared_recv_cells.max( 1 ), \
@@ -43,6 +44,7 @@ void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
                     printf( "Rank (Send): %d\txmin: %d\t xmax: %d\tymin: %d\tymax: %d\tzmin: %d\tzmax: %d\tsize: %d\n", pm.mesh()->rank(), \
                     shared_send_cells.min( 0 ), shared_send_cells.max( 0 ), shared_send_cells.min( 1 ), shared_send_cells.max( 1 ), \
                     shared_send_cells.min( 2 ), shared_send_cells.max( 2 ), shared_send_cells.size() );
+                    */
 
 
                     double sendH[shared_send_cells.size()];
@@ -168,7 +170,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         }
     } );
 
-    
+    /*
     if ( pm.mesh()->rank() == 0 ) {
         for ( int i = 0; i < owned_cells.extent( 0 ); i++ ) {
             for ( int j = 0; j < owned_cells.extent( 1 ); j++ ) {
@@ -179,6 +181,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
             printf("\n");
         }
     }
+    */
 
     MPI_Barrier( MPI_COMM_WORLD );
 

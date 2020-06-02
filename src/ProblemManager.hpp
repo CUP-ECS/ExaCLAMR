@@ -23,7 +23,26 @@ namespace Field
 {
 struct Velocity {};
 struct Height {};
+
+struct HxFluxPlus {};
+struct HxFluxMinus {};
+struct UxFluxPlus {};
+struct UxFluxMinus {};
+
+struct HyFluxPlus {};
+struct HyFluxMinus {};
+struct UyFluxPlus {};
+struct UyFluxMinus {};
+
+struct HxWPlus {};
+struct HxWMinus {};
+struct HyWPlus {};
+struct HyWMinus {};
+
+struct UWPlus {};
+struct UWMinus {};
 }
+
 template<class MemorySpace, class state_t>
 class ProblemManager
 {
@@ -47,8 +66,30 @@ class ProblemManager
 
             _velocityA = Cajita::createArray<state_t, MemorySpace>( "velocity", cell_vector_layout );
             _heightA = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
+
             _velocityB = Cajita::createArray<state_t, MemorySpace>( "velocity", cell_vector_layout );
             _heightB = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
+
+
+            // Flux Arrays
+            _Hxfluxplus = Cajita::createArray<state_t, MemorySpace>( "HxFluxPlus", cell_scalar_layout );
+            _Hxfluxminus = Cajita::createArray<state_t, MemorySpace>( "HxFluxMinus", cell_scalar_layout );
+            _Uxfluxplus = Cajita::createArray<state_t, MemorySpace>( "UxFluxPlus", cell_vector_layout );
+            _Uxfluxminus = Cajita::createArray<state_t, MemorySpace>( "UxFluxMinus", cell_vector_layout );
+
+            _Hyfluxplus = Cajita::createArray<state_t, MemorySpace>( "HyFluxPlus", cell_scalar_layout );
+            _Hyfluxminus = Cajita::createArray<state_t, MemorySpace>( "HyFluxMinus", cell_scalar_layout );
+            _Uyfluxplus = Cajita::createArray<state_t, MemorySpace>( "UyFluxPlus", cell_vector_layout );
+            _Uyfluxminus = Cajita::createArray<state_t, MemorySpace>( "UyFluxMinus", cell_vector_layout );
+
+            // Flux Corrector Arrays
+            _Hxwplus = Cajita::createArray<state_t, MemorySpace>( "HxWPlus", cell_scalar_layout );
+            _Hxwminus = Cajita::createArray<state_t, MemorySpace>( "HxWMinus", cell_scalar_layout );
+            _Hywplus = Cajita::createArray<state_t, MemorySpace>( "HyWPlus", cell_scalar_layout );
+            _Hywminus = Cajita::createArray<state_t, MemorySpace>( "HyWMinus", cell_scalar_layout );
+
+            _Uwplus = Cajita::createArray<state_t, MemorySpace>( "UWPlus", cell_vector_layout );
+            _Uwminus = Cajita::createArray<state_t, MemorySpace>( "UWMinus", cell_vector_layout );
 
             _cell_vector_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_vector_layout, Cajita::HaloPattern() );
             _cell_scalar_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_scalar_layout, Cajita::HaloPattern() );
@@ -145,6 +186,62 @@ class ProblemManager
             else return _heightB->view();
         };
 
+        typename cell_array::view_type get( Location::Cell, Field::HxFluxPlus ) const {
+            return _Hxfluxplus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::HxFluxMinus ) const {
+            return _Hxfluxminus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::UxFluxPlus ) const {
+            return _Uxfluxplus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::UxFluxMinus ) const {
+            return _Uxfluxminus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::HyFluxPlus ) const {
+            return _Hyfluxplus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::HyFluxMinus ) const {
+            return _Hyfluxminus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::UyFluxPlus ) const {
+            return _Uyfluxplus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::UyFluxMinus ) const {
+            return _Uyfluxminus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::HxWPlus ) const {
+            return _Hxwplus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::HxWMinus ) const {
+            return _Hxwminus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::HyWPlus ) const {
+            return _Hywplus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::HyWMinus ) const {
+            return _Hywminus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::UWPlus ) const {
+            return _Uwplus->view();
+        }
+
+        typename cell_array::view_type get( Location::Cell, Field::UWMinus ) const {
+            return _Uwminus->view();
+        }
+
         void scatter( Location::Cell, Field::Velocity, int t ) const {
             if ( t == 0 ) _cell_vector_halo->scatter( *_velocityA );
             else _cell_vector_halo->scatter( *_velocityB );
@@ -164,6 +261,25 @@ class ProblemManager
         std::shared_ptr<cell_array> _heightA;
         std::shared_ptr<cell_array> _velocityB;
         std::shared_ptr<cell_array> _heightB;
+
+        std::shared_ptr<cell_array> _Hxfluxplus;
+        std::shared_ptr<cell_array> _Hxfluxminus;
+        std::shared_ptr<cell_array> _Uxfluxplus;
+        std::shared_ptr<cell_array> _Uxfluxminus;
+
+        std::shared_ptr<cell_array> _Hyfluxplus;
+        std::shared_ptr<cell_array> _Hyfluxminus;
+        std::shared_ptr<cell_array> _Uyfluxplus;
+        std::shared_ptr<cell_array> _Uyfluxminus;
+
+        std::shared_ptr<cell_array> _Hxwplus;
+        std::shared_ptr<cell_array> _Hxwminus;
+        std::shared_ptr<cell_array> _Hywplus;
+        std::shared_ptr<cell_array> _Hywminus;
+
+        std::shared_ptr<cell_array> _Uwplus;
+        std::shared_ptr<cell_array> _Uwminus;
+
         std::shared_ptr<halo> _cell_vector_halo;
         std::shared_ptr<halo> _cell_scalar_halo;
 };
