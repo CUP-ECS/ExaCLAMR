@@ -90,7 +90,7 @@ int main( int argc, char* argv[] ) {
     int halo_size = 2;
     double dt = 0.1;
     double gravity = 9.81;
-    double t_final = 0.1;
+    double t_final = 0.31;
     int write_freq = 1;
 
     clamr( device,

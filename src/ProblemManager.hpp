@@ -45,8 +45,10 @@ class ProblemManager
             auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );
             auto cell_scalar_layout = Cajita::createArrayLayout( _mesh->localGrid(), 1, Cajita::Cell() );
 
-            _velocity = Cajita::createArray<state_t, MemorySpace>( "velocity", cell_vector_layout );
-            _height = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
+            _velocityA = Cajita::createArray<state_t, MemorySpace>( "velocity", cell_vector_layout );
+            _heightA = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
+            _velocityB = Cajita::createArray<state_t, MemorySpace>( "velocity", cell_vector_layout );
+            _heightB = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
 
             _cell_vector_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_vector_layout, Cajita::HaloPattern() );
             _cell_scalar_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_scalar_layout, Cajita::HaloPattern() );
@@ -73,8 +75,10 @@ class ProblemManager
             auto ghost_cells = local_grid.indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
             auto owned_cells = local_grid.indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 
-	        auto u_i = get(Location::Cell(), Field::Velocity());
-	        auto h_i = get(Location::Cell(), Field::Height());
+	        auto uA = get(Location::Cell(), Field::Velocity(), 0 );
+	        auto hA = get(Location::Cell(), Field::Height(), 0 );
+            auto uB = get(Location::Cell(), Field::Velocity(), 1 );
+	        auto hB = get(Location::Cell(), Field::Height(), 1 );
 
             Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( ghost_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
                 int i_own = i - owned_cells.min( Cajita::Dim::I );
@@ -100,9 +104,13 @@ class ProblemManager
                 _mesh->rank(), i, j, k, x[0], x[1], x[2], velocity[0], velocity[1], height );
                 */
 
-		        u_i( i, j, k, 0 ) = velocity[0];
-		        u_i( i, j, k, 1 ) = velocity[1];
-                h_i( i, j, k, 0 ) = height;
+		        uA( i, j, k, 0 ) = velocity[0];
+		        uA( i, j, k, 1 ) = velocity[1];
+                hA( i, j, k, 0 ) = height;
+
+                uB( i, j, k, 0 ) = velocity[0];
+		        uB( i, j, k, 1 ) = velocity[1];
+                hB( i, j, k, 0 ) = height;
 
             } );
 
@@ -111,7 +119,7 @@ class ProblemManager
                 for ( int i = 0; i < owned_cells.extent( 0 ); i++ ) {
                     for ( int j = 0; j < owned_cells.extent( 1 ); j++ ) {
                         for ( int k = 0; k < owned_cells.extent( 2 ); k++ ) {
-                            printf( "%.4f\t", h_i( i, j, k, 0 ) );
+                            printf( "%.4f\t", hA( i, j, k, 0 ) );
                         }
                     }
                     printf("\n");
@@ -127,29 +135,35 @@ class ProblemManager
             return _mesh;
         };
 
-        typename cell_array::view_type get( Location::Cell, Field::Velocity ) const {
-            return _velocity->view();
+        typename cell_array::view_type get( Location::Cell, Field::Velocity, int t ) const {
+            if ( t == 0 ) return _velocityA->view();
+            else return _velocityB->view();
         };
 
-        typename cell_array::view_type get( Location::Cell, Field::Height ) const {
-            return _height->view();
-        }
+        typename cell_array::view_type get( Location::Cell, Field::Height, int t ) const {
+            if (t == 0 ) return _heightA->view();
+            else return _heightB->view();
+        };
 
-        void scatter( Location::Cell, Field::Velocity ) const {
-            _cell_vector_halo->scatter( *_velocity );
-        }
+        void scatter( Location::Cell, Field::Velocity, int t ) const {
+            if ( t == 0 ) _cell_vector_halo->scatter( *_velocityA );
+            else _cell_vector_halo->scatter( *_velocityB );
+        };
 
-        void scatter( Location::Cell, Field::Height ) const {
-            _cell_scalar_halo->scatter( *_height );
-        }
+        void scatter( Location::Cell, Field::Height, int t ) const {
+            if ( t == 0 ) _cell_scalar_halo->scatter( *_heightA );
+            else _cell_scalar_halo->scatter( *_heightB );
+        };
 
     private:
 #if 0
         Cabana::AoSoA<cell_members, MemorySpace> _cells;
 #endif
         std::shared_ptr<Mesh<MemorySpace>> _mesh;
-        std::shared_ptr<cell_array> _velocity;
-        std::shared_ptr<cell_array> _height;
+        std::shared_ptr<cell_array> _velocityA;
+        std::shared_ptr<cell_array> _heightA;
+        std::shared_ptr<cell_array> _velocityB;
+        std::shared_ptr<cell_array> _heightB;
         std::shared_ptr<halo> _cell_vector_halo;
         std::shared_ptr<halo> _cell_scalar_halo;
 };

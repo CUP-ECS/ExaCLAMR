@@ -88,7 +88,7 @@ class Solver : public SolverBase
                     output();
                 }
 
-                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _dt, _gravity );
+                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _dt, _gravity, t );
             }
         };
 
@@ -154,7 +154,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
         throw std::runtime_error( "Invalid Backend" );
         return nullptr;
     }
-}
+};
 
 }
 #endif
