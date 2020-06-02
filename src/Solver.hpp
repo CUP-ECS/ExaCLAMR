@@ -69,7 +69,9 @@ class Solver : public SolverBase
                                             comm );
                 
             _pm = std::make_shared<ProblemManager<MemorySpace, double>>( _mesh, create_functor, ExecutionSpace() );
-        }
+
+            MPI_Barrier( MPI_COMM_WORLD );
+        };
 
         void solve( const double t_final, const int write_freq ) override {
             if ( _rank == 0 ) printf( "Solving!\n" );
@@ -82,11 +84,17 @@ class Solver : public SolverBase
 
                 if ( 0 == _rank && 0 == t % write_freq ) {
                     printf( "Current Time: %.4f\n", current_time );
+                    // Write to file or stdout
+                    output();
                 }
 
                 TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _dt, _gravity );
             }
         };
+
+        void output() {
+            printf( "Writing Current State\n" );
+        }
 
     private:
 

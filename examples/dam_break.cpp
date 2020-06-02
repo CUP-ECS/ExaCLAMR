@@ -70,8 +70,6 @@ void clamr( const std::string& device,
                                             dt, 
                                             gravity );
 
-    MPI_Barrier(MPI_COMM_WORLD);
-
     solver->solve( t_final, write_freq );
 
 }
@@ -93,7 +91,7 @@ int main( int argc, char* argv[] ) {
     double dt = 0.1;
     double gravity = 9.81;
     double t_final = 0.1;
-    int write_freq = 10;
+    int write_freq = 1;
 
     clamr( device,
             global_bounding_box, 

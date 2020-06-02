@@ -15,6 +15,69 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
     printf( "Applying Boundary Conditions\n" );
 }
 
+template<class ProblemManagerType>
+void haloExchange( ProblemManagerType& pm ) {
+    printf( "Starting Halo Exchange\n" );
+
+    auto local_grid = pm.mesh()->localGrid();
+
+    /*
+    int requestCount = 0;
+
+    for ( int i = -1; i < 2; i++ ) {
+        for (int j = -1; j < 2; j++) {
+            if ( ( i == 0 || j == 0 ) && !( i == 0 && j == 0 ) ){
+                int neighbor = local_grid->neighborRank( i, j, 0 );
+                if (neighbor != -1 ) {
+                    requestCount += 6;
+                }
+            }
+        }
+    }
+
+    printf( "Rank: %d\tRequest Count: %d\n", pm.mesh()->rank(), requestCount );
+
+    MPI_Request request[requestCount];
+    MPI_Status statuses[requestCount];
+    */
+
+    for ( int i = -1; i < 2; i++ ) {
+        for (int j = -1; j < 2; j++) {
+            if ( ( i == 0 || j == 0 ) && !( i == 0 && j == 0 ) ){
+                int neighbor = local_grid->neighborRank( i, j, 0 );
+                if (neighbor != -1 ) {
+                    auto shared_recv_cells = local_grid->sharedIndexSpace( Cajita::Ghost(), Cajita::Cell(), i, j, 0 );
+                    auto shared_send_cells = local_grid->sharedIndexSpace( Cajita::Own(), Cajita::Cell(), i, j, 0 );
+
+                    printf( "Rank: %d\t i: %d\tj: %d\tk: %d\t Neighbor: %d\n", pm.mesh()->rank(), i, j, 0, neighbor );
+                    printf( "Rank (Recv): %d\txmin: %d\t xmax: %d\tymin: %d\tymax: %d\tzmin: %d\tzmax: %d\tsize: %d\n", pm.mesh()->rank(), \
+                    shared_recv_cells.min( 0 ), shared_recv_cells.max( 0 ), shared_recv_cells.min( 1 ), shared_recv_cells.max( 1 ), shared_recv_cells.min( 2 ), shared_recv_cells.max( 2 ), shared_recv_cells.size() );
+                    printf( "Rank (Send): %d\txmin: %d\t xmax: %d\tymin: %d\tymax: %d\tzmin: %d\tzmax: %d\tsize: %d\n", pm.mesh()->rank(), \
+                    shared_send_cells.min( 0 ), shared_send_cells.max( 0 ), shared_send_cells.min( 1 ), shared_send_cells.max( 1 ), shared_send_cells.min( 2 ), shared_send_cells.max( 2 ), shared_send_cells.size() );
+
+                    /*
+                    MPI_Request request[6];
+                    MPI_Status statuses[6];
+
+                    MPI_ISend( sendH, shared_cells_send.size(), MPI_DOUBLE, neighbor, 0, MPI_COMM_WORLD, &request[0] );
+                    MPI_ISend( sendU, shared_cells_send.size(), MPI_DOUBLE, neighbor, 0, MPI_COMM_WORLD, &request[1] );
+                    MPI_ISend( sendV, shared_cells_send.size(), MPI_DOUBLE, neighbor, 0, MPI_COMM_WORLD, &request[2] );
+
+                    MPI_IRecv( recvH, shared_cells_recv.size(), MPI_DOUBLE, neighbor, 0, MPI_COMM_WORLD, &request[3] );
+                    MPI_IRecv( recvU, shared_cells_recv.size(), MPI_DOUBLE, neighbor, 0, MPI_COMM_WORLD, &request[4] );
+                    MPI_IRecv( recvV, shared_cells_recv.size(), MPI_DOUBLE, neighbor, 0, MPI_COMM_WORLD, &request[5] );
+
+                    MPI_Waitall( 6, request, statuses );
+                    */
+
+                }
+            }
+        }
+    }
+
+    MPI_Barrier( MPI_COMM_WORLD );
+}
+
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
 void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t dt, const state_t gravity ) {
     printf( "Time Stepper\n" );
@@ -66,7 +129,10 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
             printf("\n");
         }
     }
-    
+
+    MPI_Barrier( MPI_COMM_WORLD );
+
+    haloExchange( pm );
 
 }
 
