@@ -91,8 +91,22 @@ class ProblemManager
             _Uwplus = Cajita::createArray<state_t, MemorySpace>( "UWPlus", cell_vector_layout );
             _Uwminus = Cajita::createArray<state_t, MemorySpace>( "UWMinus", cell_vector_layout );
 
-            _cell_vector_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_vector_layout, Cajita::HaloPattern() );
-            _cell_scalar_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_scalar_layout, Cajita::HaloPattern() );
+            auto HaloPattern = Cajita::HaloPattern();
+            std::vector<std::array<int, 3>> neighbors;
+
+            // Setting up Stencil ( Left, Right, Top, Bottom )
+            for ( int i = -1; i < 2; i++ ) {
+                for (int j = -1; j < 2; j++) {
+                    if ( ( i == 0 || j == 0 ) && !( i == 0 && j == 0 ) ) {
+                        neighbors.push_back( { i, j, 0 } );
+                    }
+                }
+            }
+
+            HaloPattern.setNeighbors( neighbors );
+
+            _cell_vector_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_vector_layout, HaloPattern );
+            _cell_scalar_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_scalar_layout, HaloPattern );
 
             initialize( create_functor, exec_space );
 
@@ -251,6 +265,16 @@ class ProblemManager
             if ( t == 0 ) _cell_scalar_halo->scatter( *_heightA );
             else _cell_scalar_halo->scatter( *_heightB );
         };
+
+        void gather( Location::Cell, Field::Velocity, int t ) const {
+            if ( t == 0 ) _cell_vector_halo->gather( *_velocityA );
+            else _cell_vector_halo->gather( *_velocityB );
+        }
+
+        void gather( Location::Cell, Field::Height, int t ) const {
+            if ( t == 0 ) _cell_scalar_halo->gather( *_heightA );
+            else _cell_scalar_halo->gather( *_heightB );
+        }
 
     private:
 #if 0

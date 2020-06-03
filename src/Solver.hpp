@@ -73,6 +73,34 @@ class Solver : public SolverBase
             MPI_Barrier( MPI_COMM_WORLD );
         };
 
+        void output( const int rank, const int tstep ) {
+            int a, b;
+            if ( tstep % 2 == 0 ) {
+                a = 0;
+                b = 1;
+            }
+            else {
+                a = 1;
+                b = 0;
+            }
+
+            auto owned_cells = _pm->mesh()->localGrid()->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
+
+            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), b );
+            auto hNew = _pm->get( Location::Cell(), Field::Height(), b );
+
+            if ( _pm->mesh()->rank() == rank ) {
+                for ( int i = owned_cells.min( 0 ); i < owned_cells.max( 0 ); i++ ) {
+                    for ( int j = owned_cells.min( 1 ); j < owned_cells.max( 1 ); j++ ) {
+                        for ( int k = owned_cells.min( 2 ); k < owned_cells.max( 2 ); k++ ) {
+                            printf( "%.4f\t", hNew( i, j, k, 0 ) );
+                        }
+                    }
+                    printf("\n");
+                }
+            }
+        }
+
         void solve( const double t_final, const int write_freq ) override {
             if ( _rank == 0 ) printf( "Solving!\n" );
 
@@ -88,8 +116,12 @@ class Solver : public SolverBase
                 TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _dt, _gravity, t );
                 current_time += _dt;
 
-                if ( 0 == _rank && 0 == t % write_freq ) {
-                    printf( "Current Time: %.4f\n", current_time );
+                if ( 0 == t % write_freq ) {
+                    if ( 0 == _rank ) printf( "Current Time: %.4f\n", current_time );
+
+                    MPI_Barrier( MPI_COMM_WORLD );
+
+                    output( 0, t );
                 }
             }
         };

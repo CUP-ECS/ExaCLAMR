@@ -19,6 +19,10 @@ template<class ProblemManagerType>
 void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
     if ( pm.mesh()->rank() == 0 ) printf( "Starting Halo Exchange\ta: %d\t b: %d\n", a, b );
 
+    pm.gather( Location::Cell(), Field::Velocity(), b );
+    pm.gather( Location::Cell(), Field::Height(), b );
+
+    /*
     auto local_grid = pm.mesh()->localGrid();
     auto owned_cells = local_grid->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 
@@ -36,7 +40,7 @@ void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
                     auto shared_recv_cells = local_grid->sharedIndexSpace( Cajita::Ghost(), Cajita::Cell(), i, j, 0 );
                     auto shared_send_cells = local_grid->sharedIndexSpace( Cajita::Own(), Cajita::Cell(), i, j, 0 );
 
-                    /*
+                    
                     printf( "Rank: %d\t i: %d\tj: %d\tk: %d\t Neighbor: %d\n", pm.mesh()->rank(), i, j, 0, neighbor );
                     printf( "Rank (Recv): %d\txmin: %d\t xmax: %d\tymin: %d\tymax: %d\tzmin: %d\tzmax: %d\tsize: %d\n", pm.mesh()->rank(), \
                     shared_recv_cells.min( 0 ), shared_recv_cells.max( 0 ), shared_recv_cells.min( 1 ), shared_recv_cells.max( 1 ), \
@@ -44,7 +48,7 @@ void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
                     printf( "Rank (Send): %d\txmin: %d\t xmax: %d\tymin: %d\tymax: %d\tzmin: %d\tzmax: %d\tsize: %d\n", pm.mesh()->rank(), \
                     shared_send_cells.min( 0 ), shared_send_cells.max( 0 ), shared_send_cells.min( 1 ), shared_send_cells.max( 1 ), \
                     shared_send_cells.min( 2 ), shared_send_cells.max( 2 ), shared_send_cells.size() );
-                    */
+                    
 
 
                     double sendH[shared_send_cells.size()];
@@ -107,6 +111,7 @@ void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
             }
         }
     }
+    */
 
     /*
     if ( pm.mesh()->rank() == 0 ) {
@@ -170,6 +175,11 @@ inline state_t wCorrector( state_t dt, state_t dr, state_t uEigen, state_t gradH
     state_t rMinus = ( gradMinus * gradHalf ) * rDenom;
 
     return 0.5 * nu * ( 1.0 - std::max( std::min( std::min( 1.0, rPlus ), rMinus ), 0.0 ) );
+}
+
+template<class state_t>
+inline state_t uFullStep( state_t dt, state_t dr, state_t U, state_t FPlus, state_t FMinus, state_t GPlus, state_t GMinus ) {
+    return ( U + ( - ( dt / dr) * ( ( FPlus - FMinus ) + ( GPlus - GMinus ) ) ) );
 }
 
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
@@ -237,8 +247,10 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
             printf( "Rank: %d\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k );
             */
 
+            // Simple Diffusion Problem
             // hNew( i, j, k, 0 ) = ( hCurrent( i - 1, j, k, 0 ) + hCurrent( i + 1, j, k, 0 ) + hCurrent( i, j - 1, k, 0 ) + hCurrent( i, j + 1, k, 0 ) ) / 4;
 
+            // Shallow Water Equations
             state_t HxMinus = 0.5 * ( ( hCurrent( i - 1, j, k, 0 ) + hCurrent( i, j, k, 0 ) ) - ( dt ) / ( dx ) * ( ( HXRGFLUXIC ) - ( HXRGFLUXNL ) ) );
             state_t UxMinus = 0.5 * ( ( uCurrent( i - 1, j, k, 0 ) + uCurrent( i, j, k, 0 ) ) - ( dt ) / ( dx ) * ( ( UXRGFLUXIC ) - ( UXRGFLUXNL ) ) );
             state_t VxMinus = 0.5 * ( ( uCurrent( i - 1, j, k, 1 ) + uCurrent( i, j, k, 1 ) ) - ( dt ) / ( dx ) * ( ( VXRGFLUXIC ) - ( VXRGFLUXNL ) ) );
@@ -296,22 +308,15 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
             UWPlus( i, j, k, 1 )   = wCorrector( dt, dy, fabs( VyPlus / HyPlus ) + sqrt( gravity * HyPlus ), uCurrent( i, j + 1, k, 1 ) - uCurrent( i, j, k, 1 ), uCurrent( i, j, k, 1) - uCurrent( i, j - 1, k, 1 ), uCurrent( i, j, k, 1 ) - uCurrent( i, j + 1, k, 1 ) );
             UWPlus( i, j, k, 1 )   *= uCurrent( i, j + 1, k, 1 ) - uCurrent( i, j, k, 1 );
-            
+
+
+            hNew ( i, j, k, 0 ) = uFullStep( dt, dx, hCurrent( i, j, k, 0 ), HxFluxPlus( i, j, k, 0 ), HxFluxMinus( i, j, k, 0 ), HyFluxPlus( i, j, k, 0 ), HyFluxMinus( i, j, k, 0 ) ) - HxWMinus( i, j, k, 0 ) + HxWPlus( i, j, k, 0 ) - HyWMinus( i, j, k, 0 ) + HyWPlus( i, j, k, 0 );
+            uNew ( i, j, k, 0 ) = uFullStep( dt, dx, uCurrent( i, j, k, 0 ), UxFluxPlus( i, j, k, 0 ), UxFluxMinus( i, j, k, 0 ), UyFluxPlus( i, j, k, 0 ), UyFluxMinus( i, j, k, 0 ) ) - UWMinus( i, j, k, 0 ) + UWPlus( i, j, k, 0 );
+            uNew ( i, j, k, 1 ) = uFullStep( dt, dx, uCurrent( i, j, k, 1 ), UxFluxPlus( i, j, k, 1 ), UxFluxMinus( i, j, k, 1 ), UyFluxPlus( i, j, k, 1 ), UyFluxMinus( i, j, k, 1 ) ) - UWMinus( i, j, k, 1 ) + UWPlus( i, j, k, 1 );
+
+
         }
     } );
-
-    /*
-    if ( pm.mesh()->rank() == 0 ) {
-        for ( int i = 0; i < owned_cells.extent( 0 ); i++ ) {
-            for ( int j = 0; j < owned_cells.extent( 1 ); j++ ) {
-                for ( int k = 0; k < owned_cells.extent( 2 ); k++ ) {
-                    printf( "%.4f\t", hNew( i, j, k, 0 ) );
-                }
-            }
-            printf("\n");
-        }
-    }
-    */
 
     MPI_Barrier( MPI_COMM_WORLD );
 

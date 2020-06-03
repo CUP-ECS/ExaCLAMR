@@ -31,9 +31,9 @@ struct MeshInitFunc
 	if ( 0.375 <= x[0] && x[0] <= 0.625 &&
              0.375 <= x[1] && x[1] <= 0.625 )
 	{
-		height = 50.0;
+		height = 2.0;
 	} else {
-		height = 0.0;
+		height = 1.0;
 	}
 
         return true;
@@ -84,6 +84,10 @@ int main( int argc, char* argv[] ) {
     MPI_Init( &argc, &argv );
     Kokkos::initialize( argc, argv );
 
+    int comm_size, rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &comm_size );
+    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+
     std::string device = "serial";
 
     double hx = 1.0, hy = 1.0, hz = 1.0;
@@ -93,9 +97,9 @@ int main( int argc, char* argv[] ) {
     std::array<int, 3> global_num_cells = { nx, ny, nz };
 
     int halo_size = 2;
-    double dt = 0.1;
+    double dt = 0.01;
     double gravity = 9.81;
-    double t_final = 0.30;
+    double t_final = 0.1;
     int write_freq = 1;
 
     clamr( device,
@@ -107,30 +111,32 @@ int main( int argc, char* argv[] ) {
             t_final, 
             write_freq );
 
+    #ifdef HAVE_SILO
+        if ( rank == 0 ) {
+            DBfile *silo_file;
+            int		   driver = DB_PDB;
+
+            DBShowErrors( DB_TOP, NULL );
+            DBForceSingle( 1 );
+
+            std::string s = "test.pdb";
+            const char * filename = s.c_str();
+
+            printf("Creating file: `%s'\n", filename);
+            silo_file = DBCreate(filename, 0, DB_LOCAL, "Compound Array Test", driver);
+
+            int sleepsecs = 10;
+            int i = 1;
+
+            if (sleepsecs)
+                DBWrite (silo_file, "sleepsecs", &sleepsecs, &i, 1, DB_INT);
+
+            DBClose(silo_file);
+        }
+    #endif
+
     Kokkos::finalize();
     MPI_Finalize();
-
-    #ifdef HAVE_SILO
-        DBfile *silo_file;
-        int		   driver = DB_PDB;
-
-        DBShowErrors( DB_TOP, NULL );
-        DBForceSingle( 1 );
-
-        std::string s = "test.pdb";
-        const char * filename = s.c_str();
-
-        printf("Creating file: `%s'\n", filename);
-        silo_file = DBCreate(filename, 0, DB_LOCAL, "Compound Array Test", driver);
-
-        int sleepsecs = 10;
-        int i = 1;
-
-        if (sleepsecs)
-            DBWrite (silo_file, "sleepsecs", &sleepsecs, &i, 1, DB_INT);
-
-        DBClose(silo_file);
-    #endif
 
     return 0;
 }
