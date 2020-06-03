@@ -4,6 +4,10 @@ Description: Finite-Difference Solver of the Shallow Water Equations on a Regula
 Date: May 26, 2020
 */
 
+#ifdef HAVE_SILO
+    #include <silo.h>
+#endif
+
 #include <Solver.hpp>
 
 #include <Cajita.hpp>
@@ -12,6 +16,7 @@ Date: May 26, 2020
 
 #include <mpi.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <array>
 
 struct MeshInitFunc
@@ -104,6 +109,28 @@ int main( int argc, char* argv[] ) {
 
     Kokkos::finalize();
     MPI_Finalize();
+
+    #ifdef HAVE_SILO
+        DBfile *silo_file;
+        int		   driver = DB_PDB;
+
+        DBShowErrors( DB_TOP, NULL );
+        DBForceSingle( 1 );
+
+        std::string s = "test.pdb";
+        const char * filename = s.c_str();
+
+        printf("Creating file: `%s'\n", filename);
+        silo_file = DBCreate(filename, 0, DB_LOCAL, "Compound Array Test", driver);
+
+        int sleepsecs = 10;
+        int i = 1;
+
+        if (sleepsecs)
+            DBWrite (silo_file, "sleepsecs", &sleepsecs, &i, 1, DB_INT);
+
+        DBClose(silo_file);
+    #endif
 
     return 0;
 }

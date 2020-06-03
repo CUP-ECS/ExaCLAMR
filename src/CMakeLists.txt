@@ -11,11 +11,20 @@ set(SOURCES
 
 add_library(exaclamr ${SOURCES})
 
-target_link_libraries(exaclamr
-  Kokkos::kokkos
-  MPI::MPI_CXX
-  Cabana::cabanacore
-  Cajita::Cajita )
+if (SILO)
+  target_link_libraries(exaclamr
+    Kokkos::kokkos
+    MPI::MPI_CXX
+    Cabana::cabanacore
+    Cajita::Cajita
+    ${SILO} )
+else ()
+  target_link_libraries(exaclamr
+    Kokkos::kokkos
+    MPI::MPI_CXX
+    Cabana::cabanacore
+    Cajita::Cajita )
+endif()
 
 target_include_directories(exaclamr
   PUBLIC
