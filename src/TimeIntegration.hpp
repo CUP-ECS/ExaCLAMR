@@ -188,8 +188,6 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
     using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-    applyBoundaryConditions( pm, exec_space);
-
     double dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
     double dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
     double ghalf = 0.5 * gravity;
@@ -209,6 +207,8 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         a = 1;
         b = 0;
     }
+
+    applyBoundaryConditions( pm, exec_space );
 
     auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), a );
     auto hCurrent = pm.get( Location::Cell(), Field::Height(), a );
@@ -255,17 +255,25 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
             state_t UxMinus = 0.5 * ( ( uCurrent( i - 1, j, k, 0 ) + uCurrent( i, j, k, 0 ) ) - ( dt ) / ( dx ) * ( ( UXRGFLUXIC ) - ( UXRGFLUXNL ) ) );
             state_t VxMinus = 0.5 * ( ( uCurrent( i - 1, j, k, 1 ) + uCurrent( i, j, k, 1 ) ) - ( dt ) / ( dx ) * ( ( VXRGFLUXIC ) - ( VXRGFLUXNL ) ) );
 
+            printf( "%-10s: %-.4f\t%-10s: %.4f\t%-10s: %.3f\ti: %d\tj:%d\tk: %d\n",  "HxMinus", HxMinus, "UxMinus", UxMinus, "VxMinus", VxMinus, i, j, k );
+
             state_t HxPlus  = 0.5 * ( ( hCurrent( i, j, k, 0 ) + hCurrent( i + 1, j, k, 0 ) ) - ( dt ) / ( dx ) * ( ( HXRGFLUXNR ) - ( HXRGFLUXIC ) ) );
             state_t UxPlus  = 0.5 * ( ( uCurrent( i, j, k, 0 ) + uCurrent( i + 1, j, k, 0 ) ) - ( dt ) / ( dx ) * ( ( UXRGFLUXNR ) - ( UXRGFLUXIC ) ) );
             state_t VxPlus  = 0.5 * ( ( uCurrent( i, j, k, 1 ) + uCurrent( i + 1, j, k, 1 ) ) - ( dt ) / ( dx ) * ( ( VXRGFLUXNR ) - ( VXRGFLUXIC ) ) );
+
+            printf( "%-10s: %-.4f\t%-10s: %.4f\t%-10s: %.3f\ti: %d\tj:%d\tk: %d\n",  "HxPlus", HxPlus, "UxPlus", UxPlus, "VxPlus", VxPlus, i, j, k );
 
             state_t HyMinus = 0.5 * ( ( hCurrent( i, j - 1, k, 0 ) + hCurrent( i, j, k, 0 ) ) - ( dt ) / ( dy ) * ( ( HYRGFLUXIC ) - ( HYRGFLUXNB ) ) );
             state_t UyMinus = 0.5 * ( ( uCurrent( i, j - 1, k, 0 ) + uCurrent( i, j, k, 0 ) ) - ( dt ) / ( dy ) * ( ( UYRGFLUXIC ) - ( UYRGFLUXNB ) ) );
             state_t VyMinus = 0.5 * ( ( uCurrent( i, j - 1, k, 1 ) + uCurrent( i, j, k, 1 ) ) - ( dt ) / ( dy ) * ( ( VYRGFLUXIC ) - ( VYRGFLUXNB ) ) );
 
+            printf( "%-10s: %-.4f\t%-10s: %.4f\t%-10s: %.3f\ti: %d\tj:%d\tk: %d\n",  "HxPlus", HxPlus, "UxPlus", UxPlus, "VxPlus", VxPlus, i, j, k );
+
             state_t HyPlus  = 0.5 * ( ( hCurrent( i, j, k, 0 ) + hCurrent( i, j + 1, k, 0 ) ) - ( dt ) / ( dy ) * ( ( HYRGFLUXNT ) - ( HYRGFLUXIC ) ) );
             state_t UyPlus  = 0.5 * ( ( uCurrent( i, j, k, 0 ) + uCurrent( i, j + 1, k, 0 ) ) - ( dt ) / ( dy ) * ( ( UYRGFLUXNT ) - ( UYRGFLUXIC ) ) );
             state_t VyPlus  = 0.5 * ( ( uCurrent( i, j, k, 1 ) + uCurrent( i, j + 1, k, 1 ) ) - ( dt ) / ( dy ) * ( ( VYRGFLUXNT ) - ( VYRGFLUXIC ) ) );
+
+            printf( "%-10s: %-.4f\t%-10s: %.4f\t%-10s: %.3f\ti: %d\tj:%d\tk: %d\n",  "HxPlus", HxPlus, "UxPlus", UxPlus, "VxPlus", VxPlus, i, j, k );
 
             HxFluxMinus( i, j, k, 0 ) = UxMinus;
             UxFluxMinus( i, j, k, 0 ) = ( sqrt( UxMinus ) / HxMinus + ghalf * sqrt( HxMinus ) );

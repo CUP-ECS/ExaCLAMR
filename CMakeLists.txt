@@ -21,10 +21,10 @@ endif()
 
 find_package(MPI REQUIRED)
 find_package(Kokkos 3 REQUIRED)
-find_package(Cabana REQUIRED)
-find_package(Cajita REQUIRED)
+find_package(Cabana REQUIRED COMPONENTS Cabana::Cajita Cabana::cabanacore)
 
 include_directories(include)
+
 add_subdirectory(src)
 
 add_subdirectory(examples)

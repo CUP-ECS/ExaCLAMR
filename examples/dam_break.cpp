@@ -28,8 +28,8 @@ struct MeshInitFunc
     bool operator()( const state_t x[3], state_t velocity[2], state_t &height ) const {
 	velocity[0] = 0.0;
 	velocity[1] = 0.0;
-	if ( 0.375 <= x[0] && x[0] <= 0.625 &&
-             0.375 <= x[1] && x[1] <= 0.625 )
+	if ( 0.25 <= x[0] && x[0] <= 0.75 &&
+             0.25 <= x[1] && x[1] <= 0.75 )
 	{
 		height = 2.0;
 	} else {
@@ -97,9 +97,9 @@ int main( int argc, char* argv[] ) {
     std::array<int, 3> global_num_cells = { nx, ny, nz };
 
     int halo_size = 2;
-    double dt = 0.01;
+    double dt = 0.05;
     double gravity = 9.81;
-    double t_final = 0.1;
+    double t_final = 0.05;
     int write_freq = 1;
 
     clamr( device,
