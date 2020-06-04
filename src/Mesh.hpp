@@ -10,7 +10,7 @@
 
 namespace ExaCLAMR
 {
-template<class MemorySpace>
+template<class MemorySpace, class ExecutionSpace>
 class Mesh
 {
     public:
@@ -20,9 +20,12 @@ class Mesh
                 const std::array<bool, 3>& periodic,
                 const Cajita::Partitioner& partitioner, 
                 const int halo_width, 
-                MPI_Comm comm ) :
+                MPI_Comm comm,
+                const ExecutionSpace& exec_space ) :
                 _global_bounding_box ( global_bounding_box )
         {
+            using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
+
             MPI_Comm_rank( comm, &_rank );
 
             // 2-D Mesh for now
@@ -30,11 +33,6 @@ class Mesh
             num_cell[0] = global_num_cell[0];
             num_cell[1] = global_num_cell[1];
             num_cell[2] = 1;
-
-            for (int dim = 0; dim < 3; ++dim ) {
-                _min_domain_global_node_index[dim] = 0;
-                _max_domain_global_node_index[dim] = num_cell[dim] + 1;
-            }
 
             std::array<double, 6> bounding_box;
             bounding_box[0] = global_bounding_box[0];
@@ -73,8 +71,6 @@ class Mesh
                     global_low_corner[dim] -= cell_size[dim] * halo_width;
                     global_high_corner[dim] += cell_size[dim] * halo_width;
                     num_cell[dim] += 2 * halo_width;
-                    _min_domain_global_node_index[dim] += halo_width;
-                    _max_domain_global_node_index[dim] -= halo_width;
                 }
             }
 
@@ -88,19 +84,33 @@ class Mesh
 
             _local_grid = Cajita::createLocalGrid( global_grid, halo_width );
 
+            auto local_mesh = Cajita::createLocalMesh<device_type>( *_local_grid );
 
-        }
+            auto owned_cells = _local_grid->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
+
+            _domainMin = { num_cell[0], num_cell[1], num_cell[2] };
+            _domainMax = { 0, 0, 0 };
+            
+
+            Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+                int coords[3] = { i, j, k };
+                double x[3];
+                local_mesh.coordinates( Cajita::Cell(), coords, x );
+
+                if ( x[0] >= global_bounding_box[0] && x[1] >= global_bounding_box[1] && x[2] >= global_bounding_box[2] 
+                && x[0] <= global_bounding_box[3] && x[1] <= global_bounding_box[4] && x[2] <= global_bounding_box[5] ) {
+                    _domainMin[0] = ( i < _domainMin[0] ) ? i : _domainMin[0];
+                    _domainMin[1] = ( j < _domainMin[1] ) ? j : _domainMin[1];
+                    _domainMin[2] = ( k < _domainMin[2] ) ? k : _domainMin[2];
+                    _domainMax[0] = ( i + 1 > _domainMax[0] ) ? i + 1 : _domainMax[0];
+                    _domainMax[1] = ( j + 1 > _domainMax[1] ) ? j + 1 : _domainMax[1];
+                    _domainMax[2] = ( k + 1 > _domainMax[2] ) ? k + 1 : _domainMax[2];
+                }
+            } );
+        };
 
         double cellSize() const {
             return _local_grid->globalGrid().globalMesh().cellSize( 0 );
-        };
-
-        std::array<int, 3> minDomainGlobalNodeIndex() const {
-            return _min_domain_global_node_index;
-        };
-
-        std::array<int, 3> maxDomainGlobalNodeIndex() const {
-            return _max_domain_global_node_index;
         };
 
         const std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>>& localGrid() const {
@@ -109,19 +119,22 @@ class Mesh
 
         const std::array<double, 6> globalBoundingBox() const {
             return _global_bounding_box;
-        }
+        };
 
         int rank() const {
             return _rank;
-        }
+        };
+
+        const Cajita::IndexSpace<3> domainSpace() const {
+            return Cajita::IndexSpace<3>( _domainMin, _domainMax );
+        };
 
     private:
         int _rank;
         std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> _local_grid;
-
+        std::array<long, 3> _domainMin;
+        std::array<long, 3> _domainMax;
         const std::array<double, 6> _global_bounding_box;
-        std::array<int, 3> _min_domain_global_node_index;
-        std::array<int, 3> _max_domain_global_node_index;
 };
 
 }

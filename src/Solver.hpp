@@ -61,14 +61,16 @@ class Solver : public SolverBase
 
             if ( _rank == 0 ) printf( "Created Solver\n" );
 
-            _mesh = std::make_shared<Mesh<MemorySpace>> ( global_bounding_box, 
+            _mesh = std::make_shared<Mesh<MemorySpace, ExecutionSpace>> ( global_bounding_box, 
                                             global_num_cell, 
                                             periodic, 
                                             partitioner, 
                                             halo_size, 
-                                            comm );
+                                            comm,
+                                            ExecutionSpace()
+                                            );
                 
-            _pm = std::make_shared<ProblemManager<MemorySpace, double>>( _mesh, create_functor, ExecutionSpace() );
+            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, double>>( _mesh, create_functor, ExecutionSpace() );
 
             MPI_Barrier( MPI_COMM_WORLD );
         };
@@ -132,8 +134,8 @@ class Solver : public SolverBase
         double _gravity;
         int _halo_size;
         int _rank;
-        std::shared_ptr<Mesh<MemorySpace>> _mesh;
-        std::shared_ptr<ProblemManager<MemorySpace, double>> _pm;
+        std::shared_ptr<Mesh<MemorySpace, ExecutionSpace>> _mesh;
+        std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, double>> _pm;
 };
 
 template<class InitFunc>

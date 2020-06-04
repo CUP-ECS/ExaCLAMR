@@ -43,7 +43,7 @@ struct UWPlus {};
 struct UWMinus {};
 }
 
-template<class MemorySpace, class state_t>
+template<class MemorySpace, class ExecutionSpace, class state_t>
 class ProblemManager
 {
 #if 0
@@ -57,8 +57,8 @@ class ProblemManager
 
     public:
 
-        template<class InitFunc, class ExecutionSpace>
-        ProblemManager( const std::shared_ptr<Mesh<MemorySpace>>& mesh, const InitFunc& create_functor, const ExecutionSpace& exec_space ) 
+        template<class InitFunc>
+        ProblemManager( const std::shared_ptr<Mesh<MemorySpace, ExecutionSpace>>& mesh, const InitFunc& create_functor, const ExecutionSpace& exec_space ) 
         : _mesh ( mesh )
         {
             auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );
@@ -112,7 +112,7 @@ class ProblemManager
 
         };
 
-        template<class InitFunctor, class ExecutionSpace>
+        template<class InitFunctor>
         void initialize( const InitFunctor& create_functor, const ExecutionSpace& exec_space ) {
             if ( _mesh->rank() == 0 ) printf( "Initializing Cell Fields\n" );
 
@@ -186,7 +186,7 @@ class ProblemManager
 
         };
 
-        const std::shared_ptr<Mesh<MemorySpace>>& mesh() const {
+        const std::shared_ptr<Mesh<MemorySpace, ExecutionSpace>>& mesh() const {
             return _mesh;
         };
 
@@ -280,7 +280,7 @@ class ProblemManager
 #if 0
         Cabana::AoSoA<cell_members, MemorySpace> _cells;
 #endif
-        std::shared_ptr<Mesh<MemorySpace>> _mesh;
+        std::shared_ptr<Mesh<MemorySpace, ExecutionSpace>> _mesh;
         std::shared_ptr<cell_array> _velocityA;
         std::shared_ptr<cell_array> _heightA;
         std::shared_ptr<cell_array> _velocityB;
