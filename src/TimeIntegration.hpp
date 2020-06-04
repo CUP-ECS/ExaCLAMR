@@ -28,16 +28,17 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
     auto owned_cells = local_grid->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
     auto global_bounding_box = pm.mesh()->globalBoundingBox();
 
+    auto domain = pm.mesh()->domainSpace();
+
     Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
         int coords[3] = { i, j, k };
         state_t x[3];
         local_mesh.coordinates( Cajita::Cell(), coords, x );
 
-        if ( x[0] < global_bounding_box[0] || x[1] < global_bounding_box[1] || x[2] < global_bounding_box[2] 
-        || x[0] > global_bounding_box[3] || x[1] > global_bounding_box[4] || x[2] > global_bounding_box[5] ) {
-            // printf("i: %d\tj: %d\tk: %d\n", i, j, k);
-
-        }
+        if ( j == domain.min( 1 ) - 1 && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) printf("Rank: %d\tLeft Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+        if ( j == domain.max( 1 ) && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) printf("Rank: %d\tRight Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+        if ( i == domain.max( 0 ) && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) printf("Rank: %d\tBottom Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+        if ( i == domain.min( 0 ) - 1 && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) printf("Rank: %d\tTop Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
     } );
 }
 
@@ -118,12 +119,6 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     double dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
     double ghalf = 0.5 * gravity;
 
-    auto local_grid = pm.mesh()->localGrid();
-    auto local_mesh = Cajita::createLocalMesh<device_type>( *local_grid );
-
-    auto owned_cells = local_grid->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
-    auto global_bounding_box = pm.mesh()->globalBoundingBox();
-
     int a, b;
     if ( tstep % 2 == 0 ) {
         a = 0;
@@ -163,11 +158,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     auto domain = pm.mesh()->domainSpace();
     printf("Domain: %ld\t%ld\t%ld\t%ld\t%ld\t%ld\n", domain.min( 0 ), domain.min( 1 ), domain.min( 2 ), domain.max( 0 ), domain.max( 1 ), domain.max( 2 ));
 
-    Kokkos::parallel_for( Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-        int coords[3] = { i, j, k };
-        state_t x[3];
-        local_mesh.coordinates( Cajita::Cell(), coords, x );
-            
+    Kokkos::parallel_for( Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {            
         /*
         printf( "Rank: %d\tx: %.4f\ty: %.4f\tz: %.4f\n", pm.mesh()->rank(), x[0], x[1], x[2] );
         printf( "Rank: %d\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k );
