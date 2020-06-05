@@ -136,23 +136,35 @@ class ProblemManager
 	        auto hB = get(Location::Cell(), Field::Height(), 1 );
 
             Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( ghost_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+                /*
                 int i_own = i - owned_cells.min( Cajita::Dim::I );
                 int j_own = j - owned_cells.min( Cajita::Dim::J );
                 int k_own = k - owned_cells.min( Cajita::Dim::K );
+                */
 
                 /*
                 printf("Rank: %d\tExtent: %d, %d, %d\n", _mesh->rank(), owned_cells.extent(0), owned_cells.extent(1), owned_cells.extent(2));
                 printf( "Rank: %d\ti: %d\tj: %d\tk: %d\tiown: %d\tjown: %d\tkown: %d\n", _mesh->rank(), i, j, k, i_own, j_own, k_own);
                 */
                 
+                std::array<double, 6> boundingBox = _mesh->globalBoundingBox();
+                
+                state_t center[3] = { (boundingBox[3] - boundingBox[0]) / 2, ( boundingBox[4] - boundingBox[1] ) / 2, ( boundingBox[5] - boundingBox[2] ) / 2 };
+                // printf( "Center x: %.4f\t Center y: %.4f\tCenter z: %.4f\n", center[0], center[1], center[2] );
+
                 int coords[3] = { i, j, k };
                 state_t x[3];
+
                 local_mesh.coordinates( Cajita::Cell(), coords, x );
+
+                state_t r_dist = sqrt( pow( x[0] - center[0], 2 ) + pow( x[1] - center[1], 2 ) + pow( x[2] - center[2], 2 ) );
+
+                // printf( "x: %.4f\ty: %.4f\tz: %.4f\trDist: %.4f\n", x[0], x[1], x[2], r_dist );
 
                 state_t velocity[2];
                 state_t height;
 
-                create_functor(x, velocity, height);
+                create_functor(r_dist, velocity, height);
 
                 /*
                 printf( "Rank: %d\ti: %d\tj: %d\tk: %d\t x: %.4f\ty: %.4f\tz: %.4f\tvx: %.4f\tvy: %.4f\th: %.4f\n", \
