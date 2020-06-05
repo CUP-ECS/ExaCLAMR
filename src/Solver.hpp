@@ -32,7 +32,7 @@ class SolverBase
 {
     public:
         virtual ~SolverBase() = default;
-        virtual void solve( const double t_final, const int write_freq ) = 0;
+        virtual void solve( const int write_freq ) = 0;
 };
 
 template<class MemorySpace, class ExecutionSpace>
@@ -53,9 +53,9 @@ class Solver : public SolverBase
                 const std::array<bool, 3>& periodic,
                 const Cajita::Partitioner& partitioner,
                 const int halo_size, 
-                const double dt, 
+                const double t_steps, 
                 const double gravity )
-        : _halo_size ( halo_size ), _dt ( dt ), _gravity ( gravity )
+        : _halo_size ( halo_size ), _tsteps ( t_steps ), _gravity ( gravity )
         {
             MPI_Comm_rank( comm, &_rank );
 
@@ -87,27 +87,34 @@ class Solver : public SolverBase
             }
 
             auto owned_cells = _pm->mesh()->localGrid()->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
+            auto domain = _pm->mesh()->domainSpace();
 
             auto uNew = _pm->get( Location::Cell(), Field::Velocity(), b );
             auto hNew = _pm->get( Location::Cell(), Field::Height(), b );
 
+            double summedHeight = 0;
             if ( _pm->mesh()->rank() == rank ) {
-                for ( int i = owned_cells.min( 0 ); i < owned_cells.max( 0 ); i++ ) {
-                    for ( int j = owned_cells.min( 1 ); j < owned_cells.max( 1 ); j++ ) {
-                        for ( int k = owned_cells.min( 2 ); k < owned_cells.max( 2 ); k++ ) {
-                            printf( "%.4f\t", hNew( i, j, k, 0 ) );
+                for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
+                    for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
+                        for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
+                            printf( "%-8.4f\t", hNew( i, j, k, 0 ) );
+                            summedHeight += hNew( i, j, k, 0 );
                         }
                     }
                     printf("\n");
                 }
-            }
-        }
 
-        void solve( const double t_final, const int write_freq ) override {
+                // Proxy Mass Conservation
+                printf( "Summed Height: %.4f\n", summedHeight );
+            }
+        };
+
+        void solve( const int write_freq ) override {
             if ( _rank == 0 ) printf( "Solving!\n" );
 
-            int nt = round( t_final / _dt );
+            int nt = _tsteps;
             double current_time = 0.0;
+            int a, b;
 
             if (_rank == 0 ) {
                 printf( "Current Time: %.4f\n", current_time );
@@ -115,9 +122,22 @@ class Solver : public SolverBase
             }
 
             for (int t = 1; t <= nt; t++) {
+                if ( t % 2 == 0 ) {
+                    a = 0;
+                    b = 1;
+                }
+                else {
+                    a = 1;
+                    b = 0;
+                }
 
-                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _dt, _gravity, t );
-                current_time += _dt;
+                double dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), MemorySpace(), _gravity, 0.95, 0, 1 );
+
+                double mindt;
+                MPI_Allreduce( &dt, &mindt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );
+
+                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), mindt, _gravity, a, b );
+                current_time += mindt;
 
                 if ( 0 == t % write_freq ) {
                     if ( 0 == _rank ) printf( "Current Time: %.4f\n", current_time );
@@ -131,7 +151,7 @@ class Solver : public SolverBase
 
     private:
 
-        double _dt;
+        double _tsteps;
         double _gravity;
         int _halo_size;
         int _rank;
@@ -148,7 +168,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                                             const std::array<bool, 3>& periodic,
                                             const Cajita::Partitioner& partitioner, 
                                             const int halo_size, 
-                                            const double dt, 
+                                            const double t_steps, 
                                             const double gravity ) 
 {
     if ( 0 == device.compare( "serial" ) ){
@@ -161,7 +181,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 periodic,
                 partitioner,
                 halo_size, 
-                dt, 
+                t_steps, 
                 gravity );
         #else
             throw std::runtime_Error( "Serial Backend Not Enabled" );
@@ -177,7 +197,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 periodic,
                 partitioner,
                 halo_size, 
-                dt, 
+                t_steps, 
                 gravity );
         #else
             throw std::runtime_Error( "OpenMP Backend Not Enabled" );

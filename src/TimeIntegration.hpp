@@ -36,33 +36,52 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         local_mesh.coordinates( Cajita::Cell(), coords, x );
 
         if ( j == domain.min( 1 ) - 1 && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) {
-            printf("Rank: %d\tLeft Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
-            hNew( i, j, k, 0 ) = hNew( i, j + 1, k, 0 );
-            uNew( i, j, k, 0 ) = -uNew( i, j + 1, k, 0 );
-            uNew( i, j, k, 1 ) = uNew( i, j + 1, k, 1 );
+            // printf("Rank: %d\tLeft Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+            hCurrent( i, j, k, 0 ) = hCurrent( i, j + 1, k, 0 );
+            uCurrent( i, j, k, 0 ) = uCurrent( i, j + 1, k, 0 );
+            uCurrent( i, j, k, 1 ) = -uCurrent( i, j + 1, k, 1 );
+
+            hCurrent( i, j - 1, k, 0 ) = hCurrent( i, j, k, 0 );
+            uCurrent( i, j - 1, k, 0 ) = uCurrent( i, j, k, 0 );
+            uCurrent( i, j - 1, k, 1 ) = uCurrent( i, j, k, 1 );
         }
         
         if ( j == domain.max( 1 ) && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) {
-            printf("Rank: %d\tRight Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
-            hNew( i, j, k, 0 ) = hNew( i, j - 1, k, 0 );
-            uNew( i, j, k, 0 ) = -uNew( i, j - 1, k, 0 );
-            uNew( i, j, k, 1 ) = uNew( i, j - 1, k, 1 );
+            // printf("Rank: %d\tRight Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+            hCurrent( i, j, k, 0 ) = hCurrent( i, j - 1, k, 0 );
+            uCurrent( i, j, k, 0 ) = uCurrent( i, j - 1, k, 0 );
+            uCurrent( i, j, k, 1 ) = -uCurrent( i, j - 1, k, 1 );
+
+            hCurrent( i, j + 1, k, 0 ) = hCurrent( i, j, k, 0 );
+            uCurrent( i, j + 1, k, 0 ) = uCurrent( i, j, k, 0 );
+            uCurrent( i, j + 1, k, 1 ) = uCurrent( i, j, k, 1 );
         }
 
         if ( i == domain.max( 0 ) && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) {
-            printf("Rank: %d\tBottom Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
-            hNew( i, j, k, 0 ) = hNew( i + 1, j, k, 0 );
-            uNew( i, j, k, 0 ) = uNew( i + 1, j, k, 0 );
-            uNew( i, j, k, 1 ) = -uNew( i + 1, j, k, 1 );
+            // printf("Rank: %d\tBottom Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+            hCurrent( i, j, k, 0 ) = hCurrent( i - 1, j, k, 0 );
+            uCurrent( i, j, k, 0 ) = -uCurrent( i - 1, j, k, 0 );
+            uCurrent( i, j, k, 1 ) = uCurrent( i - 1, j, k, 1 );
+
+            hCurrent( i + 1, j, k, 0 ) = hCurrent( i, j, k, 0 );
+            uCurrent( i + 1, j, k, 0 ) = uCurrent( i, j, k, 0 );
+            uCurrent( i + 1, j, k, 1 ) = uCurrent( i, j, k, 1 );
         }
 
         if ( i == domain.min( 0 ) - 1 && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) {
-            printf("Rank: %d\tTop Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
-            hNew( i, j, k, 0 ) = hNew( i - 1, j, k, 0 );
-            uNew( i, j, k, 0 ) = uNew( i - 1, j, k, 0 );
-            uNew( i, j, k, 1 ) = -uNew( i - 1, j, k, 1 );
+            // printf("Rank: %d\tTop Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+            hCurrent( i, j, k, 0 ) = hCurrent( i + 1, j, k, 0 );
+            uCurrent( i, j, k, 0 ) = -uCurrent( i + 1, j, k, 0 );
+            uCurrent( i, j, k, 1 ) = uCurrent( i + 1, j, k, 1 );
+
+            hCurrent( i - 1, j, k, 0 ) = hCurrent( i, j, k, 0 );
+            uCurrent( i - 1, j, k, 0 ) = uCurrent( i, j, k, 0 );
+            uCurrent( i - 1, j, k, 1 ) = uCurrent( i, j, k, 1 );
         }
     } );
+
+    MPI_Barrier( MPI_COMM_WORLD );
+
 }
 
 template<class ProblemManagerType>
@@ -75,8 +94,34 @@ void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
     MPI_Barrier( MPI_COMM_WORLD );
 }
 
-double setTimeStep( const double gravity, const double sigma ) {
-    return 0.0;
+template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
+state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const state_t sigma, const int a, const int b ) {
+
+    auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), a );
+    auto hCurrent = pm.get( Location::Cell(), Field::Height(), a );
+
+    auto uNew = pm.get( Location::Cell(), Field::Velocity(), b );
+    auto hNew = pm.get( Location::Cell(), Field::Height(), b );
+
+    auto domain = pm.mesh()->domainSpace();
+
+    state_t mymindeltaT;
+
+    Kokkos::parallel_reduce( Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k, state_t& lmin ) {
+        state_t wavespeed = sqrt( gravity * hCurrent( i, j, k, 0 ) );
+        state_t xspeed = ( fabs( uCurrent( i, j, k, 0 ) + wavespeed ) );
+        state_t yspeed = ( fabs( uCurrent( i, j, k, 1 ) + wavespeed ) );
+
+        state_t deltaT = sigma / ( xspeed + yspeed );
+
+        // printf( "Wavespeed: %.4f\txspeed: %.4f\tyspeed: %.4f\tdt: %.4f\n", wavespeed, xspeed, yspeed, deltaT );
+
+        if ( deltaT < lmin ) lmin = deltaT;
+    }, Kokkos::Min<state_t>( mymindeltaT ) );
+
+    // printf( "dt: %.4f\n", mymindeltaT );
+
+    return mymindeltaT;
 }
 
 #define POW2( x ) ( ( x ) * ( x ) )
@@ -135,7 +180,7 @@ inline state_t uFullStep( state_t dt, state_t dr, state_t U, state_t FPlus, stat
 }
 
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
-void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t dt, const state_t gravity, const int tstep ) {
+void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t dt, const state_t gravity, const int a, const int b ) {
     if ( pm.mesh()->rank() == 0 ) printf( "Time Stepper\n" );
 
     using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
@@ -143,16 +188,6 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     double dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
     double dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
     double ghalf = 0.5 * gravity;
-
-    int a, b;
-    if ( tstep % 2 == 0 ) {
-        a = 0;
-        b = 1;
-    }
-    else {
-        a = 1;
-        b = 0;
-    }
 
     applyBoundaryConditions( pm, exec_space, mem_space, gravity, a, b );
 
@@ -183,8 +218,8 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     auto domainSpace = pm.mesh()->domainSpace();
     auto calcSpace = pm.mesh()->calcSpace();
 
-    printf("DomainSpace: %ld\t%ld\t%ld\t%ld\t%ld\t%ld\n", domainSpace.min( 0 ), domainSpace.min( 1 ), domainSpace.min( 2 ), domainSpace.max( 0 ), domainSpace.max( 1 ), domainSpace.max( 2 ));
-    printf("CalcSpace: %ld\t%ld\t%ld\t%ld\t%ld\t%ld\n", calcSpace.min( 0 ), calcSpace.min( 1 ), calcSpace.min( 2 ), calcSpace.max( 0 ), calcSpace.max( 1 ), calcSpace.max( 2 ));
+    // printf("DomainSpace: %ld\t%ld\t%ld\t%ld\t%ld\t%ld\n", domainSpace.min( 0 ), domainSpace.min( 1 ), domainSpace.min( 2 ), domainSpace.max( 0 ), domainSpace.max( 1 ), domainSpace.max( 2 ));
+    // printf("CalcSpace: %ld\t%ld\t%ld\t%ld\t%ld\t%ld\n", calcSpace.min( 0 ), calcSpace.min( 1 ), calcSpace.min( 2 ), calcSpace.max( 0 ), calcSpace.max( 1 ), calcSpace.max( 2 ));
 
     Kokkos::parallel_for( Cajita::createExecutionPolicy( domainSpace, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {            
         /*

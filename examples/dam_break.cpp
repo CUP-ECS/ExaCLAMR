@@ -32,7 +32,7 @@ struct MeshInitFunc
              1 <= x[1] && x[1] <= 3 )
         {
             height = 19.28077;
-            printf("x: %.4f\ty: %.4f\tz: %.4f\n", x[0], x[1], x[2]);
+            // printf("x: %.4f\ty: %.4f\tz: %.4f\n", x[0], x[1], x[2]);
         } else {
             height = 10.0;
         }
@@ -46,9 +46,8 @@ void clamr( const std::string& device,
             const std::array<double, 6>& global_bounding_box, 
             const std::array<int, 3>& global_num_cells, 
             const int halo_size, 
-            const double dt, 
             const double gravity, 
-            const double t_final, 
+            const double t_steps, 
             const int write_freq) {
 
     int comm_size, rank;
@@ -57,7 +56,7 @@ void clamr( const std::string& device,
 
     if ( rank == 0 ) {
         printf( "CLAMR\n" );
-        printf( "Nx: %d\tNy: %d\tNz: %d\tHalo Size: %d\t dt: %.4f\tGravity: %.4f\n", global_num_cells[0], global_num_cells[1], global_num_cells[2], halo_size, dt, gravity );
+        printf( "Nx: %d\tNy: %d\tNz: %d\tHalo Size: %d\t timesteps: %.4f\tGravity: %.4f\n", global_num_cells[0], global_num_cells[1], global_num_cells[2], halo_size, t_steps, gravity );
     }
 
     std::array<bool, 3> periodic = { false, false, false };
@@ -73,10 +72,10 @@ void clamr( const std::string& device,
                                             periodic,
                                             partitioner, 
                                             halo_size, 
-                                            dt, 
+                                            t_steps, 
                                             gravity );
 
-    solver->solve( t_final, write_freq );
+    solver->solve( write_freq );
 
 }
 
@@ -94,22 +93,20 @@ int main( int argc, char* argv[] ) {
     double hx = 4.0, hy = 4.0, hz = 4.0;
     std::array<double, 6> global_bounding_box = { 0, 0, 0, hx, hy, hz };
 
-    int nx = 4, ny = 4, nz = 1;
+    int nx = 12, ny = 12, nz = 1;
     std::array<int, 3> global_num_cells = { nx, ny, nz };
 
     int halo_size = 2;
-    double dt = 0.034556;
     double gravity = 9.81;
-    double t_final = 0.034556;
+    int t_steps = 20;
     int write_freq = 1;
 
     clamr( device,
             global_bounding_box, 
             global_num_cells, 
             halo_size,
-            dt, 
             gravity, 
-            t_final, 
+            t_steps, 
             write_freq );
 
     #ifdef HAVE_SILO
