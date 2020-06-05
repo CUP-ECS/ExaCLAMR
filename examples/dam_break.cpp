@@ -28,13 +28,14 @@ struct MeshInitFunc
     bool operator()( const state_t x[3], state_t velocity[2], state_t &height ) const {
 	velocity[0] = 0.0;
 	velocity[1] = 0.0;
-	if ( 0.25 <= x[0] && x[0] <= 0.75 &&
-             0.25 <= x[1] && x[1] <= 0.75 )
-	{
-		height = 2.0;
-	} else {
-		height = 1.0;
-	}
+	if ( 1 <= x[0] && x[0] <= 3 &&
+             1 <= x[1] && x[1] <= 3 )
+        {
+            height = 19.28077;
+            printf("x: %.4f\ty: %.4f\tz: %.4f\n", x[0], x[1], x[2]);
+        } else {
+            height = 10.0;
+        }
 
         return true;
     }
@@ -90,16 +91,16 @@ int main( int argc, char* argv[] ) {
 
     std::string device = "serial";
 
-    double hx = 1.0, hy = 1.0, hz = 1.0;
+    double hx = 4.0, hy = 4.0, hz = 4.0;
     std::array<double, 6> global_bounding_box = { 0, 0, 0, hx, hy, hz };
 
     int nx = 4, ny = 4, nz = 1;
     std::array<int, 3> global_num_cells = { nx, ny, nz };
 
     int halo_size = 2;
-    double dt = 0.05;
+    double dt = 0.034556;
     double gravity = 9.81;
-    double t_final = 0.1;
+    double t_final = 0.034556;
     int write_freq = 1;
 
     clamr( device,

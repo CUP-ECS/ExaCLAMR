@@ -129,6 +129,26 @@ class Mesh
             return Cajita::IndexSpace<3>( _domainMin, _domainMax );
         };
 
+        const Cajita::IndexSpace<3> calcSpace() const {
+            std::array<long, 3> calcMin = { _domainMin[0] + 1 , _domainMin[1] + 1 , _domainMin[2] + 1 };
+            std::array<long, 3> calcMax = { _domainMax[0] - 1, _domainMax[1] - 1, _domainMax[2] - 1 };
+
+            if (_domainMax[0] != 1) {
+                calcMin[0] = _domainMin[0] + 1;
+                calcMax[0] = _domainMax[0] - 1;
+            }
+            if (_domainMax[1] != 1) {
+                calcMin[1] = _domainMin[1] + 1;
+                calcMax[1] = _domainMax[1] - 1;
+            }
+            if (_domainMax[2] != 1) {
+                calcMin[2] = _domainMin[2] + 1;
+                calcMax[2] = _domainMax[2] - 1;
+            }
+
+            return Cajita::IndexSpace<3>( calcMin, calcMax );
+        }
+
     private:
         int _rank;
         std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> _local_grid;

@@ -111,6 +111,7 @@ class Solver : public SolverBase
 
             if (_rank == 0 ) {
                 printf( "Current Time: %.4f\n", current_time );
+                output( 0 , 0 );
             }
 
             for (int t = 1; t <= nt; t++) {
