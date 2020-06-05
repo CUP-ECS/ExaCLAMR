@@ -90,15 +90,15 @@ int main( int argc, char* argv[] ) {
 
     std::string device = "serial";
 
-    double hx = 4.0, hy = 4.0, hz = 4.0;
+    double hx = 4.0, hy = 4.0, hz = 1.0;
     std::array<double, 6> global_bounding_box = { 0, 0, 0, hx, hy, hz };
 
     int nx = 12, ny = 12, nz = 1;
     std::array<int, 3> global_num_cells = { nx, ny, nz };
 
     int halo_size = 2;
-    double gravity = 9.81;
-    int t_steps = 20;
+    double gravity = 9.8;
+    int t_steps = 10;
     int write_freq = 1;
 
     clamr( device,

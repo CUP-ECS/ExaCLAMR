@@ -131,9 +131,9 @@ class Solver : public SolverBase
                     b = 0;
                 }
 
+                double mindt;
                 double dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), MemorySpace(), _gravity, 0.95, 0, 1 );
 
-                double mindt;
                 MPI_Allreduce( &dt, &mindt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );
 
                 TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), mindt, _gravity, a, b );

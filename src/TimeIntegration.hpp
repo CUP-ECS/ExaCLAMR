@@ -41,9 +41,9 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
             uCurrent( i, j, k, 0 ) = uCurrent( i, j + 1, k, 0 );
             uCurrent( i, j, k, 1 ) = -uCurrent( i, j + 1, k, 1 );
 
-            hCurrent( i, j - 1, k, 0 ) = hCurrent( i, j, k, 0 );
-            uCurrent( i, j - 1, k, 0 ) = uCurrent( i, j, k, 0 );
-            uCurrent( i, j - 1, k, 1 ) = uCurrent( i, j, k, 1 );
+            hCurrent( i, j - 1, k, 0 ) = 0;
+            uCurrent( i, j - 1, k, 0 ) = 0;
+            uCurrent( i, j - 1, k, 1 ) = 0;
         }
         
         if ( j == domain.max( 1 ) && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) {
@@ -52,9 +52,9 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
             uCurrent( i, j, k, 0 ) = uCurrent( i, j - 1, k, 0 );
             uCurrent( i, j, k, 1 ) = -uCurrent( i, j - 1, k, 1 );
 
-            hCurrent( i, j + 1, k, 0 ) = hCurrent( i, j, k, 0 );
-            uCurrent( i, j + 1, k, 0 ) = uCurrent( i, j, k, 0 );
-            uCurrent( i, j + 1, k, 1 ) = uCurrent( i, j, k, 1 );
+            hCurrent( i, j + 1, k, 0 ) = 0;
+            uCurrent( i, j + 1, k, 0 ) = 0;
+            uCurrent( i, j + 1, k, 1 ) = 0;
         }
 
         if ( i == domain.max( 0 ) && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) {
@@ -63,9 +63,9 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
             uCurrent( i, j, k, 0 ) = -uCurrent( i - 1, j, k, 0 );
             uCurrent( i, j, k, 1 ) = uCurrent( i - 1, j, k, 1 );
 
-            hCurrent( i + 1, j, k, 0 ) = hCurrent( i, j, k, 0 );
-            uCurrent( i + 1, j, k, 0 ) = uCurrent( i, j, k, 0 );
-            uCurrent( i + 1, j, k, 1 ) = uCurrent( i, j, k, 1 );
+            hCurrent( i + 1, j, k, 0 ) = 0;
+            uCurrent( i + 1, j, k, 0 ) = 0;
+            uCurrent( i + 1, j, k, 1 ) = 0;
         }
 
         if ( i == domain.min( 0 ) - 1 && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) {
@@ -74,9 +74,9 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
             uCurrent( i, j, k, 0 ) = -uCurrent( i + 1, j, k, 0 );
             uCurrent( i, j, k, 1 ) = uCurrent( i + 1, j, k, 1 );
 
-            hCurrent( i - 1, j, k, 0 ) = hCurrent( i, j, k, 0 );
-            uCurrent( i - 1, j, k, 0 ) = uCurrent( i, j, k, 0 );
-            uCurrent( i - 1, j, k, 1 ) = uCurrent( i, j, k, 1 );
+            hCurrent( i - 1, j, k, 0 ) = 0;
+            uCurrent( i - 1, j, k, 0 ) = 0;
+            uCurrent( i - 1, j, k, 1 ) = 0;
         }
     } );
 
@@ -295,13 +295,13 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         UWMinus( i, j, k, 1 )  = wCorrector( dt, dy, fabs( VyMinus / HyMinus ) + sqrt( gravity * HyMinus ), uCurrent( i, j, k, 1 ) - uCurrent( i, j - 1, k, 1 ), uCurrent( i, j - 1, k, 1) - uCurrent( i, j - 2, k, 1 ), uCurrent( i, j + 1, k, 1 ) - uCurrent( i, j, k, 1 ) );
         UWMinus( i, j, k, 1 )  *= uCurrent( i, j, k, 1 ) - uCurrent( i, j - 1, k, 1 );
 
-        UWPlus( i, j, k, 1 )   = wCorrector( dt, dy, fabs( VyPlus / HyPlus ) + sqrt( gravity * HyPlus ), uCurrent( i, j + 1, k, 1 ) - uCurrent( i, j, k, 1 ), uCurrent( i, j, k, 1) - uCurrent( i, j - 1, k, 1 ), uCurrent( i, j, k, 1 ) - uCurrent( i, j + 1, k, 1 ) );
+        UWPlus( i, j, k, 1 )   = wCorrector( dt, dy, fabs( VyPlus / HyPlus ) + sqrt( gravity * HyPlus ), uCurrent( i, j + 1, k, 1 ) - uCurrent( i, j, k, 1 ), uCurrent( i, j, k, 1) - uCurrent( i, j - 1, k, 1 ), uCurrent( i, j + 2, k, 1 ) - uCurrent( i, j + 1, k, 1 ) );
         UWPlus( i, j, k, 1 )   *= uCurrent( i, j + 1, k, 1 ) - uCurrent( i, j, k, 1 );
 
 
         hNew ( i, j, k, 0 ) = uFullStep( dt, dx, hCurrent( i, j, k, 0 ), HxFluxPlus( i, j, k, 0 ), HxFluxMinus( i, j, k, 0 ), HyFluxPlus( i, j, k, 0 ), HyFluxMinus( i, j, k, 0 ) ) - HxWMinus( i, j, k, 0 ) + HxWPlus( i, j, k, 0 ) - HyWMinus( i, j, k, 0 ) + HyWPlus( i, j, k, 0 );
         uNew ( i, j, k, 0 ) = uFullStep( dt, dx, uCurrent( i, j, k, 0 ), UxFluxPlus( i, j, k, 0 ), UxFluxMinus( i, j, k, 0 ), UyFluxPlus( i, j, k, 0 ), UyFluxMinus( i, j, k, 0 ) ) - UWMinus( i, j, k, 0 ) + UWPlus( i, j, k, 0 );
-        uNew ( i, j, k, 1 ) = uFullStep( dt, dx, uCurrent( i, j, k, 1 ), UxFluxPlus( i, j, k, 1 ), UxFluxMinus( i, j, k, 1 ), UyFluxPlus( i, j, k, 1 ), UyFluxMinus( i, j, k, 1 ) ) - UWMinus( i, j, k, 1 ) + UWPlus( i, j, k, 1 );
+        uNew ( i, j, k, 1 ) = uFullStep( dt, dy, uCurrent( i, j, k, 1 ), UxFluxPlus( i, j, k, 1 ), UxFluxMinus( i, j, k, 1 ), UyFluxPlus( i, j, k, 1 ), UyFluxMinus( i, j, k, 1 ) ) - UWMinus( i, j, k, 1 ) + UWPlus( i, j, k, 1 );
        
     } );
 
