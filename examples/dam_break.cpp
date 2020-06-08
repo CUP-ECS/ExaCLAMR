@@ -14,26 +14,40 @@ Date: May 26, 2020
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+
 #include <mpi.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <array>
+#include <iostream>
 
+template <typename state_t>
 struct MeshInitFunc
 {
-    MeshInitFunc() {};
+    
+    state_t center[2];
+    state_t width;
 
-    template <typename state_t>
+    MeshInitFunc(const std::array<double, 6>& box) {
+	for (int i = 0; i < 2; i++) {
+		center[i] = (box[i+3] - box[i]) / 2.0;
+	}
+	width = box[3] - box[0];
+	std::cout << "Center at " << center[0] << ", " << center[1] << "; total width is " << width << "\n";
+    };
+
     KOKKOS_INLINE_FUNCTION
-    bool operator()( const state_t r, state_t velocity[2], state_t &height ) const {
+    bool operator()( const int coords[3], const state_t x[3], state_t velocity[2], state_t &height ) const {
 	velocity[0] = 0.0;
 	velocity[1] = 0.0;
-	if ( r <= 1 )
+	state_t r = sqrt( pow( x[0] - center[0], 2 ) + pow( x[1] - center[1], 2 ));
+	std::cout << x[0] << ", " << x[1] << " is " << r << " from the center: ";
+	if ( r <= width*(6.0/128.0) )
         {
-            height = 19.28077;
-            // printf("x: %.4f\ty: %.4f\tz: %.4f\n", x[0], x[1], x[2]);
+	    std::cout << "Tall\n";
+            height = 100.0;
         } else {
-            height = 10.0;
+	    std::cout << "Short\n";
+            height = 7.0;
         }
 
         return true;
@@ -41,6 +55,7 @@ struct MeshInitFunc
 };
 
 
+template <typename state_t>
 void clamr( const std::string& device,
             const std::array<double, 6>& global_bounding_box, 
             const std::array<int, 3>& global_num_cells, 
@@ -65,7 +80,7 @@ void clamr( const std::string& device,
 
     auto solver = ExaCLAMR::createSolver( device,
                                             MPI_COMM_WORLD, 
-                                            MeshInitFunc(),
+                                            MeshInitFunc<state_t>(global_bounding_box),
                                             global_bounding_box, 
                                             global_num_cells,
                                             periodic,
@@ -89,7 +104,7 @@ int main( int argc, char* argv[] ) {
 
     std::string device = "serial";
 
-    int nx = 4, ny = 4, nz = 1;
+    int nx = 50, ny = 50, nz = 1;
     std::array<int, 3> global_num_cells = { nx, ny, nz };
 
     double hx = double( nx ), hy = double( ny ), hz = 1.0;
@@ -100,7 +115,7 @@ int main( int argc, char* argv[] ) {
     int t_steps = 10;
     int write_freq = 1;
 
-    clamr( device,
+    clamr<double>( device,
             global_bounding_box, 
             global_num_cells, 
             halo_size,
@@ -119,7 +134,7 @@ int main( int argc, char* argv[] ) {
             std::string s = "test.pdb";
             const char * filename = s.c_str();
 
-            printf("Creating file: `%s'\n", filename);
+            std::cout << "Creating file: `" << filename << "'\n";
             silo_file = DBCreate(filename, 0, DB_LOCAL, "Compound Array Test", driver);
 
             int sleepsecs = 10;

@@ -184,7 +184,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 t_steps, 
                 gravity );
         #else
-            throw std::runtime_Error( "Serial Backend Not Enabled" );
+            throw std::runtime_error( "Serial Backend Not Enabled" );
         #endif
     }
     else if ( 0 == device.compare( "openmp" ) ) {
@@ -200,7 +200,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 t_steps, 
                 gravity );
         #else
-            throw std::runtime_Error( "OpenMP Backend Not Enabled" );
+            throw std::runtime_error( "OpenMP Backend Not Enabled" );
         #endif
     }
     else {
