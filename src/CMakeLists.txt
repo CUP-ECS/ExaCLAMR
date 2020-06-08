@@ -3,10 +3,12 @@ set(HEADERS
   Mesh.hpp
   ProblemManager.hpp
   TimeIntegration.hpp
+  Input.hpp
   )
 
 set(SOURCES
   Mesh.cpp
+  Input.cpp
   )
 
 add_library(exaclamr ${SOURCES})

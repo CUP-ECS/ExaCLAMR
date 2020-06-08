@@ -6,6 +6,7 @@ Date: May 26, 2020
 
 #define DEBUG 0
 
+#include <Input.hpp>
 #include <Solver.hpp>
 
 #include <Cajita.hpp>
@@ -75,10 +76,14 @@ void clamr( const std::string& device,
 
 }
 
+
 int main( int argc, char* argv[] ) {
+    cl_args cl;
 
     MPI_Init( &argc, &argv );
     Kokkos::initialize( argc, argv );
+
+    if ( parseInput( argc, argv, cl ) != 0 ) return -1;
 
     int comm_size, rank;
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );
@@ -86,27 +91,19 @@ int main( int argc, char* argv[] ) {
 
     std::string device = "serial";
 
-    int nx = 50, ny = 50, nz = 1;
-    std::array<int, 3> global_num_cells = { nx, ny, nz };
+    std::array<int, 3> global_num_cells = { cl.nx, cl.ny, cl.nz };
+    std::array<double, 6> global_bounding_box = { 0, 0, 0, cl.hx, cl.hy, cl.hz };
 
-    double hx = 50.0, hy = 50.0, hz = 1.0;
-    std::array<double, 6> global_bounding_box = { 0, 0, 0, hx, hy, hz };
-
-    double rFill = 6.0;
-
-    int halo_size = 2;
     double gravity = 9.8;
-    int t_steps = 2;
-    int write_freq = 1;
 
     clamr( device,
             global_bounding_box, 
             global_num_cells, 
-            rFill,
-            halo_size,
+            cl.rFill,
+            cl.haloSize,
             gravity, 
-            t_steps, 
-            write_freq );
+            cl.tSteps, 
+            cl.writeFreq );
 
     Kokkos::finalize();
     MPI_Finalize();
