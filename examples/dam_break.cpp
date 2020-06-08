@@ -4,6 +4,8 @@ Description: Finite-Difference Solver of the Shallow Water Equations on a Regula
 Date: May 26, 2020
 */
 
+#define DEBUG 0
+
 #include <Solver.hpp>
 
 #include <Cajita.hpp>
@@ -11,9 +13,10 @@ Date: May 26, 2020
 #include <Kokkos_Core.hpp>
 
 #include <mpi.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <array>
+
+#if DEBUG
+    #include <stdio.h>
+#endif
 
 struct MeshInitFunc
 {
@@ -22,16 +25,11 @@ struct MeshInitFunc
     template <typename state_t>
     KOKKOS_INLINE_FUNCTION
     bool operator()( const state_t r, const state_t rFill, state_t velocity[2], state_t &height ) const {
-	velocity[0] = 0.0;
-	velocity[1] = 0.0;
+        velocity[0] = 0.0;
+        velocity[1] = 0.0;
+        height = ( r <= rFill ) ? 80.0 : 10.0;
 
-	if ( r <= rFill )
-        {
-            height = 80.0;
-            // printf("x: %.4f\ty: %.4f\tz: %.4f\n", x[0], x[1], x[2]);
-        } else {
-            height = 10.0;
-        }
+        if ( DEBUG ) printf("r: %.4f\theight: %.4f\tvx: %.4f\tvy: %.4f\n", r, height, velocity[0], velocity[1]);
 
         return true;
     }
@@ -52,8 +50,8 @@ void clamr( const std::string& device,
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
     if ( rank == 0 ) {
-        printf( "CLAMR\n" );
-        printf( "Nx: %d\tNy: %d\tNz: %d\tHalo Size: %d\t timesteps: %.4f\tGravity: %.4f\n", global_num_cells[0], global_num_cells[1], global_num_cells[2], halo_size, t_steps, gravity );
+        if( DEBUG ) printf( "ExaCLAMR\n" );
+        if( DEBUG ) printf( "Nx: %d\tNy: %d\tNz: %d\tHalo Size: %d\t timesteps: %.4f\tGravity: %.4f\n", global_num_cells[0], global_num_cells[1], global_num_cells[2], halo_size, t_steps, gravity );
     }
 
     std::array<bool, 3> periodic = { false, false, false };
@@ -98,7 +96,7 @@ int main( int argc, char* argv[] ) {
 
     int halo_size = 2;
     double gravity = 9.8;
-    int t_steps = 500;
+    int t_steps = 2;
     int write_freq = 1;
 
     clamr( device,

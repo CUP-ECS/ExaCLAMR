@@ -1,6 +1,8 @@
 #ifndef EXACLAMR_PROBLEMMANAGER_HPP
 #define EXACLAMR_PROBLEMMANAGER_HPP
 
+#define DEBUG 0 
+
 #include <Mesh.hpp>
 
 #include <Cabana_Core.hpp>
@@ -114,18 +116,17 @@ class ProblemManager
 
         template<class InitFunctor>
         void initialize( const double rFill, const InitFunctor& create_functor, const ExecutionSpace& exec_space ) {
-            if ( _mesh->rank() == 0 ) printf( "Initializing Cell Fields\n" );
+            if ( _mesh->rank() == 0 && DEBUG ) printf( "Initializing Cell Fields\n" );
 
             using device_type = typename cell_array::device_type;
 
             auto local_grid = *( _mesh->localGrid() );
             auto local_mesh = Cajita::createLocalMesh<device_type>( local_grid );
 
-            /*
-            printf( "Rank: %d\tLow Corner: %.4f, %.4f, %.4f\tHigh Corner: %.4f, %.4f, %.4f\n", _mesh->rank(), \
+            
+            if ( DEBUG ) printf( "Rank: %d\tLow Corner: %.4f, %.4f, %.4f\tHigh Corner: %.4f, %.4f, %.4f\n", _mesh->rank(), \
             local_mesh.lowCorner( Cajita::Own() , 0 ),  local_mesh.lowCorner( Cajita::Own() , 1 ), local_mesh.lowCorner( Cajita::Own() , 2 ), \
             local_mesh.highCorner( Cajita::Own() , 0 ), local_mesh.highCorner( Cajita::Own() , 1 ), local_mesh.highCorner( Cajita::Own() , 2 ));
-            */
 
             auto ghost_cells = local_grid.indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
             auto owned_cells = local_grid.indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
@@ -136,21 +137,20 @@ class ProblemManager
 	        auto hB = get(Location::Cell(), Field::Height(), 1 );
 
             Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( ghost_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-                /*
-                int i_own = i - owned_cells.min( Cajita::Dim::I );
-                int j_own = j - owned_cells.min( Cajita::Dim::J );
-                int k_own = k - owned_cells.min( Cajita::Dim::K );
-                */
+                if ( DEBUG ) {
+                    int i_own = i - owned_cells.min( Cajita::Dim::I );
+                    int j_own = j - owned_cells.min( Cajita::Dim::J );
+                    int k_own = k - owned_cells.min( Cajita::Dim::K );
+                    
 
-                /*
-                printf("Rank: %d\tExtent: %d, %d, %d\n", _mesh->rank(), owned_cells.extent(0), owned_cells.extent(1), owned_cells.extent(2));
-                printf( "Rank: %d\ti: %d\tj: %d\tk: %d\tiown: %d\tjown: %d\tkown: %d\n", _mesh->rank(), i, j, k, i_own, j_own, k_own);
-                */
+                    printf("Rank: %d\tExtent: %d, %d, %d\n", _mesh->rank(), owned_cells.extent(0), owned_cells.extent(1), owned_cells.extent(2));
+                    printf( "Rank: %d\ti: %d\tj: %d\tk: %d\tiown: %d\tjown: %d\tkown: %d\n", _mesh->rank(), i, j, k, i_own, j_own, k_own);
+                }
                 
                 std::array<double, 6> boundingBox = _mesh->globalBoundingBox();
                 
                 state_t center[3] = { (boundingBox[3] - boundingBox[0]) / 2, ( boundingBox[4] - boundingBox[1] ) / 2, ( boundingBox[5] - boundingBox[2] ) / 2 };
-                // printf( "Center x: %.4f\t Center y: %.4f\tCenter z: %.4f\n", center[0], center[1], center[2] );
+                if ( DEBUG ) printf( "Center x: %.4f\t Center y: %.4f\tCenter z: %.4f\n", center[0], center[1], center[2] );
 
                 int coords[3] = { i, j, k };
                 state_t x[3];
@@ -159,17 +159,15 @@ class ProblemManager
 
                 state_t r_dist = sqrt( pow( x[0] - center[0], 2 ) + pow( x[1] - center[1], 2 ) + pow( x[2] - center[2], 2 ) );
 
-                // printf( "x: %.4f\ty: %.4f\tz: %.4f\trDist: %.4f\n", x[0], x[1], x[2], r_dist );
+                if ( DEBUG ) printf( "x: %.4f\ty: %.4f\tz: %.4f\trDist: %.4f\n", x[0], x[1], x[2], r_dist );
 
                 state_t velocity[2];
                 state_t height;
 
                 create_functor(r_dist, rFill, velocity, height);
 
-                /*
-                printf( "Rank: %d\ti: %d\tj: %d\tk: %d\t x: %.4f\ty: %.4f\tz: %.4f\tvx: %.4f\tvy: %.4f\th: %.4f\n", \
+                if ( DEBUG ) printf( "Rank: %d\ti: %d\tj: %d\tk: %d\t x: %.4f\ty: %.4f\tz: %.4f\tvx: %.4f\tvy: %.4f\th: %.4f\n", \
                 _mesh->rank(), i, j, k, x[0], x[1], x[2], velocity[0], velocity[1], height );
-                */
 
 		        uA( i, j, k, 0 ) = velocity[0];
 		        uA( i, j, k, 1 ) = velocity[1];
@@ -180,21 +178,6 @@ class ProblemManager
                 hB( i, j, k, 0 ) = height;
 
             } );
-
-            /*
-            if ( _mesh->rank() == 0 ) {
-                for ( int i = 0; i < owned_cells.extent( 0 ); i++ ) {
-                    for ( int j = 0; j < owned_cells.extent( 1 ); j++ ) {
-                        for ( int k = 0; k < owned_cells.extent( 2 ); k++ ) {
-                            printf( "%.4f\t", hA( i, j, k, 0 ) );
-                        }
-                    }
-                    printf("\n");
-                }
-            }
-            */
-            
-            
 
         };
 

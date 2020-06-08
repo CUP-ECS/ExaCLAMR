@@ -1,6 +1,8 @@
 #ifndef EXACLAMR_MESH_HPP
 #define EXACLAMR_MESH_HPP
 
+#define DEBUG 0 
+
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
 
@@ -55,7 +57,7 @@ class Mesh
             }
             
             
-            if ( _rank == 0 ) {
+            if ( _rank == 0 && DEBUG ) {
                 printf( "Num Cells: x: %d\ty: %d\tz: %d\n", num_cell[0], num_cell[1], num_cell[2] );
                 printf( "Bounding Box: xl: %.4f\tyl: %.4f\tzl: %.4f\txu: %.4f\tyu: %.4f\tzu: %.4f\n", \
                 bounding_box[0], bounding_box[1], bounding_box[2], bounding_box[3], bounding_box[4], bounding_box[5] );
@@ -78,7 +80,7 @@ class Mesh
 
             auto global_grid = Cajita::createGlobalGrid( comm, global_mesh, periodic, partitioner );
 
-            printf( "Global_Grid: Rank: %d\tNx: %d\tNy: %d\tNz: %d\tOffset X: %d\tOffset Y: %d\tOffset Z: %d\n", \
+            if ( DEBUG ) printf( "Global_Grid: Rank: %d\tNx: %d\tNy: %d\tNz: %d\tOffset X: %d\tOffset Y: %d\tOffset Z: %d\n", \
             global_grid->blockId(), global_grid->ownedNumCell( 0 ), global_grid->ownedNumCell( 1 ), global_grid->ownedNumCell( 2 ), \
             global_grid->globalOffset( 0 ), global_grid->globalOffset( 1 ), global_grid->globalOffset( 2 ) );
 
@@ -91,7 +93,6 @@ class Mesh
             _domainMin = { num_cell[0], num_cell[1], num_cell[2] };
             _domainMax = { 0, 0, 0 };
             
-
             Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
                 int coords[3] = { i, j, k };
                 double x[3];
@@ -128,26 +129,6 @@ class Mesh
         const Cajita::IndexSpace<3> domainSpace() const {
             return Cajita::IndexSpace<3>( _domainMin, _domainMax );
         };
-
-        const Cajita::IndexSpace<3> calcSpace() const {
-            std::array<long, 3> calcMin = { _domainMin[0] + 1 , _domainMin[1] + 1 , _domainMin[2] + 1 };
-            std::array<long, 3> calcMax = { _domainMax[0] - 1, _domainMax[1] - 1, _domainMax[2] - 1 };
-
-            if (_domainMax[0] != 1) {
-                calcMin[0] = _domainMin[0] + 1;
-                calcMax[0] = _domainMax[0] - 1;
-            }
-            if (_domainMax[1] != 1) {
-                calcMin[1] = _domainMin[1] + 1;
-                calcMax[1] = _domainMax[1] - 1;
-            }
-            if (_domainMax[2] != 1) {
-                calcMin[2] = _domainMin[2] + 1;
-                calcMax[2] = _domainMax[2] - 1;
-            }
-
-            return Cajita::IndexSpace<3>( calcMin, calcMax );
-        }
 
     private:
         int _rank;

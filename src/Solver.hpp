@@ -1,6 +1,6 @@
 /**
  * @file
- * @author Patrick Bridges
+ * @author Patrick Bridges <pbridges@unm.edu>
  * @author Jered Dominguez-Trujillo <jereddt@unm.edu>
  *
  * @version 0.1.0
@@ -14,6 +14,8 @@
 #ifndef EXACLAMR_SOLVER_HPP
 #define EXACLAMR_SOLVER_HPP
 
+#define DEBUG 0
+
 #ifdef HAVE_SILO
     #include <silo.h>
 #endif
@@ -26,6 +28,7 @@
 #include <Kokkos_Core.hpp>
 
 #include <mpi.h>
+
 #include <memory>
 
 namespace ExaCLAMR
@@ -64,7 +67,7 @@ class Solver : public SolverBase
         {
             MPI_Comm_rank( comm, &_rank );
 
-            if ( _rank == 0 ) printf( "Created Solver\n" );
+            if ( _rank == 0 && DEBUG ) printf( "Created Solver\n" );
 
             _mesh = std::make_shared<Mesh<MemorySpace, ExecutionSpace>> ( global_bounding_box, 
                                             global_num_cell, 
@@ -85,6 +88,8 @@ class Solver : public SolverBase
             double        *coords[2], *vars[2];
             char          *coordnames[2], *varnames[2];
             DBoptlist     *optlist;
+
+            if( DEBUG ) printf( "Writing File" );
 
             optlist = DBMakeOptlist(10);
             DBAddOption(optlist, DBOPT_CYCLE, &cycle);
@@ -197,40 +202,40 @@ class Solver : public SolverBase
                 for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                     for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                         for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
-                            // printf( "%-8.4f\t", hNew( i, j, k, 0 ) );
+                            if( DEBUG ) printf( "%-8.4f\t", hNew( i, j, k, 0 ) );
                             summedHeight += hNew( i, j, k, 0 );
                         }
                     }
-                    // printf("\n");
+                    if( DEBUG ) printf("\n");
                 }
 
                 // Proxy Mass Conservation
-                printf( "Summed Height: %.4f\n", summedHeight );
+                if ( DEBUG ) printf( "Summed Height: %.4f\n", summedHeight );
             }
 
             #ifdef HAVE_SILO
-            DBfile *silo_file;
-            int driver = DB_PDB;
-            char filename[30];
+                DBfile *silo_file;
+                int driver = DB_PDB;
+                char filename[30];
 
-            sprintf( filename, "data/ExaCLAMROutput%05d.pdb", tstep );
+                sprintf( filename, "data/ExaCLAMROutput%05d.pdb", tstep );
 
-            DBShowErrors( DB_ALL, NULL );
-            DBForceSingle( 1 );
+                DBShowErrors( DB_ALL, NULL );
+                DBForceSingle( 1 );
 
-            if ( rank == 0 ) {
-                printf("Creating file: `%s'\n", filename);
-                silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
+                if ( rank == 0 ) {
+                    if ( DEBUG ) printf("Creating file: `%s'\n", filename);
+                    silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
 
-                writeFile( silo_file, strdup( "Mesh" ), tstep, current_time, dt, b );
+                    writeFile( silo_file, strdup( "Mesh" ), tstep, current_time, dt, b );
 
-                DBClose( silo_file );
-            }
+                    DBClose( silo_file );
+                }
             #endif
         };
 
         void solve( const int write_freq ) override {
-            if ( _rank == 0 ) printf( "Solving!\n" );
+            if ( _rank == 0 && DEBUG ) printf( "Solving!\n" );
 
             int nt = _tsteps;
             double current_time = 0.0;
