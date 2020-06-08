@@ -58,7 +58,7 @@ class ProblemManager
     public:
 
         template<class InitFunc>
-        ProblemManager( const std::shared_ptr<Mesh<MemorySpace, ExecutionSpace>>& mesh, const InitFunc& create_functor, const ExecutionSpace& exec_space ) 
+        ProblemManager( const double rFill, const std::shared_ptr<Mesh<MemorySpace, ExecutionSpace>>& mesh, const InitFunc& create_functor, const ExecutionSpace& exec_space ) 
         : _mesh ( mesh )
         {
             auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );
@@ -108,12 +108,12 @@ class ProblemManager
             _cell_vector_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_vector_layout, HaloPattern );
             _cell_scalar_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_scalar_layout, HaloPattern );
 
-            initialize( create_functor, exec_space );
+            initialize( rFill, create_functor, exec_space );
 
         };
 
         template<class InitFunctor>
-        void initialize( const InitFunctor& create_functor, const ExecutionSpace& exec_space ) {
+        void initialize( const double rFill, const InitFunctor& create_functor, const ExecutionSpace& exec_space ) {
             if ( _mesh->rank() == 0 ) printf( "Initializing Cell Fields\n" );
 
             using device_type = typename cell_array::device_type;
@@ -164,7 +164,7 @@ class ProblemManager
                 state_t velocity[2];
                 state_t height;
 
-                create_functor(r_dist, velocity, height);
+                create_functor(r_dist, rFill, velocity, height);
 
                 /*
                 printf( "Rank: %d\ti: %d\tj: %d\tk: %d\t x: %.4f\ty: %.4f\tz: %.4f\tvx: %.4f\tvy: %.4f\th: %.4f\n", \

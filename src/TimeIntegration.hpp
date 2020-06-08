@@ -97,6 +97,9 @@ void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
 state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const state_t sigma, const int a, const int b ) {
 
+    double dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
+    double dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+
     auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), a );
     auto hCurrent = pm.get( Location::Cell(), Field::Height(), a );
 
@@ -109,8 +112,8 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
 
     Kokkos::parallel_reduce( Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k, state_t& lmin ) {
         state_t wavespeed = sqrt( gravity * hCurrent( i, j, k, 0 ) );
-        state_t xspeed = ( fabs( uCurrent( i, j, k, 0 ) + wavespeed ) );
-        state_t yspeed = ( fabs( uCurrent( i, j, k, 1 ) + wavespeed ) );
+        state_t xspeed = ( fabs( uCurrent( i, j, k, 0 ) + wavespeed ) ) / dx;
+        state_t yspeed = ( fabs( uCurrent( i, j, k, 1 ) + wavespeed ) ) / dy;
 
         state_t deltaT = sigma / ( xspeed + yspeed );
 

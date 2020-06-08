@@ -50,6 +50,7 @@ class Solver : public SolverBase
                 const InitFunc& create_functor,
                 const std::array<double, 6>& global_bounding_box, 
                 const std::array<int, 3>& global_num_cell, 
+                const double rFill,
                 const std::array<bool, 3>& periodic,
                 const Cajita::Partitioner& partitioner,
                 const int halo_size, 
@@ -70,7 +71,7 @@ class Solver : public SolverBase
                                             ExecutionSpace()
                                             );
                 
-            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, double>>( _mesh, create_functor, ExecutionSpace() );
+            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, double>>( rFill, _mesh, create_functor, ExecutionSpace() );
 
             MPI_Barrier( MPI_COMM_WORLD );
         };
@@ -107,6 +108,30 @@ class Solver : public SolverBase
                 // Proxy Mass Conservation
                 printf( "Summed Height: %.4f\n", summedHeight );
             }
+
+            #ifdef HAVE_SILO
+            if ( rank == 0 ) {
+                DBfile *silo_file;
+                int		   driver = DB_PDB;
+
+                DBShowErrors( DB_TOP, NULL );
+                DBForceSingle( 1 );
+
+                std::string s = "test.pdb";
+                const char * filename = s.c_str();
+
+                printf("Creating file: `%s'\n", filename);
+                silo_file = DBCreate(filename, 0, DB_LOCAL, "Compound Array Test", driver);
+
+                int sleepsecs = 10;
+                int i = 1;
+
+                if (sleepsecs)
+                    DBWrite (silo_file, "sleepsecs", &sleepsecs, &i, 1, DB_INT);
+
+                DBClose(silo_file);
+            }
+            #endif
         };
 
         void solve( const int write_freq ) override {
@@ -142,8 +167,6 @@ class Solver : public SolverBase
                 if ( 0 == t % write_freq ) {
                     if ( 0 == _rank ) printf( "Current Time: %.4f\n", current_time );
 
-                    MPI_Barrier( MPI_COMM_WORLD );
-
                     output( 0, t );
                 }
             }
@@ -165,6 +188,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                                             const InitFunc& create_functor,
                                             const std::array<double, 6>& global_bounding_box, 
                                             const std::array<int, 3>& global_num_cell,
+                                            const double rFill,
                                             const std::array<bool, 3>& periodic,
                                             const Cajita::Partitioner& partitioner, 
                                             const int halo_size, 
@@ -178,6 +202,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 create_functor,
                 global_bounding_box, 
                 global_num_cell, 
+                rFill,
                 periodic,
                 partitioner,
                 halo_size, 
@@ -194,6 +219,7 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 create_functor,
                 global_bounding_box, 
                 global_num_cell, 
+                rFill,
                 periodic,
                 partitioner,
                 halo_size, 
