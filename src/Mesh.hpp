@@ -58,10 +58,10 @@ class Mesh
             
             
             if ( _rank == 0 && DEBUG ) {
-                printf( "Num Cells: x: %d\ty: %d\tz: %d\n", num_cell[0], num_cell[1], num_cell[2] );
-                printf( "Bounding Box: xl: %.4f\tyl: %.4f\tzl: %.4f\txu: %.4f\tyu: %.4f\tzu: %.4f\n", \
-                bounding_box[0], bounding_box[1], bounding_box[2], bounding_box[3], bounding_box[4], bounding_box[5] );
-                printf( "Cell Size: x: %.4f\ty: %.4f\tz: %.4f\n", cell_size[0], cell_size[1], cell_size[2] );
+                std::cout << "Num Cells: x: " << num_cell[0] << "\ty: " << num_cell[1] << "\tz: " << num_cell[2] << "\n";
+                std::cout << "Bounding Box: xl: " << bounding_box[0] << "\tyl: " << bounding_box[1] << "\tzl: " << bounding_box[2] <<\
+                 "\txu: " << bounding_box[3] << "\tyu: " << bounding_box[4] << "\tzu: " << bounding_box[5] << "\n";
+                std::cout << "Cell Size: x: " << cell_size[0] << "\ty: " << cell_size[1] << "\tz: " << cell_size[2] << "\n";
             }
             
 
@@ -80,9 +80,9 @@ class Mesh
 
             auto global_grid = Cajita::createGlobalGrid( comm, global_mesh, periodic, partitioner );
 
-            if ( DEBUG ) printf( "Global_Grid: Rank: %d\tNx: %d\tNy: %d\tNz: %d\tOffset X: %d\tOffset Y: %d\tOffset Z: %d\n", \
-            global_grid->blockId(), global_grid->ownedNumCell( 0 ), global_grid->ownedNumCell( 1 ), global_grid->ownedNumCell( 2 ), \
-            global_grid->globalOffset( 0 ), global_grid->globalOffset( 1 ), global_grid->globalOffset( 2 ) );
+            if ( DEBUG ) std::cout << "Global Grid: Rank: " << global_grid->blockId() << \
+            "\tNx: " << global_grid->ownedNumCell( 0 ) << "\tNy: " << global_grid->ownedNumCell( 1 ) << "\tNz: " << global_grid->ownedNumCell( 2 ) << \
+            "\tOffset x: " << global_grid->globalOffset( 0 ) << "\tOffset y: " << global_grid->globalOffset( 1 ) << "\tOffset z: " << global_grid->globalOffset( 2 ) << "\n";
 
             _local_grid = Cajita::createLocalGrid( global_grid, halo_width );
 

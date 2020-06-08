@@ -57,7 +57,6 @@ class Solver : public SolverBase
                 const InitFunc& create_functor,
                 const std::array<double, 6>& global_bounding_box, 
                 const std::array<int, 3>& global_num_cell, 
-                const double rFill,
                 const std::array<bool, 3>& periodic,
                 const Cajita::Partitioner& partitioner,
                 const int halo_size, 
@@ -67,7 +66,7 @@ class Solver : public SolverBase
         {
             MPI_Comm_rank( comm, &_rank );
 
-            if ( _rank == 0 && DEBUG ) printf( "Created Solver\n" );
+            if ( _rank == 0 && DEBUG ) std::cout << "Created Solver\n";
 
             _mesh = std::make_shared<Mesh<MemorySpace, ExecutionSpace>> ( global_bounding_box, 
                                             global_num_cell, 
@@ -78,7 +77,7 @@ class Solver : public SolverBase
                                             ExecutionSpace()
                                             );
                 
-            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, double>>( rFill, _mesh, create_functor, ExecutionSpace() );
+            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, double>>( _mesh, create_functor, ExecutionSpace() );
 
             MPI_Barrier( MPI_COMM_WORLD );
         };
@@ -89,7 +88,7 @@ class Solver : public SolverBase
             char          *coordnames[2], *varnames[2];
             DBoptlist     *optlist;
 
-            if( DEBUG ) printf( "Writing File" );
+            if( DEBUG ) std::cout << "Writing File\n";
 
             optlist = DBMakeOptlist(10);
             DBAddOption(optlist, DBOPT_CYCLE, &cycle);
@@ -202,15 +201,15 @@ class Solver : public SolverBase
                 for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                     for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                         for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
-                            if( DEBUG ) printf( "%-8.4f\t", hNew( i, j, k, 0 ) );
+                            if ( DEBUG ) std::cout << std::left << std::setw(8) << hNew( i, j, k, 0 );
                             summedHeight += hNew( i, j, k, 0 );
                         }
                     }
-                    if( DEBUG ) printf("\n");
+                    if( DEBUG ) std::cout << "\n";
                 }
 
                 // Proxy Mass Conservation
-                if ( DEBUG ) printf( "Summed Height: %.4f\n", summedHeight );
+                if ( DEBUG ) std::cout << "Summed Height: " << summedHeight << "\n";
             }
 
             #ifdef HAVE_SILO
@@ -224,7 +223,7 @@ class Solver : public SolverBase
                 DBForceSingle( 1 );
 
                 if ( rank == 0 ) {
-                    if ( DEBUG ) printf("Creating file: `%s'\n", filename);
+                    if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
                     silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
 
                     writeFile( silo_file, strdup( "Mesh" ), tstep, current_time, dt, b );
@@ -235,14 +234,14 @@ class Solver : public SolverBase
         };
 
         void solve( const int write_freq ) override {
-            if ( _rank == 0 && DEBUG ) printf( "Solving!\n" );
+            if ( _rank == 0 && DEBUG ) std::cout << "Solving!\n";
 
             int nt = _tsteps;
             double current_time = 0.0;
             int a, b;
 
             if (_rank == 0 ) {
-                printf( "Current Time: %.4f\n", current_time );
+                std::cout << std::left << std::setw(12) << "Iteration: " << 0 << std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";
                 output( 0, 0, 0, 0 );
             }
 
@@ -265,7 +264,7 @@ class Solver : public SolverBase
                 current_time += mindt;
 
                 if ( 0 == t % write_freq ) {
-                    if ( 0 == _rank ) printf( "Current Time: %.4f\n", current_time );
+                    if ( 0 == _rank ) std::cout << std::left << std::setw(12) << "Iteration: " << std::setw(5) << t << std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";
 
                     output( 0, t, current_time, mindt );
                 }
@@ -288,7 +287,6 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                                             const InitFunc& create_functor,
                                             const std::array<double, 6>& global_bounding_box, 
                                             const std::array<int, 3>& global_num_cell,
-                                            const double rFill,
                                             const std::array<bool, 3>& periodic,
                                             const Cajita::Partitioner& partitioner, 
                                             const int halo_size, 
@@ -302,14 +300,13 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 create_functor,
                 global_bounding_box, 
                 global_num_cell, 
-                rFill,
                 periodic,
                 partitioner,
                 halo_size, 
                 t_steps, 
                 gravity );
         #else
-            throw std::runtime_Error( "Serial Backend Not Enabled" );
+            throw std::runtime_error( "Serial Backend Not Enabled" );
         #endif
     }
     else if ( 0 == device.compare( "openmp" ) ) {
@@ -319,14 +316,13 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 create_functor,
                 global_bounding_box, 
                 global_num_cell, 
-                rFill,
                 periodic,
                 partitioner,
                 halo_size, 
                 t_steps, 
                 gravity );
         #else
-            throw std::runtime_Error( "OpenMP Backend Not Enabled" );
+            throw std::runtime_error( "OpenMP Backend Not Enabled" );
         #endif
     }
     else {

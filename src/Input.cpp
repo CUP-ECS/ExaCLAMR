@@ -1,6 +1,6 @@
 #include <Input.hpp>
 
-static char *shortargs = (char *)"n::h::r::t::w::";
+static char *shortargs = (char *)"n::h::t::w::";
 
 int parseInput( const int argc, char ** argv, cl_args& cl ) {
     cl.nx = 50;
@@ -10,8 +10,6 @@ int parseInput( const int argc, char ** argv, cl_args& cl ) {
     cl.hx = 50.0;
     cl.hy = 50.0; 
     cl.hz = 1.0;
-
-    cl.rFill = 6.0;
 
     cl.haloSize = 2;
     cl.tSteps = 3000;
@@ -32,9 +30,6 @@ int parseInput( const int argc, char ** argv, cl_args& cl ) {
                 cl.hy = atof( optarg );
                 cl.hz = 1;
                 break;
-            case 'r':
-                cl.rFill = atof( optarg );
-                break;
             case 't':
                 cl.tSteps = atoi( optarg );
                 break;
@@ -43,16 +38,6 @@ int parseInput( const int argc, char ** argv, cl_args& cl ) {
                 break;
         }
     }
-
-        // Print Results
-    printf( "ExaCLAMR\n" );
-    printf( "=======Command line arguments=======\n" );
-    printf( "%-25s%- 8d%- 8d%- 8d\n", "Cells:", cl.nx, cl.ny, cl.nz );
-    printf( "%-25s%- 4.4f%- 4.4f%- 4.4f\n", "Domain:", cl.hx, cl.hy, cl.hz );
-    printf( "%-25s%- 4.4f\n", "Fill Radius:", cl.rFill );
-    printf( "%-25s%- 8d\n", "Time Steps:", cl.tSteps );
-    printf( "%-25s%- 8d\n", "Write Frequency:", cl.writeFreq );
-    printf("====================================\n");
 
     return 0;
 }

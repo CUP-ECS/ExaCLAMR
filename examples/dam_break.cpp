@@ -13,34 +13,57 @@ Date: May 26, 2020
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+
 #include <mpi.h>
+#include <unistd.h>
+#include <array>
 
 #if DEBUG
-    #include <stdio.h>
+    #include <iostream>
 #endif
 
+template <typename state_t>
 struct MeshInitFunc
 {
-    MeshInitFunc() {};
+    
+    state_t center[2];
+    state_t width;
 
-    template <typename state_t>
+    MeshInitFunc(const std::array<double, 6>& box) {
+	for ( int i = 0; i < 2; i++ ) {
+		center[i] = (box[i+3] - box[i]) / 2.0;
+	}
+	width = box[3] - box[0];
+    
+	if ( DEBUG ) std::cout << "Center at " << center[0] << ", " << center[1] << "; total width is " << width << "\n";
+    };
+
     KOKKOS_INLINE_FUNCTION
-    bool operator()( const state_t r, const state_t rFill, state_t velocity[2], state_t &height ) const {
+    bool operator()( const int coords[3], const state_t x[3], state_t velocity[2], state_t &height ) const {
         velocity[0] = 0.0;
         velocity[1] = 0.0;
-        height = ( r <= rFill ) ? 80.0 : 10.0;
+        state_t r = sqrt( pow( x[0] - center[0], 2 ) + pow( x[1] - center[1], 2 ) );
+        
+        if ( DEBUG ) std::cout << x[0] << ", " << x[1] << " is " << r << " from the center: ";
 
-        if ( DEBUG ) printf("r: %.4f\theight: %.4f\tvx: %.4f\tvy: %.4f\n", r, height, velocity[0], velocity[1]);
+        if ( r <= width * ( 6.0 / 128.0 ) ) {
+            if ( DEBUG ) std::cout << "Tall\n";
+            height = 100.0;
+        } 
+        else {
+            if ( DEBUG ) std::cout << "Short\n";
+            height = 7.0;
+        }
 
         return true;
     }
 };
 
 
+template <typename state_t>
 void clamr( const std::string& device,
             const std::array<double, 6>& global_bounding_box, 
-            const std::array<int, 3>& global_num_cells, 
-            const double rFill,
+            const std::array<int, 3>& global_num_cells,
             const int halo_size, 
             const double gravity, 
             const double t_steps, 
@@ -50,11 +73,6 @@ void clamr( const std::string& device,
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
-    if ( rank == 0 ) {
-        if( DEBUG ) printf( "ExaCLAMR\n" );
-        if( DEBUG ) printf( "Nx: %d\tNy: %d\tNz: %d\tHalo Size: %d\t timesteps: %.4f\tGravity: %.4f\n", global_num_cells[0], global_num_cells[1], global_num_cells[2], halo_size, t_steps, gravity );
-    }
-
     std::array<bool, 3> periodic = { false, false, false };
 
     std::array<int,3> ranks_per_dim = { 1, comm_size, 1 };
@@ -62,10 +80,9 @@ void clamr( const std::string& device,
 
     auto solver = ExaCLAMR::createSolver( device,
                                             MPI_COMM_WORLD, 
-                                            MeshInitFunc(),
+                                            MeshInitFunc<state_t>(global_bounding_box),
                                             global_bounding_box, 
                                             global_num_cells,
-                                            rFill,
                                             periodic,
                                             partitioner, 
                                             halo_size, 
@@ -89,17 +106,28 @@ int main( int argc, char* argv[] ) {
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
-    std::string device = "serial";
+    std::string device = "openmp";
+
+    if ( rank == 0 ) {
+        // Print Results
+        std::cout << "ExaClamr\n";
+        std::cout << "=======Command line arguments=======\n";
+        std::cout << std::left << std::setw(20) << "Cells"           << ": " << std::setw(8) << cl.nx << std::setw(8) << cl.ny << std::setw(8) << cl.nz << "\n";
+        std::cout << std::left << std::setw(20) << "Domain"          << ": " << std::setw(8) << cl.hx << std::setw(8) << cl.hy << std::setw(8) << cl.hz << "\n";
+        std::cout << std::left << std::setw(20) << "TimeSteps"       << ": " << std::setw(8) << cl.tSteps << "\n";
+        std::cout << std::left << std::setw(20) << "Write Frequency" << ": " << std::setw(8) << cl.writeFreq << "\n";
+        std::cout << "====================================\n";
+    }
 
     std::array<int, 3> global_num_cells = { cl.nx, cl.ny, cl.nz };
     std::array<double, 6> global_bounding_box = { 0, 0, 0, cl.hx, cl.hy, cl.hz };
 
     double gravity = 9.8;
+    
 
-    clamr( device,
+    clamr<double>( device,
             global_bounding_box, 
             global_num_cells, 
-            cl.rFill,
             cl.haloSize,
             gravity, 
             cl.tSteps, 

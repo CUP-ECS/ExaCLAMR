@@ -14,7 +14,7 @@ namespace TimeIntegrator
 
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
 void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, int a, int b ) {
-    if ( pm.mesh()->rank() == 0 && DEBUG ) printf( "Applying Boundary Conditions\n" );
+    if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Applying Boundary Conditions\n";
 
     using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
@@ -38,7 +38,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         local_mesh.coordinates( Cajita::Cell(), coords, x );
 
         if ( j == domain.min( 1 ) - 1 && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) {
-            if ( DEBUG ) printf("Rank: %d\tLeft Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+            if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tLeft Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             hCurrent( i, j, k, 0 ) = hCurrent( i, j + 1, k, 0 );
             uCurrent( i, j, k, 0 ) = uCurrent( i, j + 1, k, 0 );
             uCurrent( i, j, k, 1 ) = -uCurrent( i, j + 1, k, 1 );
@@ -49,7 +49,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         }
         
         if ( j == domain.max( 1 ) && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) {
-            if ( DEBUG )printf("Rank: %d\tRight Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+            if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tRight Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             hCurrent( i, j, k, 0 ) = hCurrent( i, j - 1, k, 0 );
             uCurrent( i, j, k, 0 ) = uCurrent( i, j - 1, k, 0 );
             uCurrent( i, j, k, 1 ) = -uCurrent( i, j - 1, k, 1 );
@@ -60,7 +60,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         }
 
         if ( i == domain.max( 0 ) && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) {
-            if ( DEBUG ) printf("Rank: %d\tBottom Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+            if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tBottom Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             hCurrent( i, j, k, 0 ) = hCurrent( i - 1, j, k, 0 );
             uCurrent( i, j, k, 0 ) = -uCurrent( i - 1, j, k, 0 );
             uCurrent( i, j, k, 1 ) = uCurrent( i - 1, j, k, 1 );
@@ -71,7 +71,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         }
 
         if ( i == domain.min( 0 ) - 1 && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) {
-            if ( DEBUG ) printf("Rank: %d\tTop Boundary:\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k);
+            if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tTop Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             hCurrent( i, j, k, 0 ) = hCurrent( i + 1, j, k, 0 );
             uCurrent( i, j, k, 0 ) = -uCurrent( i + 1, j, k, 0 );
             uCurrent( i, j, k, 1 ) = uCurrent( i + 1, j, k, 1 );
@@ -88,7 +88,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
 
 template<class ProblemManagerType>
 void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
-    if ( pm.mesh()->rank() == 0 && DEBUG ) printf( "Starting Halo Exchange\ta: %d\t b: %d\n", a, b );
+    if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Starting Halo Exchange\ta: " << a << "\t b: " << b << "\n";
 
     pm.gather( Location::Cell(), Field::Velocity(), b );
     pm.gather( Location::Cell(), Field::Height(), b );
@@ -119,12 +119,12 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
 
         state_t deltaT = sigma / ( xspeed + yspeed );
 
-        if ( DEBUG ) printf( "Wavespeed: %.4f\txspeed: %.4f\tyspeed: %.4f\tdt: %.4f\n", wavespeed, xspeed, yspeed, deltaT );
+        if ( DEBUG ) std::cout << "'Wavespeed: " << wavespeed << "\txspeed: " << xspeed << "\tyspeed: " << yspeed << "\tdeltaT: " << deltaT << "\n";
 
         if ( deltaT < lmin ) lmin = deltaT;
     }, Kokkos::Min<state_t>( mymindeltaT ) );
 
-    if ( DEBUG ) printf( "dt: %.4f\n", mymindeltaT );
+    if ( DEBUG ) std::cout << "dt: " << mymindeltaT << "\n";
 
     return mymindeltaT;
 }
@@ -186,7 +186,7 @@ inline state_t uFullStep( state_t dt, state_t dr, state_t U, state_t FPlus, stat
 
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
 void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t dt, const state_t gravity, const int a, const int b ) {
-    if ( pm.mesh()->rank() == 0 && DEBUG ) printf( "Time Stepper\n" );
+    if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Time Stepper\n";
 
     using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
@@ -222,7 +222,8 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
     auto domainSpace = pm.mesh()->domainSpace();
 
-    if ( DEBUG ) printf("DomainSpace: %ld\t%ld\t%ld\t%ld\t%ld\t%ld\n", domainSpace.min( 0 ), domainSpace.min( 1 ), domainSpace.min( 2 ), domainSpace.max( 0 ), domainSpace.max( 1 ), domainSpace.max( 2 ));
+    if ( DEBUG ) std::cout << "Domain Space: " << domainSpace.min( 0 ) << domainSpace.min( 1 ) << domainSpace.min( 2 ) << \
+    domainSpace.max( 0 ) << domainSpace.max( 1 ) << domainSpace.max( 2 ) << "\n";
 
     Kokkos::parallel_for( Cajita::createExecutionPolicy( domainSpace, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {            
         if ( DEBUG ) {
@@ -230,7 +231,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
             int coords[3] = { i, j, k };
             double x[3];
             local_mesh.coordinates( Cajita::Cell(), coords, x );
-            printf( "Rank: %d\ti: %d\tj: %d\tk: %d\n", pm.mesh()->rank(), i, j, k, x[0], x[1], x[2] );
+            std::cout << "Rank: " << pm.mesh()->rank() << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\tx: " << x[0] << "\ty: " << x[1] << "\tz: " << x[2] << "\n";
         }
             
         // Simple Diffusion Problem
@@ -242,25 +243,29 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         state_t UxMinus = 0.5 * ( ( uCurrent( i - 1, j, k, 0 ) + uCurrent( i, j, k, 0 ) ) - ( dt ) / ( dx ) * ( ( UXRGFLUXIC ) - ( UXRGFLUXNL ) ) );
         state_t VxMinus = 0.5 * ( ( uCurrent( i - 1, j, k, 1 ) + uCurrent( i, j, k, 1 ) ) - ( dt ) / ( dx ) * ( ( VXRGFLUXIC ) - ( VXRGFLUXNL ) ) );
 
-        if ( DEBUG ) printf( "%-10s: %-.4f\t%-10s: %.4f\t%-10s: %.3f\ti: %d\tj:%d\tk: %d\n",  "HxMinus", HxMinus, "UxMinus", UxMinus, "VxMinus", VxMinus, i, j, k );
+        if ( DEBUG ) std::cout << std::left << std::setw(10) << "HxMinus: " << std::setw(6) << HxMinus << \
+        "\tUxMinus: " << std::setw(6) << UxMinus << "\tVxMinus: " << std::setw(6) << VxMinus << "\ti: " << i << "\tj: "<< j << "\tk: " << k << "\n";
 
         state_t HxPlus  = 0.5 * ( ( hCurrent( i, j, k, 0 ) + hCurrent( i + 1, j, k, 0 ) ) - ( dt ) / ( dx ) * ( ( HXRGFLUXNR ) - ( HXRGFLUXIC ) ) );
         state_t UxPlus  = 0.5 * ( ( uCurrent( i, j, k, 0 ) + uCurrent( i + 1, j, k, 0 ) ) - ( dt ) / ( dx ) * ( ( UXRGFLUXNR ) - ( UXRGFLUXIC ) ) );
         state_t VxPlus  = 0.5 * ( ( uCurrent( i, j, k, 1 ) + uCurrent( i + 1, j, k, 1 ) ) - ( dt ) / ( dx ) * ( ( VXRGFLUXNR ) - ( VXRGFLUXIC ) ) );
 
-        if ( DEBUG ) printf( "%-10s: %-.4f\t%-10s: %.4f\t%-10s: %.3f\ti: %d\tj:%d\tk: %d\n",  "HxPlus", HxPlus, "UxPlus", UxPlus, "VxPlus", VxPlus, i, j, k );
+        if ( DEBUG ) std::cout << std::left << std::setw(10) << "HxPlus: " << std::setw(6) << HxPlus << \
+        "\tUxPlus: " << std::setw(6) << UxPlus << "\tVxPlus: " << std::setw(6) << VxPlus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         state_t HyMinus = 0.5 * ( ( hCurrent( i, j - 1, k, 0 ) + hCurrent( i, j, k, 0 ) ) - ( dt ) / ( dy ) * ( ( HYRGFLUXIC ) - ( HYRGFLUXNB ) ) );
         state_t UyMinus = 0.5 * ( ( uCurrent( i, j - 1, k, 0 ) + uCurrent( i, j, k, 0 ) ) - ( dt ) / ( dy ) * ( ( UYRGFLUXIC ) - ( UYRGFLUXNB ) ) );
         state_t VyMinus = 0.5 * ( ( uCurrent( i, j - 1, k, 1 ) + uCurrent( i, j, k, 1 ) ) - ( dt ) / ( dy ) * ( ( VYRGFLUXIC ) - ( VYRGFLUXNB ) ) );
 
-        if ( DEBUG )printf( "%-10s: %-.4f\t%-10s: %.4f\t%-10s: %.3f\ti: %d\tj:%d\tk: %d\n",  "HxPlus", HxPlus, "UxPlus", UxPlus, "VxPlus", VxPlus, i, j, k );
+        if ( DEBUG ) std::cout << std::left << std::setw(10) << "HyMinus: " << std::setw(6) << HyMinus << \
+        "\tUyMinus: " << std::setw(6) << UyMinus << "\tVyMinus: " << std::setw(6) << VyMinus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         state_t HyPlus  = 0.5 * ( ( hCurrent( i, j, k, 0 ) + hCurrent( i, j + 1, k, 0 ) ) - ( dt ) / ( dy ) * ( ( HYRGFLUXNT ) - ( HYRGFLUXIC ) ) );
         state_t UyPlus  = 0.5 * ( ( uCurrent( i, j, k, 0 ) + uCurrent( i, j + 1, k, 0 ) ) - ( dt ) / ( dy ) * ( ( UYRGFLUXNT ) - ( UYRGFLUXIC ) ) );
         state_t VyPlus  = 0.5 * ( ( uCurrent( i, j, k, 1 ) + uCurrent( i, j + 1, k, 1 ) ) - ( dt ) / ( dy ) * ( ( VYRGFLUXNT ) - ( VYRGFLUXIC ) ) );
 
-        if ( DEBUG )printf( "%-10s: %-.4f\t%-10s: %.4f\t%-10s: %.3f\ti: %d\tj:%d\tk: %d\n",  "HxPlus", HxPlus, "UxPlus", UxPlus, "VxPlus", VxPlus, i, j, k );
+        if ( DEBUG ) std::cout << std::left << std::setw(10) << "HyPlus: " << std::setw(6) << HyPlus << \
+        "\tUyPlus: " << std::setw(6) << UyPlus << "\tVyPlus: " << std::setw(6) << VyPlus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         HxFluxMinus( i, j, k, 0 ) = UxMinus;
         UxFluxMinus( i, j, k, 0 ) = ( POW2( UxMinus ) / HxMinus + ghalf * POW2( HxMinus ) );
