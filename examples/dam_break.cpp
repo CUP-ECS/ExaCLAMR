@@ -4,10 +4,6 @@ Description: Finite-Difference Solver of the Shallow Water Equations on a Regula
 Date: May 26, 2020
 */
 
-#ifdef HAVE_SILO
-    #include <silo.h>
-#endif
-
 #include <Solver.hpp>
 
 #include <Cajita.hpp>
@@ -91,7 +87,7 @@ int main( int argc, char* argv[] ) {
 
     std::string device = "serial";
 
-    int nx = 20, ny = 20, nz = 1;
+    int nx = 4, ny = 4, nz = 1;
     std::array<int, 3> global_num_cells = { nx, ny, nz };
 
     double hx = 1.0, hy = 1.0, hz = 1.0;
@@ -101,8 +97,8 @@ int main( int argc, char* argv[] ) {
 
     int halo_size = 2;
     double gravity = 9.8;
-    int t_steps = 200;
-    int write_freq = 100;
+    int t_steps = 1;
+    int write_freq = 1;
 
     clamr( device,
             global_bounding_box, 

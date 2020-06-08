@@ -14,6 +14,10 @@
 #ifndef EXACLAMR_SOLVER_HPP
 #define EXACLAMR_SOLVER_HPP
 
+#ifdef HAVE_SILO
+    #include <silo.h>
+#endif
+
 #include <Mesh.hpp>
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
@@ -76,7 +80,81 @@ class Solver : public SolverBase
             MPI_Barrier( MPI_COMM_WORLD );
         };
 
-        void output( const int rank, const int tstep ) {
+        void writeFile( DBfile *dbfile, char *name, int cycle, double time, double dtime, int b ) {
+            int            i, dims[2], zdims[2], zones[2], ndims, meshid;
+            float          x[5], y[5], d[25], *coords[2], *vars[2];
+            float          u[5], v[5];
+            char          *coordnames[2], *varnames[2];
+            DBoptlist     *optlist;
+
+            optlist = DBMakeOptlist(10);
+            DBAddOption(optlist, DBOPT_CYCLE, &cycle);
+            DBAddOption(optlist, DBOPT_TIME, &time);
+            DBAddOption(optlist, DBOPT_DTIME, &dtime);
+
+            ndims = 2;
+            dims[0] = 5;
+            dims[1] = 5;
+
+            zones[0] = 4;
+            zones[1] = 4;
+
+            coords[0] = x;
+            coords[1] = y;
+
+            coordnames[0] = strdup( "x" );
+            coordnames[1] = strdup( "y" );
+
+            for (i = 0; i < dims[0]; i++)
+                x[i] = (float)i;
+            for (i = 0; i < dims[1]; i++)
+                y[i] = (float)i;
+
+            meshid = DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
+                        coords, dims, ndims, DB_FLOAT, DB_COLLINEAR, optlist);
+
+
+            auto owned_cells = _pm->mesh()->localGrid()->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
+            auto domain = _pm->mesh()->domainSpace();
+
+            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), b );
+            auto hNew = _pm->get( Location::Cell(), Field::Height(), b );
+
+            varnames[0] = strdup( "d" );
+            vars[0] = d;
+            zdims[0] = dims[0] - 1;
+            zdims[1] = dims[1] - 1;
+
+            for (i = 0; i < zdims[0] * zdims[1]; i++)
+                d[i] = (float)i  * .2;
+
+            DBPutQuadvar1(dbfile, "d", name, d, zdims, ndims,
+                                NULL, 0, DB_FLOAT, DB_ZONECENT, optlist);
+
+            /*
+            for (i = 0; i < dims[0] * dims[1]; i++) {
+                u[i] = (float)i *.1;
+                v[i] = (float)i *.1;
+            }
+
+            DBPutQuadvar1(dbfile, "ucomp", name, u, dims, ndims,
+                                NULL, 0, DB_FLOAT, DB_NODECENT, optlist);
+            DBPutQuadvar1(dbfile, "vcomp", name, v, dims, ndims,
+                                NULL, 0, DB_FLOAT, DB_NODECENT, optlist);
+
+            vars[0] = u;
+            vars[1] = v;
+            varnames[0] = "u";
+            varnames[1] = "v";
+
+            DBPutQuadvar(dbfile, "velocity", name, 2, (DBCAS_t) varnames,
+                vars, dims, ndims, NULL, 0, DB_FLOAT, DB_NODECENT, optlist);
+            */
+
+            DBFreeOptlist(optlist);
+        }
+
+        void output( const int rank, const int tstep, const double current_time, const double dt ) {
             int a, b;
             if ( tstep % 2 == 0 ) {
                 a = 0;
@@ -110,26 +188,31 @@ class Solver : public SolverBase
             }
 
             #ifdef HAVE_SILO
-            if ( rank == 0 ) {
-                DBfile *silo_file;
-                int		   driver = DB_PDB;
+            DBfile *silo_file;
+            int driver = DB_PDB;
 
-                DBShowErrors( DB_TOP, NULL );
-                DBForceSingle( 1 );
+            DBShowErrors( DB_ALL, NULL );
+            DBForceSingle( 1 );
 
-                std::string s = "test.pdb";
-                const char * filename = s.c_str();
+            char filename[30];
 
+            sprintf( filename, "ExaCLAMROutput%05d.pdb", tstep );
+
+            if ( rank == 0 && tstep == 0 ) {
                 printf("Creating file: `%s'\n", filename);
-                silo_file = DBCreate(filename, 0, DB_LOCAL, "Compound Array Test", driver);
+                silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
 
-                int sleepsecs = 10;
-                int i = 1;
+                writeFile( silo_file, strdup( "Mesh" ), tstep, current_time, dt, b );
 
-                if (sleepsecs)
-                    DBWrite (silo_file, "sleepsecs", &sleepsecs, &i, 1, DB_INT);
+                DBClose( silo_file );
+            }
+            else if ( rank == 0 ) {
+                printf("Creating file: `%s'\n", filename);
+                silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
 
-                DBClose(silo_file);
+                writeFile( silo_file, strdup( "Mesh" ), tstep, current_time, dt, b );
+
+                DBClose( silo_file );
             }
             #endif
         };
@@ -143,7 +226,7 @@ class Solver : public SolverBase
 
             if (_rank == 0 ) {
                 printf( "Current Time: %.4f\n", current_time );
-                output( 0 , 0 );
+                output( 0, 0, 0, 0 );
             }
 
             for (int t = 1; t <= nt; t++) {
@@ -167,7 +250,7 @@ class Solver : public SolverBase
                 if ( 0 == t % write_freq ) {
                     if ( 0 == _rank ) printf( "Current Time: %.4f\n", current_time );
 
-                    output( 0, t );
+                    output( 0, t, current_time, mindt );
                 }
             }
         };
