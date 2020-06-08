@@ -81,77 +81,98 @@ class Solver : public SolverBase
         };
 
         void writeFile( DBfile *dbfile, char *name, int cycle, double time, double dtime, int b ) {
-            int            i, dims[2], zdims[2], zones[2], ndims, meshid;
-            float          x[5], y[5], d[25], *coords[2], *vars[2];
-            float          u[5], v[5];
+            int            dims[2], zdims[2], zones[2], ndims, meshid;
+            double        *coords[2], *vars[2];
             char          *coordnames[2], *varnames[2];
             DBoptlist     *optlist;
 
             optlist = DBMakeOptlist(10);
             DBAddOption(optlist, DBOPT_CYCLE, &cycle);
             DBAddOption(optlist, DBOPT_TIME, &time);
-            DBAddOption(optlist, DBOPT_DTIME, &dtime);
-
-            ndims = 2;
-            dims[0] = 5;
-            dims[1] = 5;
-
-            zones[0] = 4;
-            zones[1] = 4;
-
-            coords[0] = x;
-            coords[1] = y;
+            DBAddOption(optlist, DBOPT_DTIME, &time);
 
             coordnames[0] = strdup( "x" );
             coordnames[1] = strdup( "y" );
 
-            for (i = 0; i < dims[0]; i++)
-                x[i] = (float)i;
-            for (i = 0; i < dims[1]; i++)
-                y[i] = (float)i;
+            auto domain = _pm->mesh()->domainSpace();
+            int nx = domain.extent( 0 );
+            int ny = domain.extent( 1 );
+
+            ndims = 2;
+            dims[0] = nx + 1;
+            dims[1] = ny + 1;
+
+            double x[dims[0]];
+            double y[dims[1]];
+            double height[nx * ny];
+            double u[nx * ny];
+            double v[nx * ny];
+
+            double dx = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
+            double dy = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+
+            coords[0] = x;
+            coords[1] = y;
+
+            for (int i = 0; i < dims[0]; i++) {
+                x[i] = ( double ) i * dx;
+            }
+            for (int j = 0; j < dims[1]; j++) {
+                y[j] = ( double ) j * dy;
+            }
 
             meshid = DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
-                        coords, dims, ndims, DB_FLOAT, DB_COLLINEAR, optlist);
+                        coords, dims, ndims, DB_DOUBLE, DB_COLLINEAR, optlist);
 
 
             auto owned_cells = _pm->mesh()->localGrid()->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
-            auto domain = _pm->mesh()->domainSpace();
 
             auto uNew = _pm->get( Location::Cell(), Field::Velocity(), b );
             auto hNew = _pm->get( Location::Cell(), Field::Height(), b );
 
-            varnames[0] = strdup( "d" );
-            vars[0] = d;
+
+            zones[0] = dims[0] - 1;
+            zones[1] = dims[1] - 1;
+
+            varnames[0] = strdup( "Height" );
+            vars[0] = height;
+
             zdims[0] = dims[0] - 1;
             zdims[1] = dims[1] - 1;
 
-            for (i = 0; i < zdims[0] * zdims[1]; i++)
-                d[i] = (float)i  * .2;
-
-            DBPutQuadvar1(dbfile, "d", name, d, zdims, ndims,
-                                NULL, 0, DB_FLOAT, DB_ZONECENT, optlist);
-
-            /*
-            for (i = 0; i < dims[0] * dims[1]; i++) {
-                u[i] = (float)i *.1;
-                v[i] = (float)i *.1;
+            for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
+                for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
+                    for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
+                        int iown = i - domain.min( 0 );
+                        int jown = j - domain.min( 1 );
+                        int kown = k - domain.min( 2 );
+                        int inx = iown + domain.extent( 0 ) * ( jown + domain.extent( 1 ) * kown );
+                        height[inx] = hNew( i, j, k, 0 );
+                        u[inx] = uNew( i, j, k, 0 );
+                        v[inx] = uNew( i, j, k, 1 );
+                    }
+                }
             }
 
-            DBPutQuadvar1(dbfile, "ucomp", name, u, dims, ndims,
-                                NULL, 0, DB_FLOAT, DB_NODECENT, optlist);
-            DBPutQuadvar1(dbfile, "vcomp", name, v, dims, ndims,
-                                NULL, 0, DB_FLOAT, DB_NODECENT, optlist);
+            DBPutQuadvar1( dbfile, "height", name, height, zdims, ndims,
+                                NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
+            
+            DBPutQuadvar1( dbfile, "ucomp", name, u, zdims, ndims,
+                        NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
+
+            DBPutQuadvar1( dbfile, "vcomp", name, v, zdims, ndims,
+                        NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
 
             vars[0] = u;
             vars[1] = v;
-            varnames[0] = "u";
-            varnames[1] = "v";
+            varnames[0] = strdup( "u" );
+            varnames[1] = strdup( "v" );
 
-            DBPutQuadvar(dbfile, "velocity", name, 2, (DBCAS_t) varnames,
-                vars, dims, ndims, NULL, 0, DB_FLOAT, DB_NODECENT, optlist);
-            */
 
-            DBFreeOptlist(optlist);
+            DBPutQuadvar( dbfile, "velocity", name, 2, (DBCAS_t) varnames,
+                vars, zdims, ndims, NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
+
+            DBFreeOptlist( optlist );
         }
 
         void output( const int rank, const int tstep, const double current_time, const double dt ) {
@@ -176,11 +197,11 @@ class Solver : public SolverBase
                 for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                     for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                         for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
-                            printf( "%-8.4f\t", hNew( i, j, k, 0 ) );
+                            // printf( "%-8.4f\t", hNew( i, j, k, 0 ) );
                             summedHeight += hNew( i, j, k, 0 );
                         }
                     }
-                    printf("\n");
+                    // printf("\n");
                 }
 
                 // Proxy Mass Conservation
@@ -190,23 +211,14 @@ class Solver : public SolverBase
             #ifdef HAVE_SILO
             DBfile *silo_file;
             int driver = DB_PDB;
+            char filename[30];
+
+            sprintf( filename, "data/ExaCLAMROutput%05d.pdb", tstep );
 
             DBShowErrors( DB_ALL, NULL );
             DBForceSingle( 1 );
 
-            char filename[30];
-
-            sprintf( filename, "ExaCLAMROutput%05d.pdb", tstep );
-
-            if ( rank == 0 && tstep == 0 ) {
-                printf("Creating file: `%s'\n", filename);
-                silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
-
-                writeFile( silo_file, strdup( "Mesh" ), tstep, current_time, dt, b );
-
-                DBClose( silo_file );
-            }
-            else if ( rank == 0 ) {
+            if ( rank == 0 ) {
                 printf("Creating file: `%s'\n", filename);
                 silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
 
