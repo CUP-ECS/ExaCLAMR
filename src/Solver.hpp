@@ -16,13 +16,10 @@
 
 #define DEBUG 0
 
-#ifdef HAVE_SILO
-    #include <silo.h>
-#endif
-
 #include <Mesh.hpp>
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
+#include <SiloWriter.hpp>
 
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
@@ -79,105 +76,10 @@ class Solver : public SolverBase
                 
             _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, double>>( _mesh, create_functor, ExecutionSpace() );
 
+            _silo = std::make_shared<SiloWriter<MemorySpace, ExecutionSpace>>( _pm );
+
             MPI_Barrier( MPI_COMM_WORLD );
         };
-
-        void writeFile( DBfile *dbfile, char *name, int cycle, double time, double dtime, int b ) {
-            int            dims[2], zdims[2], zones[2], ndims, meshid;
-            double        *coords[2], *vars[2];
-            char          *coordnames[2], *varnames[2];
-            DBoptlist     *optlist;
-
-            if( DEBUG ) std::cout << "Writing File\n";
-
-            optlist = DBMakeOptlist(10);
-            DBAddOption(optlist, DBOPT_CYCLE, &cycle);
-            DBAddOption(optlist, DBOPT_TIME, &time);
-            DBAddOption(optlist, DBOPT_DTIME, &time);
-
-            coordnames[0] = strdup( "x" );
-            coordnames[1] = strdup( "y" );
-
-            auto domain = _pm->mesh()->domainSpace();
-            int nx = domain.extent( 0 );
-            int ny = domain.extent( 1 );
-
-            ndims = 2;
-            dims[0] = nx + 1;
-            dims[1] = ny + 1;
-
-            double x[dims[0]];
-            double y[dims[1]];
-            double height[nx * ny];
-            double u[nx * ny];
-            double v[nx * ny];
-
-            double dx = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
-            double dy = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
-
-            coords[0] = x;
-            coords[1] = y;
-
-            for (int i = 0; i < dims[0]; i++) {
-                x[i] = ( double ) i * dx;
-            }
-            for (int j = 0; j < dims[1]; j++) {
-                y[j] = ( double ) j * dy;
-            }
-
-            meshid = DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
-                        coords, dims, ndims, DB_DOUBLE, DB_COLLINEAR, optlist);
-
-
-            auto owned_cells = _pm->mesh()->localGrid()->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
-
-            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), b );
-            auto hNew = _pm->get( Location::Cell(), Field::Height(), b );
-
-
-            zones[0] = dims[0] - 1;
-            zones[1] = dims[1] - 1;
-
-            varnames[0] = strdup( "Height" );
-            vars[0] = height;
-
-            zdims[0] = dims[0] - 1;
-            zdims[1] = dims[1] - 1;
-
-            for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
-                for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
-                    for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
-                        int iown = i - domain.min( 0 );
-                        int jown = j - domain.min( 1 );
-                        int kown = k - domain.min( 2 );
-                        int inx = iown + domain.extent( 0 ) * ( jown + domain.extent( 1 ) * kown );
-                        height[inx] = hNew( i, j, k, 0 );
-                        u[inx] = uNew( i, j, k, 0 );
-                        v[inx] = uNew( i, j, k, 1 );
-                    }
-                }
-            }
-
-            DBPutQuadvar1( dbfile, "height", name, height, zdims, ndims,
-                                NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
-            
-            DBPutQuadvar1( dbfile, "ucomp", name, u, zdims, ndims,
-                        NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
-
-            DBPutQuadvar1( dbfile, "vcomp", name, v, zdims, ndims,
-                        NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
-
-            vars[0] = u;
-            vars[1] = v;
-            varnames[0] = strdup( "u" );
-            varnames[1] = strdup( "v" );
-
-
-            DBPutQuadvar( dbfile, "velocity", name, 2, (DBCAS_t) varnames,
-                vars, zdims, ndims, NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
-
-            DBFreeOptlist( optlist );
-        }
 
         void output( const int rank, const int tstep, const double current_time, const double dt ) {
             int a, b;
@@ -211,26 +113,6 @@ class Solver : public SolverBase
                 // Proxy Mass Conservation
                 if ( DEBUG ) std::cout << "Summed Height: " << summedHeight << "\n";
             }
-
-            #ifdef HAVE_SILO
-                DBfile *silo_file;
-                int driver = DB_PDB;
-                char filename[30];
-
-                sprintf( filename, "data/ExaCLAMROutput%05d.pdb", tstep );
-
-                DBShowErrors( DB_ALL, NULL );
-                DBForceSingle( 1 );
-
-                if ( rank == 0 ) {
-                    if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
-                    silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
-
-                    writeFile( silo_file, strdup( "Mesh" ), tstep, current_time, dt, b );
-
-                    DBClose( silo_file );
-                }
-            #endif
         };
 
         void solve( const int write_freq ) override {
@@ -242,7 +124,11 @@ class Solver : public SolverBase
 
             if (_rank == 0 ) {
                 std::cout << std::left << std::setw(12) << "Iteration: " << 0 << std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";
-                output( 0, 0, 0, 0 );
+                if ( DEBUG ) output( 0, 0, 0, 0 );
+                #ifdef HAVE_SILO
+                    _silo->siloWrite( strdup( "Mesh" ), 0, current_time, 0, 1 );
+                #endif
+
             }
 
             for (int t = 1; t <= nt; t++) {
@@ -266,7 +152,11 @@ class Solver : public SolverBase
                 if ( 0 == t % write_freq ) {
                     if ( 0 == _rank ) std::cout << std::left << std::setw(12) << "Iteration: " << std::setw(5) << t << std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";
 
-                    output( 0, t, current_time, mindt );
+                    if ( DEBUG ) output( 0, t, current_time, mindt );
+
+                    #ifdef HAVE_SILO
+                        _silo->siloWrite( strdup( "Mesh" ), t, current_time, mindt, b );
+                    #endif
                 }
             }
         };
@@ -279,6 +169,7 @@ class Solver : public SolverBase
         int _rank;
         std::shared_ptr<Mesh<MemorySpace, ExecutionSpace>> _mesh;
         std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, double>> _pm;
+        std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace>> _silo;
 };
 
 template<class InitFunc>

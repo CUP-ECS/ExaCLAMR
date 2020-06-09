@@ -4,6 +4,7 @@ set(HEADERS
   ProblemManager.hpp
   TimeIntegration.hpp
   Input.hpp
+  SiloWriter.hpp
   )
 
 set(SOURCES

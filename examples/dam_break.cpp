@@ -16,7 +16,6 @@ Date: May 26, 2020
 
 #include <mpi.h>
 #include <unistd.h>
-#include <array>
 
 #if DEBUG
     #include <iostream>
