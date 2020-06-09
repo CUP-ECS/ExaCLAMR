@@ -1,7 +1,18 @@
+/**
+ * @file
+ * @author Patrick Bridges <pbridges@unm.edu>
+ * @author Jered Dominguez-Trujillo <jereddt@unm.edu>
+ * 
+ * @section DESCRIPTION
+ * 
+ */
+
 #ifndef EXACLAMR_SILOWRITER_HPP
 #define EXACLAMR_SILOWRITER_HPP
 
-#define DEBUG 0
+#ifndef DEBUG
+#define DEBUG 0 
+#endif
 
 #ifdef HAVE_SILO
     #include <silo.h>
@@ -10,28 +21,35 @@
 
 namespace ExaCLAMR {
 
-template<class MemorySpace, class ExecutionSpace>
+template<class MemorySpace, class ExecutionSpace, typename state_t>
 class SiloWriter
 {
 
     public:
-
+        /**
+         * Constructor
+         * 
+         * @param
+         */
         template<class ProblemManagerType>
         SiloWriter( ProblemManagerType& pm ) 
         : _pm ( pm ) { }
 
-        void writeFile( DBfile *dbfile, char *name, int cycle, double time, double dtime, int b ) {
+        #define NEWFIELD( time_step ) ( ( time_step + 1 ) % 2 )
+        #define CURRENTFIELD( time_step ) ( ( time_step ) % 2 )
+
+        void writeFile( DBfile *dbfile, char *name, int time_step, state_t time, state_t dt ) {
             int            dims[2], zdims[2], zones[2], ndims, meshid;
-            double        *coords[2], *vars[2];
+            state_t        *coords[2], *vars[2];
             char          *coordnames[2], *varnames[2];
             DBoptlist     *optlist;
 
             if( DEBUG ) std::cout << "Writing File\n";
 
             optlist = DBMakeOptlist(10);
-            DBAddOption(optlist, DBOPT_CYCLE, &cycle);
+            DBAddOption(optlist, DBOPT_CYCLE, &time_step);
             DBAddOption(optlist, DBOPT_TIME, &time);
-            DBAddOption(optlist, DBOPT_DTIME, &time);
+            DBAddOption(optlist, DBOPT_DTIME, &dt);
 
             coordnames[0] = strdup( "x" );
             coordnames[1] = strdup( "y" );
@@ -44,33 +62,34 @@ class SiloWriter
             dims[0] = nx + 1;
             dims[1] = ny + 1;
 
-            double x[dims[0]];
-            double y[dims[1]];
-            double height[nx * ny];
-            double u[nx * ny];
-            double v[nx * ny];
+            state_t x[dims[0]];
+            state_t y[dims[1]];
+            state_t height[nx * ny];
+            state_t u[nx * ny];
+            state_t v[nx * ny];
 
-            double dx = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
-            double dy = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+            state_t dx = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
+            state_t dy = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
 
             coords[0] = x;
             coords[1] = y;
 
             for (int i = 0; i < dims[0]; i++) {
-                x[i] = ( double ) i * dx;
+                x[i] = ( state_t ) i * dx;
             }
             for (int j = 0; j < dims[1]; j++) {
-                y[j] = ( double ) j * dy;
+                y[j] = ( state_t ) j * dy;
             }
 
+            // TODO: Scenario where we need DB_FLOAT
             meshid = DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
                         coords, dims, ndims, DB_DOUBLE, DB_COLLINEAR, optlist);
 
 
             auto owned_cells = _pm->mesh()->localGrid()->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 
-            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), b );
-            auto hNew = _pm->get( Location::Cell(), Field::Height(), b );
+            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
+            auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
 
             zones[0] = dims[0] - 1;
@@ -96,12 +115,15 @@ class SiloWriter
                 }
             }
 
+            // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "height", name, height, zdims, ndims,
                                 NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
             
+            // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "ucomp", name, u, zdims, ndims,
                         NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
 
+            // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "vcomp", name, v, zdims, ndims,
                         NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
 
@@ -110,20 +132,20 @@ class SiloWriter
             varnames[0] = strdup( "u" );
             varnames[1] = strdup( "v" );
 
-
+            // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar( dbfile, "velocity", name, 2, (DBCAS_t) varnames,
                 vars, zdims, ndims, NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
 
             DBFreeOptlist( optlist );
         }
 
-        void siloWrite( char *name, int cycle, double time, double dtime, int b ) {
+        void siloWrite( char *name, int time_step, state_t time, state_t dt ) {
             #ifdef HAVE_SILO
                 DBfile *silo_file;
                 int driver = DB_PDB;
                 char filename[30];
 
-                sprintf( filename, "data/ExaCLAMROutput%05d.pdb", cycle );
+                sprintf( filename, "data/ExaCLAMROutput%05d.pdb", time_step );
 
                 DBShowErrors( DB_ALL, NULL );
                 DBForceSingle( 1 );
@@ -131,14 +153,14 @@ class SiloWriter
                 if ( _pm->mesh()->rank() == 0 ) {
                     if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
                     silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
-                    writeFile( silo_file, strdup( "Mesh" ), cycle, time, dtime, b );
+                    writeFile( silo_file, strdup( "Mesh" ), time_step, time, dt );
                     DBClose( silo_file );
                 }
             #endif
         };
 
     private:
-        std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, double>> _pm;
+        std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;
 
 };
 

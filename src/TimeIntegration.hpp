@@ -1,7 +1,18 @@
+/**
+ * @file
+ * @author Patrick Bridges <pbridges@unm.edu>
+ * @author Jered Dominguez-Trujillo <jereddt@unm.edu>
+ * 
+ * @section DESCRIPTION
+ * 
+ */
+
 #ifndef EXACLAMR_TIMEINTEGRATION_HPP
 #define EXACLAMR_TIMEINTEGRATION_HPP
 
+#ifndef DEBUG
 #define DEBUG 0 
+#endif
 
 #include <ProblemManager.hpp>
 
@@ -12,17 +23,20 @@ namespace ExaCLAMR
 namespace TimeIntegrator
 {
 
-template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
-void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, int a, int b ) {
+#define NEWFIELD( time_step ) ( ( time_step + 1 ) % 2 )
+#define CURRENTFIELD( time_step ) ( ( time_step ) % 2 )
+
+template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
+void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const int time_step ) {
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Applying Boundary Conditions\n";
 
     using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-    auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), a );
-    auto hCurrent = pm.get( Location::Cell(), Field::Height(), a );
+    auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), CURRENTFIELD( time_step ) );
+    auto hCurrent = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
 
-    auto uNew = pm.get( Location::Cell(), Field::Velocity(), b );
-    auto hNew = pm.get( Location::Cell(), Field::Height(), b );
+    auto uNew = pm.get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
+    auto hNew = pm.get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
     auto local_grid = pm.mesh()->localGrid();
     auto local_mesh = Cajita::createLocalMesh<device_type>( *local_grid );
@@ -87,26 +101,26 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
 }
 
 template<class ProblemManagerType>
-void haloExchange( const ProblemManagerType& pm, const int a, const int b ) {
-    if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Starting Halo Exchange\ta: " << a << "\t b: " << b << "\n";
+void haloExchange( const ProblemManagerType& pm, const int time_step ) {
+    if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Starting Halo Exchange\n";
 
-    pm.gather( Location::Cell(), Field::Velocity(), b );
-    pm.gather( Location::Cell(), Field::Height(), b );
+    pm.gather( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
+    pm.gather( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
     MPI_Barrier( MPI_COMM_WORLD );
 }
 
-template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
-state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const state_t sigma, const int a, const int b ) {
+template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
+state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const state_t sigma, const int time_step ) {
 
-    double dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
-    double dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+    state_t dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
+    state_t dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
 
-    auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), a );
-    auto hCurrent = pm.get( Location::Cell(), Field::Height(), a );
+    auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), CURRENTFIELD( time_step ) );
+    auto hCurrent = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
 
-    auto uNew = pm.get( Location::Cell(), Field::Velocity(), b );
-    auto hNew = pm.get( Location::Cell(), Field::Height(), b );
+    auto uNew = pm.get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
+    auto hNew = pm.get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
     auto domain = pm.mesh()->domainSpace();
 
@@ -167,7 +181,7 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
 #define VYRGFLUXNB ( POW2( uCurrent( i, j - 1, k, 1 ) ) / hCurrent( i, j - 1, k, 0 ) + ghalf * POW2( hCurrent( i, j - 1, k, 0 ) ) )
 #define VYRGFLUXNT ( POW2( uCurrent( i, j + 1, k, 1 ) ) / hCurrent( i, j + 1, k, 0 ) + ghalf * POW2( hCurrent( i, j + 1, k, 0 ) ) )
 
-template<class state_t>
+template<typename state_t>
 inline state_t wCorrector( state_t dt, state_t dr, state_t uEigen, state_t gradHalf, state_t gradMinus, state_t gradPlus ) {
     state_t nu = 0.5 * uEigen * dt / dr;
     nu *= ( 1.0 - nu );
@@ -179,28 +193,28 @@ inline state_t wCorrector( state_t dt, state_t dr, state_t uEigen, state_t gradH
     return 0.5 * nu * ( 1.0 - std::max( std::min( std::min( 1.0, rPlus ), rMinus ), 0.0 ) );
 }
 
-template<class state_t>
+template<typename state_t>
 inline state_t uFullStep( state_t dt, state_t dr, state_t U, state_t FPlus, state_t FMinus, state_t GPlus, state_t GMinus ) {
     return ( U + ( - ( dt / dr) * ( ( FPlus - FMinus ) + ( GPlus - GMinus ) ) ) );
 }
 
-template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, class state_t>
-void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t dt, const state_t gravity, const int a, const int b ) {
+template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
+void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t dt, const state_t gravity, const int time_step ) {
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Time Stepper\n";
 
     using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-    double dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
-    double dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
-    double ghalf = 0.5 * gravity;
+    state_t dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
+    state_t dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+    state_t ghalf = 0.5 * gravity;
 
-    applyBoundaryConditions( pm, exec_space, mem_space, gravity, a, b );
+    applyBoundaryConditions( pm, exec_space, mem_space, gravity, time_step );
 
-    auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), a );
-    auto hCurrent = pm.get( Location::Cell(), Field::Height(), a );
+    auto uCurrent = pm.get( Location::Cell(), Field::Velocity(), CURRENTFIELD( time_step ) );
+    auto hCurrent = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
 
-    auto uNew = pm.get( Location::Cell(), Field::Velocity(), b );
-    auto hNew = pm.get( Location::Cell(), Field::Height(), b );
+    auto uNew = pm.get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
+    auto hNew = pm.get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
     auto HxFluxPlus = pm.get( Location::Cell(), Field::HxFluxPlus() );
     auto HxFluxMinus = pm.get( Location::Cell(), Field::HxFluxMinus() );
@@ -229,7 +243,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         if ( DEBUG ) {
             auto local_mesh = Cajita::createLocalMesh<device_type>( * pm.mesh()->localGrid() );
             int coords[3] = { i, j, k };
-            double x[3];
+            state_t x[3];
             local_mesh.coordinates( Cajita::Cell(), coords, x );
             std::cout << "Rank: " << pm.mesh()->rank() << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\tx: " << x[0] << "\ty: " << x[1] << "\tz: " << x[2] << "\n";
         }
@@ -318,7 +332,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
     MPI_Barrier( MPI_COMM_WORLD );
 
-    haloExchange( pm, a, b );
+    haloExchange( pm, time_step );
 
 }
 

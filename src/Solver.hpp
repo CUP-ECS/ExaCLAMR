@@ -2,10 +2,6 @@
  * @file
  * @author Patrick Bridges <pbridges@unm.edu>
  * @author Jered Dominguez-Trujillo <jereddt@unm.edu>
- *
- * @version 0.1.0
- * 
- * @section LICENSE
  * 
  * @section DESCRIPTION
  * 
@@ -14,19 +10,26 @@
 #ifndef EXACLAMR_SOLVER_HPP
 #define EXACLAMR_SOLVER_HPP
 
-#define DEBUG 0
+#ifndef DEBUG
+#define DEBUG 0 
+#endif
 
 #include <Mesh.hpp>
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
-#include <SiloWriter.hpp>
+
+#ifdef HAVE_SILO
+    #include <SiloWriter.hpp>
+#endif
 
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
 
+// TODO: ifdef Include MPI
 #include <mpi.h>
 
 #include <memory>
+
 
 namespace ExaCLAMR
 {
@@ -39,154 +42,155 @@ class SolverBase
         virtual void solve( const int write_freq ) = 0;
 };
 
-template<class MemorySpace, class ExecutionSpace>
+
+template <class MemorySpace, class ExecutionSpace, typename state_t>
 class Solver : public SolverBase
 {
     public:
-
         /**
          * Constructor
          * 
          * @param
          */
-        template<class InitFunc>
+        template <class InitFunc>
         Solver( MPI_Comm comm, 
                 const InitFunc& create_functor,
-                const std::array<double, 6>& global_bounding_box, 
+                const std::array<state_t, 6>& global_bounding_box, 
                 const std::array<int, 3>& global_num_cell, 
                 const std::array<bool, 3>& periodic,
                 const Cajita::Partitioner& partitioner,
                 const int halo_size, 
-                const double t_steps, 
-                const double gravity )
-        : _halo_size ( halo_size ), _tsteps ( t_steps ), _gravity ( gravity )
-        {
+                const int time_steps, 
+                const state_t gravity )
+        : _halo_size ( halo_size ), _time_steps ( time_steps ), _gravity ( gravity ) {
+            // TODO: ifdef MPI Comm Rank Statement
             MPI_Comm_rank( comm, &_rank );
 
-            if ( _rank == 0 && DEBUG ) std::cout << "Created Solver\n";
-
-            _mesh = std::make_shared<Mesh<MemorySpace, ExecutionSpace>> ( global_bounding_box, 
+            if ( _rank == 0 && DEBUG ) std::cout << "Created Solver\n";         // DEBUG: Trace Created Solver
+                
+            // Create Problem Manager
+            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, state_t>>( 
+                                            global_bounding_box, 
                                             global_num_cell, 
                                             periodic, 
                                             partitioner, 
                                             halo_size, 
-                                            comm,
-                                            ExecutionSpace()
-                                            );
-                
-            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, double>>( _mesh, create_functor, ExecutionSpace() );
+                                            comm, 
+                                            create_functor );
 
-            _silo = std::make_shared<SiloWriter<MemorySpace, ExecutionSpace>>( _pm );
+            // Create Silo Writer
+            #ifdef HAVE_SILO
+                _silo = std::make_shared<SiloWriter<MemorySpace, ExecutionSpace, state_t>>( _pm );
+            #endif
 
+            // TODO: ifdef MPI Barrier Statement
             MPI_Barrier( MPI_COMM_WORLD );
         };
 
-        void output( const int rank, const int tstep, const double current_time, const double dt ) {
-            int a, b;
-            if ( tstep % 2 == 0 ) {
-                a = 0;
-                b = 1;
-            }
-            else {
-                a = 1;
-                b = 0;
-            }
+        // Toggle Between Current and New State Vectors
+        #define NEWFIELD( time_step ) ( ( time_step + 1 ) % 2 )
+        #define CURRENTFIELD( time_step ) ( ( time_step ) % 2 )
 
-            auto owned_cells = _pm->mesh()->localGrid()->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
-            auto domain = _pm->mesh()->domainSpace();
+        // Print Output of Height Array to Console for Debugging
+        void output( const int rank, const int time_step, const state_t current_time, const state_t dt ) {
+            // Get Domain Iteration Space
+            auto domain = _pm->mesh()->domainSpace();                                                       // Domain Space to Iterate Over
 
-            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), b );
-            auto hNew = _pm->get( Location::Cell(), Field::Height(), b );
+            // Get State Views
+            auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );               // New Height State View
+            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );             // New Velocity State View
 
-            double summedHeight = 0;
+            state_t summedHeight = 0;                                                                       // Initialize Total Height
+
+            // Only Loop if Rank is the Specified Rank
             if ( _pm->mesh()->rank() == rank ) {
                 for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                     for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                         for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
-                            if ( DEBUG ) std::cout << std::left << std::setw(8) << hNew( i, j, k, 0 );
-                            summedHeight += hNew( i, j, k, 0 );
+                            if ( DEBUG ) std::cout << std::left << std::setw(8) << hNew( i, j, k, 0 );      // DEBUG: Print Height Array
+                            summedHeight += hNew( i, j, k, 0 );                                             // Sum Heights as a Proxy for Mass
                         }
                     }
-                    if( DEBUG ) std::cout << "\n";
+                    if( DEBUG ) std::cout << "\n";                                                          // DEBUG: New Line
                 }
 
                 // Proxy Mass Conservation
-                if ( DEBUG ) std::cout << "Summed Height: " << summedHeight << "\n";
+                if ( DEBUG ) std::cout << "Summed Height: " << summedHeight << "\n";                        // DEBUG: Print Summed Height
             }
         };
 
+        // Solve Routine
         void solve( const int write_freq ) override {
-            if ( _rank == 0 && DEBUG ) std::cout << "Solving!\n";
+            if ( _rank == 0 && DEBUG ) std::cout << "Solving!\n";       // DEBUG: Trace Solving
 
-            int nt = _tsteps;
-            double current_time = 0.0;
-            int a, b;
+            int time_step = 0;
+            int nt = _time_steps;
+            state_t current_time = 0.0, mindt = 0.0;
 
+            // Rank 0 Prints Initial Iteration and Time
             if (_rank == 0 ) {
-                std::cout << std::left << std::setw(12) << "Iteration: " << 0 << std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";
-                if ( DEBUG ) output( 0, 0, 0, 0 );
-                #ifdef HAVE_SILO
-                    _silo->siloWrite( strdup( "Mesh" ), 0, current_time, 0, 1 );
-                #endif
-
+                std::cout << std::left << std::setw(12) << "Iteration: " << 0 <<                            // Print Iteration and Current Time
+                std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";                   
+                if ( DEBUG ) output( 0, time_step, current_time, mindt );                                   // DEBUG: Call Output Routine
             }
 
-            for (int t = 1; t <= nt; t++) {
-                if ( t % 2 == 0 ) {
-                    a = 0;
-                    b = 1;
-                }
-                else {
-                    a = 1;
-                    b = 0;
-                }
+            // Write Initial Data to File with Silo
+            #ifdef HAVE_SILO
+                _silo->siloWrite( strdup( "Mesh" ), 0, current_time, mindt );                                // Write State Data
+            #endif
 
-                double mindt;
-                double dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), MemorySpace(), _gravity, 0.95, 0, 1 );
+            // Loop Over Time
+            for (time_step = 1; time_step <= nt; time_step++) {
+                // TODO: Declare Sigma = 0.95 elsewhere instead of hard-coded
+                state_t dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), MemorySpace(), _gravity, 0.95, time_step );       // Calculate Time Step
 
-                MPI_Allreduce( &dt, &mindt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );
+                // TODO: ifdef MPI AllReduce Statement
+                // TODO: Scenario where we need MPI_FLOAT
+                MPI_Allreduce( &dt, &mindt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );                                               // Get Minimum Time Step
 
-                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), mindt, _gravity, a, b );
+                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), mindt, _gravity, time_step );                          // Perform Calculation
+                
+                // Increment Current Time
                 current_time += mindt;
 
-                if ( 0 == t % write_freq ) {
-                    if ( 0 == _rank ) std::cout << std::left << std::setw(12) << "Iteration: " << std::setw(5) << t << std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";
+                // Output and Write File every Write Frequency Time Steps
+                if ( 0 == time_step % write_freq ) {
+                    if ( 0 == _rank ) std::cout << std::left << std::setw(12) << "Iteration: " << std::setw(5) << time_step <<      // Print Iteration and Current Time
+                    std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";
 
-                    if ( DEBUG ) output( 0, t, current_time, mindt );
+                    if ( DEBUG ) output( 0, time_step, current_time, mindt );                                                       // DEBUG: Call Output Routine
 
+                    // Write Current State Data to File with Silo
                     #ifdef HAVE_SILO
-                        _silo->siloWrite( strdup( "Mesh" ), t, current_time, mindt, b );
+                        _silo->siloWrite( strdup( "Mesh" ), time_step, current_time, mindt );                                       // Write State Data
                     #endif
                 }
             }
         };
 
     private:
-
-        double _tsteps;
-        double _gravity;
-        int _halo_size;
-        int _rank;
-        std::shared_ptr<Mesh<MemorySpace, ExecutionSpace>> _mesh;
-        std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, double>> _pm;
-        std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace>> _silo;
+        int _rank, _time_steps, _halo_size;
+        state_t _gravity;
+        std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;
+        std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace, state_t>> _silo;
 };
 
-template<class InitFunc>
+// Create Solver with Templates
+template <typename state_t, class InitFunc>
 std::shared_ptr<SolverBase> createSolver( const std::string& device,
                                             MPI_Comm comm, 
                                             const InitFunc& create_functor,
-                                            const std::array<double, 6>& global_bounding_box, 
+                                            const std::array<state_t, 6>& global_bounding_box, 
                                             const std::array<int, 3>& global_num_cell,
                                             const std::array<bool, 3>& periodic,
                                             const Cajita::Partitioner& partitioner, 
                                             const int halo_size, 
-                                            const double t_steps, 
-                                            const double gravity ) 
-{
-    if ( 0 == device.compare( "serial" ) ){
+                                            const int time_steps, 
+                                            const state_t gravity ) {
+    // Serial
+    if ( 0 == device.compare( "serial" ) ) {
         #ifdef KOKKOS_ENABLE_SERIAL
-            return std::make_shared<ExaCLAMR::Solver<Kokkos::HostSpace, Kokkos::Serial>>(
+            return std::make_shared<ExaCLAMR::Solver<Kokkos::HostSpace, Kokkos::Serial, state_t>>(
                 comm, 
                 create_functor,
                 global_bounding_box, 
@@ -194,15 +198,16 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 periodic,
                 partitioner,
                 halo_size, 
-                t_steps, 
+                time_steps, 
                 gravity );
         #else
             throw std::runtime_error( "Serial Backend Not Enabled" );
         #endif
     }
+    // OpenMP
     else if ( 0 == device.compare( "openmp" ) ) {
         #ifdef KOKKOS_ENABLE_OPENMP
-            return std::make_shared<ExaCLAMR::Solver<Kokkos::HostSpace, Kokkos::OpenMP>>(
+            return std::make_shared<ExaCLAMR::Solver<Kokkos::HostSpace, Kokkos::OpenMP, state_t>>(
                 comm, 
                 create_functor,
                 global_bounding_box, 
@@ -210,12 +215,14 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
                 periodic,
                 partitioner,
                 halo_size, 
-                t_steps, 
+                time_steps, 
                 gravity );
         #else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
         #endif
     }
+    // TODO: Add CUDA
+    // Otherwise
     else {
         throw std::runtime_error( "Invalid Backend" );
         return nullptr;
@@ -223,4 +230,5 @@ std::shared_ptr<SolverBase> createSolver( const std::string& device,
 };
 
 }
+
 #endif

@@ -8,8 +8,7 @@ set(HEADERS
   )
 
 set(SOURCES
-  Mesh.cpp
-  Input.cpp
+  ExaCLAMR.cpp
   )
 
 add_library(exaclamr ${SOURCES})
