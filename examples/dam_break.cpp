@@ -13,6 +13,7 @@
 
 #include <Input.hpp>
 #include <Solver.hpp>
+#include <Timer.hpp>
 
 #include <Cajita.hpp>
 #include <Cabana_Core.hpp>
@@ -24,6 +25,8 @@
 #if DEBUG
     #include <iostream>
 #endif
+
+#define MICROSECONDS 1.0e-6
 
 template <typename state_t>
 struct MeshInitFunc
@@ -107,8 +110,12 @@ void clamr( const std::string& device,
     solver->solve( write_freq );
 };
 
-
 int main( int argc, char* argv[] ) {
+    // Initialize and Start Timer
+    using timestruct = std::chrono::high_resolution_clock::time_point;
+    timestruct timer_total;
+    Timer::timer_start( &timer_total );                  // Start Timer
+
     // Using doubles
     using state_t = double;
 
@@ -158,6 +165,9 @@ int main( int argc, char* argv[] ) {
     Kokkos::finalize();                                 // Finalize Kokkos                    
     // TODO: ifdef MPI Finalize Statement               
     MPI_Finalize();                                     // Finalize MPI
+
+    state_t time_total = ( state_t ) Timer::timer_stop( timer_total ) * MICROSECONDS;           // Stop Timer
+    std::cout << "The Total Execution Time of the Program was " << time_total << " seconds\n";
 
     return 0;
 };

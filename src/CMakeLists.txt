@@ -5,10 +5,12 @@ set(HEADERS
   TimeIntegration.hpp
   Input.hpp
   SiloWriter.hpp
+  Timer.hpp
   )
 
 set(SOURCES
   ExaCLAMR.cpp
+  Timer.cpp
   )
 
 add_library(exaclamr ${SOURCES})
