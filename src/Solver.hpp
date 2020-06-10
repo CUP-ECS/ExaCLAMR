@@ -193,7 +193,9 @@ class Solver : public SolverBase<state_t> {
         int _rank, _time_steps, _halo_size;
         state_t _gravity;
         std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;
-        std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace, state_t>> _silo;
+        #ifdef HAVE_SILO
+            std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace, state_t>> _silo;
+        #endif
         timestruct _timer_compute, _timer_communicate;
         state_t _time_compute, _time_communicate;
 };
