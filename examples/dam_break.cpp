@@ -8,7 +8,7 @@
  */
 
 #ifndef DEBUG
-#define DEBUG 0 
+    #define DEBUG 0 
 #endif
 
 #include <Input.hpp>
@@ -27,6 +27,7 @@
 #endif
 
 #define MICROSECONDS 1.0e-6
+
 
 template <typename state_t>
 struct MeshInitFunc

@@ -11,7 +11,7 @@
 #define EXACLAMR_SOLVER_HPP
 
 #ifndef DEBUG
-#define DEBUG 0 
+    #define DEBUG 0 
 #endif
 
 #include <Mesh.hpp>
@@ -31,6 +31,7 @@
 
 #include <memory>
 
+// Seconds to Microseconds
 #define MICROSECONDS 1.0e-6
 
 
@@ -93,6 +94,7 @@ class Solver : public SolverBase<state_t> {
             MPI_Barrier( MPI_COMM_WORLD );
         };
 
+        // TODO: Place These in Only 1 File Rather than 3
         // Toggle Between Current and New State Vectors
         #define NEWFIELD( time_step ) ( ( time_step + 1 ) % 2 )
         #define CURRENTFIELD( time_step ) ( ( time_step ) % 2 )

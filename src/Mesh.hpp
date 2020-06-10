@@ -11,7 +11,7 @@
 #define EXACLAMR_MESH_HPP
 
 #ifndef DEBUG
-#define DEBUG 0 
+    #define DEBUG 0 
 #endif 
 
 #include <Cajita.hpp>

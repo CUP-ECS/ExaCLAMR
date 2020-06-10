@@ -11,7 +11,7 @@
 #define INPUT_HPP
 
 #ifndef DEBUG
-#define DEBUG 0 
+    #define DEBUG 0 
 #endif
 
 #include <getopt.h>

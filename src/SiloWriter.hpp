@@ -11,7 +11,7 @@
 #define EXACLAMR_SILOWRITER_HPP
 
 #ifndef DEBUG
-#define DEBUG 0 
+    #define DEBUG 0 
 #endif
 
 #ifdef HAVE_SILO
@@ -35,79 +35,86 @@ class SiloWriter
         SiloWriter( ProblemManagerType& pm ) 
         : _pm ( pm ) { }
 
+        // Toggle Between Current and New State Vectors
         #define NEWFIELD( time_step ) ( ( time_step + 1 ) % 2 )
         #define CURRENTFIELD( time_step ) ( ( time_step ) % 2 )
 
+        // Function to Write File in Serial
+        // TODO: PMPIO Write File in Parallel
         void writeFile( DBfile *dbfile, char *name, int time_step, state_t time, state_t dt ) {
-            int            dims[2], zdims[2], zones[2], ndims, meshid;
-            state_t        *coords[2], *vars[2];
+            // Initialize Variables
+            int            dims[2], zdims[2], zones[2], nx, ny, ndims, meshid;
+            state_t       *coords[2], *vars[2], dx, dy;
             char          *coordnames[2], *varnames[2];
             DBoptlist     *optlist;
 
+            // DEBUG: Trace Writing File
             if( DEBUG ) std::cout << "Writing File\n";
 
+            // Set DB Options: Time Step, Time Stamp and Delta Time
             optlist = DBMakeOptlist(10);
             DBAddOption(optlist, DBOPT_CYCLE, &time_step);
             DBAddOption(optlist, DBOPT_TIME, &time);
             DBAddOption(optlist, DBOPT_DTIME, &dt);
 
+            // Get Domain Space
+            auto domain = _pm->mesh()->domainSpace();
+
+            // Get Number of Cells and Cell Size in 2-Dimensions ( X, Y )
+            nx = domain.extent( 0 );
+            ny = domain.extent( 1 );
+            dx = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
+            dy = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+
+            // 2-D Cell-Centered Regular Mesh
+            ndims = 2;
+            // Account for Edge Node
+            dims[0] = nx + 1;
+            dims[1] = ny + 1;
+            // Get Correct Number of Cells
+            zones[0] = dims[0] - 1;         // Equivalent to nx
+            zones[1] = dims[1] - 1;         // Equivalent to ny
+
+            // Correct Number of Cells/Zones
+            zdims[0] = dims[0] - 1;         // Equivalent to nx
+            zdims[1] = dims[1] - 1;         // Equivalent to ny
+
+            // Coordinate Names: Cartesian X, Y Coordinate System
             coordnames[0] = strdup( "x" );
             coordnames[1] = strdup( "y" );
 
-            auto domain = _pm->mesh()->domainSpace();
-            int nx = domain.extent( 0 );
-            int ny = domain.extent( 1 );
+            // Initialize Coordinate and State Arrays for Writing
+            state_t x[dims[0]], y[dims[1]];
+            state_t height[nx * ny], u[nx * ny], v[nx * ny];
 
-            ndims = 2;
-            dims[0] = nx + 1;
-            dims[1] = ny + 1;
-
-            state_t x[dims[0]];
-            state_t y[dims[1]];
-            state_t height[nx * ny];
-            state_t u[nx * ny];
-            state_t v[nx * ny];
-
-            state_t dx = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
-            state_t dy = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
-
+            // Point Coords to X and Y Coordinates
             coords[0] = x;
             coords[1] = y;
 
-            for (int i = 0; i < dims[0]; i++) {
-                x[i] = ( state_t ) i * dx;
-            }
-            for (int j = 0; j < dims[1]; j++) {
-                y[j] = ( state_t ) j * dy;
-            }
+            // Set X and Y Coordinates of Nodes
+            for (int i = 0; i < dims[0]; i++) x[i] = ( state_t ) i * dx;
+            for (int j = 0; j < dims[1]; j++) y[j] = ( state_t ) j * dy;
 
             // TODO: Scenario where we need DB_FLOAT
             meshid = DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
                         coords, dims, ndims, DB_DOUBLE, DB_COLLINEAR, optlist);
 
-
-            auto owned_cells = _pm->mesh()->localGrid()->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
-
+            // Get State Views
             auto uNew = _pm->get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
             auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
-
-            zones[0] = dims[0] - 1;
-            zones[1] = dims[1] - 1;
-
-            varnames[0] = strdup( "Height" );
-            vars[0] = height;
-
-            zdims[0] = dims[0] - 1;
-            zdims[1] = dims[1] - 1;
-
+            // Loop Over Domain ( i, j, k )
             for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                 for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                     for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
+                        // Adjust Indices to Start at ( 0, 0, 0 ) - Account for Offset from Boundary Cells
                         int iown = i - domain.min( 0 );
                         int jown = j - domain.min( 1 );
                         int kown = k - domain.min( 2 );
+                        // Calculate 1-Dimensional Index from iown, jown, and kown
                         int inx = iown + domain.extent( 0 ) * ( jown + domain.extent( 1 ) * kown );
+
+                        // Set State Values to be Written
                         height[inx] = hNew( i, j, k, 0 );
                         u[inx] = uNew( i, j, k, 0 );
                         v[inx] = uNew( i, j, k, 1 );
@@ -115,48 +122,59 @@ class SiloWriter
                 }
             }
 
+            // Write Scalar Variables
+            // Height
             // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "height", name, height, zdims, ndims,
                                 NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
             
+            // Vx
             // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "ucomp", name, u, zdims, ndims,
                         NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
 
+            // Vy
             // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "vcomp", name, v, zdims, ndims,
                         NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
 
+            // Setup and Write Vector Velocity Variable
             vars[0] = u;
             vars[1] = v;
             varnames[0] = strdup( "u" );
             varnames[1] = strdup( "v" );
 
+            // Velocity
             // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar( dbfile, "velocity", name, 2, (DBCAS_t) varnames,
                 vars, zdims, ndims, NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
 
+            // Free Option List
             DBFreeOptlist( optlist );
-        }
+        };
 
+
+        // Function to Create New DB File for Current Time Step
         void siloWrite( char *name, int time_step, state_t time, state_t dt ) {
-            #ifdef HAVE_SILO
-                DBfile *silo_file;
-                int driver = DB_PDB;
-                char filename[30];
+            // Initalize Variables
+            DBfile *silo_file;
+            int driver = DB_PDB;
+            char filename[30];
 
-                sprintf( filename, "data/ExaCLAMROutput%05d.pdb", time_step );
+            // Set Filename to Reflect TimeStep
+            sprintf( filename, "data/ExaCLAMROutput%05d.pdb", time_step );
 
-                DBShowErrors( DB_ALL, NULL );
-                DBForceSingle( 1 );
+            // Show Errors and Force FLoating Point
+            DBShowErrors( DB_ALL, NULL );
+            DBForceSingle( 1 );
 
-                if ( _pm->mesh()->rank() == 0 ) {
-                    if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
-                    silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
-                    writeFile( silo_file, strdup( "Mesh" ), time_step, time, dt );
-                    DBClose( silo_file );
-                }
-            #endif
+            // Only Rank 0 Creates the File and then Writes to it
+            if ( _pm->mesh()->rank() == 0 ) {
+                if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
+                silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
+                writeFile( silo_file, strdup( "Mesh" ), time_step, time, dt );
+                DBClose( silo_file );
+            }
         };
 
     private:
