@@ -17,6 +17,7 @@
 #include <Mesh.hpp>
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
+#include <Timer.hpp>
 
 #ifdef HAVE_SILO
     #include <SiloWriter.hpp>
@@ -30,22 +31,27 @@
 
 #include <memory>
 
+#define MICROSECONDS 1.0e-6
+
 
 namespace ExaCLAMR
 {
 
 
-class SolverBase
-{
+template <typename state_t>
+class SolverBase {
     public:
         virtual ~SolverBase() = default;
         virtual void solve( const int write_freq ) = 0;
+        virtual state_t timeCompute() = 0;
+        virtual state_t timeCommunicate() = 0;
 };
 
 
 template <class MemorySpace, class ExecutionSpace, typename state_t>
-class Solver : public SolverBase
-{
+class Solver : public SolverBase<state_t> {
+    using timestruct = std::chrono::high_resolution_clock::time_point;
+
     public:
         /**
          * Constructor
@@ -62,7 +68,7 @@ class Solver : public SolverBase
                 const int halo_size, 
                 const int time_steps, 
                 const state_t gravity )
-        : _halo_size ( halo_size ), _time_steps ( time_steps ), _gravity ( gravity ) {
+        : _halo_size ( halo_size ), _time_steps ( time_steps ), _gravity ( gravity ), _time_compute ( 0.0 ), _time_communicate ( 0.0 ) {
             // TODO: ifdef MPI Comm Rank Statement
             MPI_Comm_rank( comm, &_rank );
 
@@ -148,8 +154,14 @@ class Solver : public SolverBase
                 // TODO: Scenario where we need MPI_FLOAT
                 MPI_Allreduce( &dt, &mindt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );                                               // Get Minimum Time Step
 
+                Timer::timer_start( &_timer_compute );                                                                              // Start Timer
                 TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), mindt, _gravity, time_step );                          // Perform Calculation
-                
+                _time_compute += ( state_t ) Timer::timer_stop( _timer_compute ) * MICROSECONDS;                                    // Stop Timer, Increment Time
+
+                Timer::timer_start( &_timer_communicate );                                                                           // Start Timer
+                TimeIntegrator::haloExchange( *_pm, time_step );                                                                    // Perform Communication
+                _time_communicate += ( state_t ) Timer::timer_stop( _timer_communicate ) * MICROSECONDS;                            // Stop Timer, Increment Time
+
                 // Increment Current Time
                 current_time += mindt;
 
@@ -168,16 +180,27 @@ class Solver : public SolverBase
             }
         };
 
+        state_t timeCompute() {
+            return _time_compute;
+        };
+
+        state_t timeCommunicate() {
+            return _time_communicate;
+        };
+        
+
     private:
         int _rank, _time_steps, _halo_size;
         state_t _gravity;
         std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;
         std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace, state_t>> _silo;
+        timestruct _timer_compute, _timer_communicate;
+        state_t _time_compute, _time_communicate;
 };
 
 // Create Solver with Templates
 template <typename state_t, class InitFunc>
-std::shared_ptr<SolverBase> createSolver( const std::string& device,
+std::shared_ptr<SolverBase<state_t>> createSolver( const std::string& device,
                                             MPI_Comm comm, 
                                             const InitFunc& create_functor,
                                             const std::array<state_t, 6>& global_bounding_box, 

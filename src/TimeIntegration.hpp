@@ -96,6 +96,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         }
     } );
 
+    Kokkos::fence();
     MPI_Barrier( MPI_COMM_WORLD );
 
 }
@@ -330,9 +331,8 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
        
     } );
 
+    Kokkos::fence();
     MPI_Barrier( MPI_COMM_WORLD );
-
-    haloExchange( pm, time_step );
 
 }
 

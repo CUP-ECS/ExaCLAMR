@@ -83,8 +83,11 @@ void clamr( const std::string& device,
             const int time_steps,
             const state_t gravity,
             const int write_freq) {
-    int comm_size;                                      // Initialize Variables
-    MPI_Comm_size( MPI_COMM_WORLD, &comm_size );        // Number of Ranks
+    // TODO: ifdef MPI Comm Size Statement
+    // TODO: ifdef MPI Comm Rank Statement
+    int comm_size, rank;                                        // Initialize Variables
+    MPI_Comm_size( MPI_COMM_WORLD, &comm_size );                // Number of Ranks
+    MPI_Comm_rank( MPI_COMM_WORLD, &rank );                     // Get My Rank
 
     // TODO: Move to main and Possibly ParseInput
     std::array<bool, 3> periodic = { false, false, false };     // Not Periodic for the Moment
@@ -108,7 +111,28 @@ void clamr( const std::string& device,
 
     // Solve
     solver->solve( write_freq );
+
+    state_t max_compute, max_communicate;
+
+    // Compute Time
+    state_t time_compute = solver->timeCompute();
+    // Communicate Time
+    state_t time_communicate = solver->timeCommunicate();
+
+    // TODO: ifdef MPI AllReduce Statement
+    // TODO: Scenario where we need MPI_FLOAT
+    MPI_Allreduce( &time_compute, &max_compute, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD ); 
+
+    // TODO: ifdef MPI AllReduce Statement
+    // TODO: Scenario where we need MPI_FLOAT
+    MPI_Allreduce( &time_communicate, &max_communicate, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
+
+    if (rank == 0 ) {
+        std::cout << "The Total Compute Time of the Program was " << max_compute << " seconds\n";
+        std::cout << "The Total Communication Time of the Program was " << max_communicate << " seconds\n";
+    }
 };
+
 
 int main( int argc, char* argv[] ) {
     // Initialize and Start Timer
@@ -166,8 +190,10 @@ int main( int argc, char* argv[] ) {
     // TODO: ifdef MPI Finalize Statement               
     MPI_Finalize();                                     // Finalize MPI
 
-    state_t time_total = ( state_t ) Timer::timer_stop( timer_total ) * MICROSECONDS;           // Stop Timer
-    std::cout << "The Total Execution Time of the Program was " << time_total << " seconds\n";
+    if (rank == 0 ) {
+        state_t time_total = ( state_t ) Timer::timer_stop( timer_total ) * MICROSECONDS;           // Stop Timer
+        std::cout << "The Total Execution Time of the Program was " << time_total << " seconds\n";  // Print Total Program Time
+    }
 
     return 0;
 };
