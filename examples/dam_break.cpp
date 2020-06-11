@@ -19,7 +19,6 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-// TODO: ifdef Include MPI
 #include <mpi.h>
 
 #if DEBUG
@@ -59,7 +58,7 @@ struct MeshInitFunc
         if ( DEBUG ) std::cout << x[0] << ", " << x[1] << " is " << r << " from the center: ";
 
         // Set Height
-        // TODO: Make it Possible to Tweak Tall and Short Values, Along with R Threshold Calculation
+        // TODO: Make it Possible to Tweak Tall and Short Values, Along with R Threshold Calculation with Command Line Args
         if ( r <= width[0] * ( 6.0 / 128.0 ) ) {
             // DEBUG: Print Indicated Tall Height Assigned to Point
             if ( DEBUG ) std::cout << "Tall\n";
@@ -84,8 +83,6 @@ void clamr( const std::string& device,
             const int time_steps,
             const state_t gravity,
             const int write_freq) {
-    // TODO: ifdef MPI Comm Size Statement
-    // TODO: ifdef MPI Comm Rank Statement
     int comm_size, rank;                                        // Initialize Variables
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );                // Number of Ranks
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );                     // Get My Rank
@@ -120,11 +117,9 @@ void clamr( const std::string& device,
     // Communicate Time
     state_t time_communicate = solver->timeCommunicate();
 
-    // TODO: ifdef MPI AllReduce Statement
     // TODO: Scenario where we need MPI_FLOAT
     MPI_Allreduce( &time_compute, &max_compute, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD ); 
 
-    // TODO: ifdef MPI AllReduce Statement
     // TODO: Scenario where we need MPI_FLOAT
     MPI_Allreduce( &time_communicate, &max_communicate, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
 
@@ -144,18 +139,17 @@ int main( int argc, char* argv[] ) {
     // Using doubles
     using state_t = double;
 
-    // TODO: ifdef MPI Init Statement
     MPI_Init( &argc, &argv );                           // Initialize MPI
     Kokkos::initialize( argc, argv );                   // Initialize Kokkos
-
-    // Parse Input
-    cl_args<state_t> cl;
-    if ( parseInput( argc, argv, cl ) != 0 ) return -1; // Return if Failed
 
     // MPI Info
     int comm_size, rank;
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );        // Number of Ranks
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );             // My Rank
+
+    // Parse Input
+    cl_args<state_t> cl;
+    if ( parseInput( rank, argc, argv, cl ) != 0 ) return -1; // Return if Failed
 
     // TODO: Add to parseInput
     // TODO: Add Cuda
@@ -167,10 +161,10 @@ int main( int argc, char* argv[] ) {
         // Print Command Line Options
         std::cout << "ExaClamr\n";
         std::cout << "=======Command line arguments=======\n";
-        std::cout << std::left << std::setw(20) << "Cells"           << ": " << std::setw(8) << cl.nx << std::setw(8) << cl.ny << std::setw(8) << cl.nz << "\n"; // Number of Cells
-        std::cout << std::left << std::setw(20) << "Domain"          << ": " << std::setw(8) << cl.hx << std::setw(8) << cl.hy << std::setw(8) << cl.hz << "\n"; // Span of Domain ( In Meters )
-        std::cout << std::left << std::setw(20) << "TimeSteps"       << ": " << std::setw(8) << cl.time_steps << "\n";                                           // Number of Time Steps
-        std::cout << std::left << std::setw(20) << "Write Frequency" << ": " << std::setw(8) << cl.write_freq << "\n";                                           // Time Steps between each Write
+        std::cout << std::left << std::setw( 20 ) << "Cells"           << ": " << std::setw( 8 ) << cl.nx << std::setw( 8 ) << cl.ny << std::setw( 8 ) << cl.nz << "\n";    // Number of Cells
+        std::cout << std::left << std::setw( 20 ) << "Domain"          << ": " << std::setw( 8 ) << cl.hx << std::setw( 8 ) << cl.hy << std::setw( 8 ) << cl.hz << "\n";    // Span of Domain ( In Meters )
+        std::cout << std::left << std::setw( 20 ) << "TimeSteps"       << ": " << std::setw( 8 ) << cl.time_steps << "\n";                                                  // Number of Time Steps
+        std::cout << std::left << std::setw( 20 ) << "Write Frequency" << ": " << std::setw( 8 ) << cl.write_freq << "\n";                                                  // Time Steps between each Write
         std::cout << "====================================\n";
     }
 
@@ -187,8 +181,7 @@ int main( int argc, char* argv[] ) {
             gravity,  
             cl.write_freq );
 
-    Kokkos::finalize();                                 // Finalize Kokkos                    
-    // TODO: ifdef MPI Finalize Statement               
+    Kokkos::finalize();                                 // Finalize Kokkos                                  
     MPI_Finalize();                                     // Finalize MPI
 
     if (rank == 0 ) {

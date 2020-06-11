@@ -43,7 +43,6 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
     auto domain = pm.mesh()->domainSpace();
 
     // Loop Over All Owned Cells and Update Boundary Cells ( i, j, k )
-    // TODO: Make Sure OpenMP Threading is Working
     Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
         // TODO: Move Boundary Checking to Mesh Class so we only need a Function Call
         // Left Boundary
@@ -105,8 +104,6 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
 
     // Kokkos Fence
     Kokkos::fence();
-
-    // TODO: ifdef MPI Barrier Statement
     MPI_Barrier( MPI_COMM_WORLD );
 
 }
@@ -120,7 +117,6 @@ void haloExchange( const ProblemManagerType& pm, const int time_step ) {
     pm.gather( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
     pm.gather( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
 
-    // TODO: ifdef MPI Barrier Statement
     MPI_Barrier( MPI_COMM_WORLD );
 }
 
@@ -271,7 +267,6 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     if ( DEBUG ) std::cout << "Domain Space: " << domain.min( 0 ) << domain.min( 1 ) << domain.min( 2 ) << \
     domain.max( 0 ) << domain.max( 1 ) << domain.max( 2 ) << "\n";
 
-    // TODO: Make Sure Threading is Working Properly
     // Kokkos Parallel Section over Domain Space Indices to Calculate New State Values ( i, j, k )
     Kokkos::parallel_for( Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {            
         if ( DEBUG ) {
@@ -322,32 +317,32 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         state_t ux_minus = 0.5 * ( ( u_left + u_ic ) - ( dt ) / ( dx ) * ( ( UXRGFLUXIC ) - ( UXRGFLUXNL ) ) );
         state_t vx_minus = 0.5 * ( ( v_left + v_ic ) - ( dt ) / ( dx ) * ( ( VXRGFLUXIC ) - ( VXRGFLUXNL ) ) );
         // DEBUG: Print hx_minus, ux_minus, vx_minus, i, j, k
-        if ( DEBUG ) std::cout << std::left << std::setw(10) << "hx_minus: " << std::setw(6) << hx_minus << \
-        "\tux_minus: " << std::setw(6) << ux_minus << "\tvx_minus: " << std::setw(6) << vx_minus << "\ti: " << i << "\tj: "<< j << "\tk: " << k << "\n";
+        if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_minus: " << std::setw( 6 ) << hx_minus << \
+        "\tux_minus: " << std::setw( 6 ) << ux_minus << "\tvx_minus: " << std::setw( 6 ) << vx_minus << "\ti: " << i << "\tj: "<< j << "\tk: " << k << "\n";
 
         // X Plus Direction
         state_t hx_plus  = 0.5 * ( ( h_ic + h_right ) - ( dt ) / ( dx ) * ( ( HXRGFLUXNR ) - ( HXRGFLUXIC ) ) );
         state_t ux_plus  = 0.5 * ( ( u_ic + u_right ) - ( dt ) / ( dx ) * ( ( UXRGFLUXNR ) - ( UXRGFLUXIC ) ) );
         state_t vx_plus  = 0.5 * ( ( v_ic + v_right ) - ( dt ) / ( dx ) * ( ( VXRGFLUXNR ) - ( VXRGFLUXIC ) ) );
         // DEBUG: Print hx_plus, ux_plus, vx_plus, i, j, k
-        if ( DEBUG ) std::cout << std::left << std::setw(10) << "hx_plus: " << std::setw(6) << hx_plus << \
-        "\tux_plus: " << std::setw(6) << ux_plus << "\tvx_plus: " << std::setw(6) << vx_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+        if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_plus: " << std::setw( 6 ) << hx_plus << \
+        "\tux_plus: " << std::setw( 6 ) << ux_plus << "\tvx_plus: " << std::setw( 6 ) << vx_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         // Y Minus Direction
         state_t hy_minus = 0.5 * ( ( h_bot + h_ic ) - ( dt ) / ( dy ) * ( ( HYRGFLUXIC ) - ( HYRGFLUXNB ) ) );
         state_t uy_minus = 0.5 * ( ( u_bot + u_ic ) - ( dt ) / ( dy ) * ( ( UYRGFLUXIC ) - ( UYRGFLUXNB ) ) );
         state_t vy_minus = 0.5 * ( ( v_bot + v_ic ) - ( dt ) / ( dy ) * ( ( VYRGFLUXIC ) - ( VYRGFLUXNB ) ) );
         // DEBUG: Print hy_minus, uy_minus, vy_minus, i, j, k
-        if ( DEBUG ) std::cout << std::left << std::setw(10) << "hy_minus: " << std::setw(6) << hy_minus << \
-        "\tuy_minus: " << std::setw(6) << uy_minus << "\tvy_minus: " << std::setw(6) << vy_minus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+        if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_minus: " << std::setw( 6 ) << hy_minus << \
+        "\tuy_minus: " << std::setw( 6 ) << uy_minus << "\tvy_minus: " << std::setw( 6 ) << vy_minus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         // Y Plus Direction
         state_t hy_plus  = 0.5 * ( ( h_ic + h_top ) - ( dt ) / ( dy ) * ( ( HYRGFLUXNT ) - ( HYRGFLUXIC ) ) );
         state_t uy_plus  = 0.5 * ( ( u_ic + u_top ) - ( dt ) / ( dy ) * ( ( UYRGFLUXNT ) - ( UYRGFLUXIC ) ) );
         state_t vy_plus  = 0.5 * ( ( v_ic + v_top ) - ( dt ) / ( dy ) * ( ( VYRGFLUXNT ) - ( VYRGFLUXIC ) ) );
         // DEBUG: Print hy_plus, uy_plus, vy_plus, i, j, k
-        if ( DEBUG ) std::cout << std::left << std::setw(10) << "hy_plus: " << std::setw(6) << hy_plus << \
-        "\tuy_plus: " << std::setw(6) << uy_plus << "\tvy_plus: " << std::setw(6) << vy_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+        if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_plus: " << std::setw( 6 ) << hy_plus << \
+        "\tuy_plus: " << std::setw( 6 ) << uy_plus << "\tvy_plus: " << std::setw( 6 ) << vy_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         // Flux View Updates
         // X Direction
@@ -404,8 +399,6 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
     // Kokkos Fence
     Kokkos::fence();
-
-    // TODO: ifdef MPI Barrier Statement
     MPI_Barrier( MPI_COMM_WORLD );
 
 }

@@ -43,7 +43,6 @@ class Mesh
             // Define device_type for Later Use
             using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-            // TODO: ifdef MPI Comm Rank Statement
             MPI_Comm_rank( comm, &_rank );
 
             // 2-D Mesh - Ignore Z Cells

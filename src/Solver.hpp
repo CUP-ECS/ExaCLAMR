@@ -26,7 +26,6 @@
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
 
-// TODO: ifdef Include MPI
 #include <mpi.h>
 
 #include <memory>
@@ -70,7 +69,6 @@ class Solver : public SolverBase<state_t> {
                 const int time_steps, 
                 const state_t gravity )
         : _halo_size ( halo_size ), _time_steps ( time_steps ), _gravity ( gravity ), _time_compute ( 0.0 ), _time_communicate ( 0.0 ) {
-            // TODO: ifdef MPI Comm Rank Statement
             MPI_Comm_rank( comm, &_rank );
 
             if ( _rank == 0 && DEBUG ) std::cout << "Created Solver\n";         // DEBUG: Trace Created Solver
@@ -90,7 +88,6 @@ class Solver : public SolverBase<state_t> {
                 _silo = std::make_shared<SiloWriter<MemorySpace, ExecutionSpace, state_t>>( _pm );
             #endif
 
-            // TODO: ifdef MPI Barrier Statement
             MPI_Barrier( MPI_COMM_WORLD );
         };
 
@@ -115,7 +112,7 @@ class Solver : public SolverBase<state_t> {
                 for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                     for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                         for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
-                            if ( DEBUG ) std::cout << std::left << std::setw(8) << hNew( i, j, k, 0 );      // DEBUG: Print Height Array
+                            if ( DEBUG ) std::cout << std::left << std::setw( 8 ) << hNew( i, j, k, 0 );    // DEBUG: Print Height Array
                             summedHeight += hNew( i, j, k, 0 );                                             // Sum Heights as a Proxy for Mass
                         }
                     }
@@ -137,8 +134,8 @@ class Solver : public SolverBase<state_t> {
 
             // Rank 0 Prints Initial Iteration and Time
             if (_rank == 0 ) {
-                std::cout << std::left << std::setw(12) << "Iteration: " << 0 <<                            // Print Iteration and Current Time
-                std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";                   
+                std::cout << std::left << std::setw( 12 ) << "Iteration: " << 0 <<                          // Print Iteration and Current Time
+                std::left << std::setw( 15 ) << "\tCurrent Time: " << current_time << "\n";                   
                 if ( DEBUG ) output( 0, time_step, current_time, mindt );                                   // DEBUG: Call Output Routine
             }
 
@@ -152,7 +149,6 @@ class Solver : public SolverBase<state_t> {
                 // TODO: Declare Sigma = 0.95 elsewhere instead of hard-coded
                 state_t dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), MemorySpace(), _gravity, 0.95, time_step );       // Calculate Time Step
 
-                // TODO: ifdef MPI AllReduce Statement
                 // TODO: Scenario where we need MPI_FLOAT
                 MPI_Allreduce( &dt, &mindt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );                                               // Get Minimum Time Step
 
@@ -160,7 +156,7 @@ class Solver : public SolverBase<state_t> {
                 TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), mindt, _gravity, time_step );                          // Perform Calculation
                 _time_compute += ( state_t ) Timer::timer_stop( _timer_compute ) * MICROSECONDS;                                    // Stop Timer, Increment Time
 
-                Timer::timer_start( &_timer_communicate );                                                                           // Start Timer
+                Timer::timer_start( &_timer_communicate );                                                                          // Start Timer
                 TimeIntegrator::haloExchange( *_pm, time_step );                                                                    // Perform Communication
                 _time_communicate += ( state_t ) Timer::timer_stop( _timer_communicate ) * MICROSECONDS;                            // Stop Timer, Increment Time
 
@@ -169,8 +165,8 @@ class Solver : public SolverBase<state_t> {
 
                 // Output and Write File every Write Frequency Time Steps
                 if ( 0 == time_step % write_freq ) {
-                    if ( 0 == _rank ) std::cout << std::left << std::setw(12) << "Iteration: " << std::setw(5) << time_step <<      // Print Iteration and Current Time
-                    std::left << std::setw(15) << "\tCurrent Time: " << current_time << "\n";
+                    if ( 0 == _rank ) std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::setw( 5 ) << time_step <<  // Print Iteration and Current Time
+                    std::left << std::setw( 15 ) << "\tCurrent Time: " << current_time << "\n";
 
                     if ( DEBUG ) output( 0, time_step, current_time, mindt );                                                       // DEBUG: Call Output Routine
 
