@@ -86,7 +86,30 @@ class Solver : public SolverBase<state_t> {
             #endif
 
             MPI_Barrier( MPI_COMM_WORLD );
+
+            calcMass( 0 );
         };
+
+        void calcMass( int time_step ) {
+            // Get Domain Iteration Space
+            auto domain = _pm->mesh()->domainSpace();                                                       // Domain Space to Iterate Over
+
+            // Get State Views
+            auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );               // New Height State View
+            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );             // New Velocity State View
+
+            state_t summed_height = 0, total_height = 0;
+
+            // Only Loop if Rank is the Specified Rank
+            Kokkos::parallel_reduce( Cajita::createExecutionPolicy( domain, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k, state_t& l_height ) {
+                l_height += hNew( i, j, k, 0 );
+            }, Kokkos::Sum<state_t>( summed_height ) );
+
+            MPI_Allreduce( &summed_height, &total_height, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+
+            if ( time_step == 0 ) _initial_mass = total_height;
+            else _current_mass = total_height;
+        }
 
         // TODO: Place These in Only 1 File Rather than 3
         // Toggle Between Current and New State Vectors
@@ -102,22 +125,16 @@ class Solver : public SolverBase<state_t> {
             auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );               // New Height State View
             auto uNew = _pm->get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );             // New Velocity State View
 
-            state_t summedHeight = 0;                                                                       // Initialize Total Height
-
             // Only Loop if Rank is the Specified Rank
             if ( _pm->mesh()->rank() == rank ) {
                 for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                     for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                         for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
                             if ( DEBUG ) std::cout << std::left << std::setw( 8 ) << hNew( i, j, k, 0 );    // DEBUG: Print Height Array
-                            summedHeight += hNew( i, j, k, 0 );                                             // Sum Heights as a Proxy for Mass
                         }
                     }
                     if( DEBUG ) std::cout << "\n";                                                          // DEBUG: New Line
                 }
-
-                // Proxy Mass Conservation
-                if ( DEBUG ) std::cout << "Summed Height: " << summedHeight << "\n";                        // DEBUG: Print Summed Height
             }
         };
 
@@ -133,7 +150,8 @@ class Solver : public SolverBase<state_t> {
             if (_rank == 0 ) {
                 // Print Iteration and Current Time
                 std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::left << std::setw( 12 ) << 0 <<
-                std::left << std::setw( 15 ) << "Current Time: " << std::left << std::setw( 12 ) << current_time << "\n"; 
+                std::left << std::setw( 15 ) << "Current Time: " << std::left << std::setw( 12 ) << current_time << 
+                std::left << std::setw( 15 ) << "Total Mass: " << std::left << std::setw( 12 ) << _initial_mass << "\n"; 
 
                 // DEBUG: Call Output Routine                  
                 if ( DEBUG ) output( 0, time_step, current_time, mindt );                                   
@@ -165,16 +183,23 @@ class Solver : public SolverBase<state_t> {
                 TimeIntegrator::haloExchange( *_pm, time_step );                                                                    // Perform Communication
                 timer.communicationStop();
 
+                timer.computeStart();
+                calcMass( time_step );
+                state_t mass_change = _initial_mass - _current_mass;
+                timer.computeStop();
+
                 // Increment Current Time
                 current_time += mindt;
 
                 // Output and Write File every Write Frequency Time Steps
                 timer.writeStart();
                 if ( 0 == time_step % write_freq ) {
-                    if ( 0 == _rank ) std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::setw( 5 ) << time_step <<  // Print Iteration and Current Time
-                    std::left << std::setw( 15 ) << "\tCurrent Time: " << current_time << "\n";
+                    if ( 0 == _rank ) std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::left << std::setw( 12 ) << time_step <<
+                    std::left << std::setw( 15 ) << "Current Time: " << std::left << std::setw( 12 ) << current_time << 
+                    std::left << std::setw( 15 ) << "Mass Change: " << std::left << std::setw( 12 ) << mass_change << "\n";
 
-                    if ( DEBUG ) output( 0, time_step, current_time, mindt );                                                       // DEBUG: Call Output Routine
+                    // DEBUG: Call Output Routine
+                    if ( DEBUG ) output( 0, time_step, current_time, mindt );
 
                     // Write Current State Data to File with Silo
                     #ifdef HAVE_SILO
@@ -189,6 +214,7 @@ class Solver : public SolverBase<state_t> {
     private:
         int _rank, _time_steps, _halo_size;
         state_t _gravity;
+        state_t _initial_mass, _current_mass;
         std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;
         #ifdef HAVE_SILO
             std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace, state_t>> _silo;
