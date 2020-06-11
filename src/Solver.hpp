@@ -42,16 +42,12 @@ template <typename state_t>
 class SolverBase {
     public:
         virtual ~SolverBase() = default;
-        virtual void solve( const int write_freq ) = 0;
-        virtual state_t timeCompute() = 0;
-        virtual state_t timeCommunicate() = 0;
+        virtual void solve( const int write_freq, ExaCLAMR::Timer& timer ) = 0;
 };
 
 
 template <class MemorySpace, class ExecutionSpace, typename state_t>
 class Solver : public SolverBase<state_t> {
-    using timestruct = std::chrono::high_resolution_clock::time_point;
-
     public:
         /**
          * Constructor
@@ -67,8 +63,9 @@ class Solver : public SolverBase<state_t> {
                 const Cajita::Partitioner& partitioner,
                 const int halo_size, 
                 const int time_steps, 
-                const state_t gravity )
-        : _halo_size ( halo_size ), _time_steps ( time_steps ), _gravity ( gravity ), _time_compute ( 0.0 ), _time_communicate ( 0.0 ) {
+                const state_t gravity,
+                ExaCLAMR::Timer& timer )
+        : _halo_size ( halo_size ), _time_steps ( time_steps ), _gravity ( gravity ) {
             MPI_Comm_rank( comm, &_rank );
 
             if ( _rank == 0 && DEBUG ) std::cout << "Created Solver\n";         // DEBUG: Trace Created Solver
@@ -125,7 +122,7 @@ class Solver : public SolverBase<state_t> {
         };
 
         // Solve Routine
-        void solve( const int write_freq ) override {
+        void solve( const int write_freq, ExaCLAMR::Timer& timer ) override {
             if ( _rank == 0 && DEBUG ) std::cout << "Solving!\n";       // DEBUG: Trace Solving
 
             int time_step = 0;
@@ -134,9 +131,12 @@ class Solver : public SolverBase<state_t> {
 
             // Rank 0 Prints Initial Iteration and Time
             if (_rank == 0 ) {
-                std::cout << std::left << std::setw( 12 ) << "Iteration: " << 0 <<                          // Print Iteration and Current Time
-                std::left << std::setw( 15 ) << "\tCurrent Time: " << current_time << "\n";                   
-                if ( DEBUG ) output( 0, time_step, current_time, mindt );                                   // DEBUG: Call Output Routine
+                // Print Iteration and Current Time
+                std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::left << std::setw( 12 ) << 0 <<
+                std::left << std::setw( 15 ) << "Current Time: " << std::left << std::setw( 12 ) << current_time << "\n"; 
+
+                // DEBUG: Call Output Routine                  
+                if ( DEBUG ) output( 0, time_step, current_time, mindt );                                   
             }
 
             // Write Initial Data to File with Silo
@@ -147,23 +147,29 @@ class Solver : public SolverBase<state_t> {
             // Loop Over Time
             for (time_step = 1; time_step <= nt; time_step++) {
                 // TODO: Declare Sigma = 0.95 elsewhere instead of hard-coded
+
+                timer.computeStart();
                 state_t dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), MemorySpace(), _gravity, 0.95, time_step );       // Calculate Time Step
+                timer.computeStop();
 
                 // TODO: Scenario where we need MPI_FLOAT
+                timer.communicationStart();
                 MPI_Allreduce( &dt, &mindt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );                                               // Get Minimum Time Step
+                timer.communicationStop();
 
-                Timer::timer_start( &_timer_compute );                                                                              // Start Timer
+                timer.computeStart();
                 TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), mindt, _gravity, time_step );                          // Perform Calculation
-                _time_compute += ( state_t ) Timer::timer_stop( _timer_compute ) * MICROSECONDS;                                    // Stop Timer, Increment Time
+                timer.computeStop();
 
-                Timer::timer_start( &_timer_communicate );                                                                          // Start Timer
+                timer.communicationStart();
                 TimeIntegrator::haloExchange( *_pm, time_step );                                                                    // Perform Communication
-                _time_communicate += ( state_t ) Timer::timer_stop( _timer_communicate ) * MICROSECONDS;                            // Stop Timer, Increment Time
+                timer.communicationStop();
 
                 // Increment Current Time
                 current_time += mindt;
 
                 // Output and Write File every Write Frequency Time Steps
+                timer.writeStart();
                 if ( 0 == time_step % write_freq ) {
                     if ( 0 == _rank ) std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::setw( 5 ) << time_step <<  // Print Iteration and Current Time
                     std::left << std::setw( 15 ) << "\tCurrent Time: " << current_time << "\n";
@@ -175,15 +181,8 @@ class Solver : public SolverBase<state_t> {
                         _silo->siloWrite( strdup( "Mesh" ), time_step, current_time, mindt );                                       // Write State Data
                     #endif
                 }
+                timer.writeStop();
             }
-        };
-
-        state_t timeCompute() {
-            return _time_compute;
-        };
-
-        state_t timeCommunicate() {
-            return _time_communicate;
         };
         
 
@@ -194,8 +193,6 @@ class Solver : public SolverBase<state_t> {
         #ifdef HAVE_SILO
             std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace, state_t>> _silo;
         #endif
-        timestruct _timer_compute, _timer_communicate;
-        state_t _time_compute, _time_communicate;
 };
 
 // Create Solver with Templates
@@ -209,7 +206,8 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const std::string& device,
                                             const Cajita::Partitioner& partitioner, 
                                             const int halo_size, 
                                             const int time_steps, 
-                                            const state_t gravity ) {
+                                            const state_t gravity,
+                                            ExaCLAMR::Timer& timer ) {
     // Serial
     if ( 0 == device.compare( "serial" ) ) {
         #ifdef KOKKOS_ENABLE_SERIAL
@@ -222,7 +220,8 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const std::string& device,
                 partitioner,
                 halo_size, 
                 time_steps, 
-                gravity );
+                gravity,
+                timer );
         #else
             throw std::runtime_error( "Serial Backend Not Enabled" );
         #endif
@@ -239,7 +238,8 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const std::string& device,
                 partitioner,
                 halo_size, 
                 time_steps, 
-                gravity );
+                gravity,
+                timer );
         #else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
         #endif

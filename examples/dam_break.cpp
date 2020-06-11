@@ -25,8 +25,6 @@
     #include <iostream>
 #endif
 
-#define MICROSECONDS 1.0e-6
-
 
 template <typename state_t>
 struct MeshInitFunc
@@ -82,11 +80,13 @@ void clamr( const std::string& device,
             const int halo_size, 
             const int time_steps,
             const state_t gravity,
-            const int write_freq) {
+            const int write_freq,
+            ExaCLAMR::Timer& timer) {
     int comm_size, rank;                                        // Initialize Variables
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );                // Number of Ranks
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );                     // Get My Rank
 
+    timer.setupStart();
     // TODO: Move to main and Possibly ParseInput
     std::array<bool, 3> periodic = { false, false, false };     // Not Periodic for the Moment
 
@@ -105,37 +105,21 @@ void clamr( const std::string& device,
                                             partitioner, 
                                             halo_size, 
                                             time_steps, 
-                                            gravity );
+                                            gravity,
+                                            timer );
+    timer.setupStop();
 
     // Solve
-    solver->solve( write_freq );
-
-    state_t max_compute, max_communicate;
-
-    // Compute Time
-    state_t time_compute = solver->timeCompute();
-    // Communicate Time
-    state_t time_communicate = solver->timeCommunicate();
-
-    // TODO: Scenario where we need MPI_FLOAT
-    MPI_Allreduce( &time_compute, &max_compute, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD ); 
-
-    // TODO: Scenario where we need MPI_FLOAT
-    MPI_Allreduce( &time_communicate, &max_communicate, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD );
-
-    if (rank == 0 ) {
-        std::cout << "The Total Compute Time of the Program was " << max_compute << " seconds\n";
-        std::cout << "The Total Communication Time of the Program was " << max_communicate << " seconds\n";
-    }
+    solver->solve( write_freq, timer );
 };
 
 
 int main( int argc, char* argv[] ) {
     // Initialize and Start Timer
-    using timestruct = std::chrono::high_resolution_clock::time_point;
-    timestruct timer_total;
-    Timer::timer_start( &timer_total );                  // Start Timer
+    ExaCLAMR::Timer timer( ExaCLAMR::TimerType::AGGREGATE );
+    timer.overallStart();
 
+    timer.setupStart();
     // Using doubles
     using state_t = double;
 
@@ -155,7 +139,9 @@ int main( int argc, char* argv[] ) {
     // TODO: Add Cuda
     std::string device = "openmp";                      // serial or openmp
     state_t gravity = 9.8;                              // Gravitational Constant ( m / s^2 )
+    timer.setupStop();
 
+    timer.writeStart();
     // Only Rank 0 Print Command Line Options
     if ( rank == 0 ) {
         // Print Command Line Options
@@ -167,10 +153,13 @@ int main( int argc, char* argv[] ) {
         std::cout << std::left << std::setw( 20 ) << "Write Frequency" << ": " << std::setw( 8 ) << cl.write_freq << "\n";                                                  // Time Steps between each Write
         std::cout << "====================================\n";
     }
+    timer.writeStop();
 
+    timer.setupStart();
     // Create Cell and Bounding Box Arrays
     std::array<int, 3> global_num_cells = { cl.nx, cl.ny, cl.nz };
     std::array<state_t, 6> global_bounding_box = { 0, 0, 0, cl.hx, cl.hy, cl.hz };
+    timer.setupStop();
 
     // Call Clamr - Double or Float as Template Arg
     clamr<state_t>( device,
@@ -179,14 +168,16 @@ int main( int argc, char* argv[] ) {
             cl.halo_size,
             cl.time_steps,
             gravity,  
-            cl.write_freq );
+            cl.write_freq,
+            timer );
 
-    Kokkos::finalize();                                 // Finalize Kokkos                                  
+    Kokkos::finalize();                                 // Finalize Kokkos
     MPI_Finalize();                                     // Finalize MPI
 
+    timer.overallStop();
+
     if (rank == 0 ) {
-        state_t time_total = ( state_t ) Timer::timer_stop( timer_total ) * MICROSECONDS;           // Stop Timer
-        std::cout << "The Total Execution Time of the Program was " << time_total << " seconds\n";  // Print Total Program Time
+        timer.report();
     }
 
     return 0;

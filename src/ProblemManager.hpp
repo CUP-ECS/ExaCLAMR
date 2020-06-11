@@ -167,10 +167,10 @@ class ProblemManager
             auto owned_cells = local_grid.indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 
             // Get State Arrays
-	        auto u_a = get(Location::Cell(), Field::Velocity(), 0 );
-	        auto h_a = get(Location::Cell(), Field::Height(), 0 );
+            auto u_a = get(Location::Cell(), Field::Velocity(), 0 );
+            auto h_a = get(Location::Cell(), Field::Height(), 0 );
             auto u_b = get(Location::Cell(), Field::Velocity(), 1 );
-	        auto h_b = get(Location::Cell(), Field::Height(), 1 );
+            auto h_b = get(Location::Cell(), Field::Height(), 1 );
 
             // Loop Over All Ghost Cells ( i, j, k )
             Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
