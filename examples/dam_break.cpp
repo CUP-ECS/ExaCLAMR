@@ -74,43 +74,41 @@ struct MeshInitFunc
 
 
 template <typename state_t>
-void clamr( const std::string& device,
-            const std::array<state_t, 6>& global_bounding_box, 
-            const std::array<int, 3>& global_num_cells,
-            const int halo_size, 
-            const int time_steps,
-            const state_t gravity,
-            const int write_freq,
-            ExaCLAMR::Timer& timer) {
+void clamr(  cl_args<state_t>& cl, ExaCLAMR::Timer& timer) {
     int comm_size, rank;                                        // Initialize Variables
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );                // Number of Ranks
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );                     // Get My Rank
 
     timer.setupStart();
-    // TODO: Move to main and Possibly ParseInput
-    std::array<bool, 3> periodic = { false, false, false };     // Not Periodic for the Moment
 
-    // TODO: Generalize
-    std::array<int,3> ranks_per_dim = { 1, comm_size, 1 };      // Ranks per Dimension
+    // Splits Ranks up as Evenly as Possible Across X and Y Dimensions
+    int x_ranks = comm_size;
+    while ( x_ranks % 2 == 0 ) {
+        x_ranks /= 2;
+    }
+    int y_ranks = comm_size / x_ranks;
+    if ( DEBUG ) std::cout << "X Ranks: " << x_ranks << " Y Ranks: " << y_ranks << "\n";
+
+    std::array<int,3> ranks_per_dim = { x_ranks, y_ranks, 1 };      // Ranks per Dimension
 
     Cajita::ManualPartitioner partitioner( ranks_per_dim );     // Create Cajita Partitioner
 
     // Create Solver
-    auto solver = ExaCLAMR::createSolver( device,
+    auto solver = ExaCLAMR::createSolver( cl.device,
                                             MPI_COMM_WORLD, 
-                                            MeshInitFunc<state_t>( global_bounding_box ),
-                                            global_bounding_box, 
-                                            global_num_cells,
-                                            periodic,
+                                            MeshInitFunc<state_t>( cl.global_bounding_box ),
+                                            cl.global_bounding_box, 
+                                            cl.global_num_cells,
+                                            cl.periodic,
                                             partitioner, 
-                                            halo_size, 
-                                            time_steps, 
-                                            gravity,
+                                            cl.halo_size, 
+                                            cl.time_steps, 
+                                            cl.gravity,
                                             timer );
     timer.setupStop();
 
     // Solve
-    solver->solve( write_freq, timer );
+    solver->solve( cl.write_freq, timer );
 };
 
 
@@ -135,10 +133,7 @@ int main( int argc, char* argv[] ) {
     cl_args<state_t> cl;
     if ( parseInput( rank, argc, argv, cl ) != 0 ) return -1; // Return if Failed
 
-    // TODO: Add to parseInput
     // TODO: Add Cuda
-    std::string device = "openmp";                      // serial or openmp
-    state_t gravity = 9.8;                              // Gravitational Constant ( m / s^2 )
     timer.setupStop();
 
     timer.writeStart();
@@ -147,29 +142,20 @@ int main( int argc, char* argv[] ) {
         // Print Command Line Options
         std::cout << "ExaClamr\n";
         std::cout << "=======Command line arguments=======\n";
-        std::cout << std::left << std::setw( 20 ) << "Cells"           << ": " << std::setw( 8 ) << cl.nx << std::setw( 8 ) << cl.ny << std::setw( 8 ) << cl.nz << "\n";    // Number of Cells
-        std::cout << std::left << std::setw( 20 ) << "Domain"          << ": " << std::setw( 8 ) << cl.hx << std::setw( 8 ) << cl.hy << std::setw( 8 ) << cl.hz << "\n";    // Span of Domain ( In Meters )
-        std::cout << std::left << std::setw( 20 ) << "TimeSteps"       << ": " << std::setw( 8 ) << cl.time_steps << "\n";                                                  // Number of Time Steps
-        std::cout << std::left << std::setw( 20 ) << "Write Frequency" << ": " << std::setw( 8 ) << cl.write_freq << "\n";                                                  // Time Steps between each Write
+        std::cout << std::left << std::setw( 20 ) << "Thread Setting"    << ": " << std::setw( 8 ) << cl.device      << "\n";                                                           // Threading Setting
+        std::cout << std::left << std::setw( 20 ) << "Cells"             << ": " << std::setw( 8 ) << cl.nx          << std::setw( 8 ) << cl.ny << std::setw( 8 ) << cl.nz << "\n";     // Number of Cells
+        std::cout << std::left << std::setw( 20 ) << "Domain"            << ": " << std::setw( 8 ) << cl.hx          << std::setw( 8 ) << cl.hy << std::setw( 8 ) << cl.hz << "\n";     // Span of Domain
+        std::cout << std::left << std::setw( 20 ) << "Periodicity"       << ": " << std::setw( 8 ) <<                                                                                   // Periodicity
+        cl.periodic[0] << std::setw( 8 ) << cl.periodic[1] << std::setw( 8 ) << cl.periodic[2] << "\n";
+        std::cout << std::left << std::setw( 20 ) << "Gravity"           << ": " << std::setw( 8 ) << cl.gravity     << "\n";                                                           // Gravitational Constant
+        std::cout << std::left << std::setw( 20 ) << "Time Steps"        << ": " << std::setw( 8 ) << cl.time_steps  << "\n";                                                           // Number of Time Steps
+        std::cout << std::left << std::setw( 20 ) << "Write Frequency"   << ": " << std::setw( 8 ) << cl.write_freq  << "\n";                                                           // Time Steps between each Write
         std::cout << "====================================\n";
     }
     timer.writeStop();
 
-    timer.setupStart();
-    // Create Cell and Bounding Box Arrays
-    std::array<int, 3> global_num_cells = { cl.nx, cl.ny, cl.nz };
-    std::array<state_t, 6> global_bounding_box = { 0, 0, 0, cl.hx, cl.hy, cl.hz };
-    timer.setupStop();
-
     // Call Clamr - Double or Float as Template Arg
-    clamr<state_t>( device,
-            global_bounding_box, 
-            global_num_cells, 
-            cl.halo_size,
-            cl.time_steps,
-            gravity,  
-            cl.write_freq,
-            timer );
+    clamr<state_t>( cl, timer );
 
     Kokkos::finalize();                                 // Finalize Kokkos
     MPI_Finalize();                                     // Finalize MPI
