@@ -82,7 +82,7 @@ void clamr(  cl_args<state_t>& cl, ExaCLAMR::Timer& timer) {
 
     // Splits Ranks up as Evenly as Possible Across X and Y Dimensions
     int x_ranks = comm_size;
-    while ( x_ranks % 2 == 0 ) {
+    while ( x_ranks % 2 == 0 && x_ranks > 2 ) {
         x_ranks /= 2;
     }
     int y_ranks = comm_size / x_ranks;

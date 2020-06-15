@@ -16,8 +16,11 @@
 
 #include <ExaCLAMR.hpp>
 
+#include <Cajita.hpp>
+
 #ifdef HAVE_SILO
     #include <silo.h>
+    #include <pmpio.h>
 #endif
 
 
@@ -54,10 +57,19 @@ class SiloWriter
         // TODO: PMPIO Write File in Parallel
         void writeFile( DBfile *dbfile, char *name, int time_step, state_t time, state_t dt ) {
             // Initialize Variables
-            int            dims[2], zdims[2], zones[2], nx, ny, ndims, meshid;
+            int            dims[2], zdims[2], zones[2], nx, ny, offsetx, offsety, ndims, meshid;
             state_t       *coords[2], *vars[2], dx, dy;
             char          *coordnames[2], *varnames[2];
             DBoptlist     *optlist;
+
+            // Define device_type for Later Use
+            using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
+
+            // Create Local Grid
+            auto local_grid = _pm->mesh()->localGrid();
+
+            // Get Local Mesh and Owned Cells for Domain Calculation
+            auto local_mesh = Cajita::createLocalMesh<device_type>( *local_grid );
 
             // DEBUG: Trace Writing File
             if( DEBUG ) std::cout << "Writing File\n";
@@ -74,8 +86,8 @@ class SiloWriter
             // Get Number of Cells and Cell Size in 2-Dimensions ( X, Y )
             nx = domain.extent( 0 );
             ny = domain.extent( 1 );
-            dx = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
-            dy = _pm->mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+            dx = local_grid->globalGrid().globalMesh().cellSize( 0 );
+            dy = local_grid->globalGrid().globalMesh().cellSize( 1 );
 
             // 2-D Cell-Centered Regular Mesh
             ndims = 2;
@@ -103,8 +115,21 @@ class SiloWriter
             coords[1] = y;
 
             // Set X and Y Coordinates of Nodes
-            for (int i = 0; i < dims[0]; i++) x[i] = ( state_t ) i * dx;
-            for (int j = 0; j < dims[1]; j++) y[j] = ( state_t ) j * dy;
+            for (int i = domain.min( 0 ); i <= domain.max( 0 ); i++) {
+                int iown = i - domain.min( 0 );
+                int coords[3] = { i, 0, 0 };
+                state_t x_coords[3];
+                local_mesh.coordinates( Cajita::Cell(), coords, x_coords );
+                x[iown] = x_coords[0] - 0.5 * dx;
+            }
+
+            for (int j = domain.min( 1 ); j <= domain.max( 1 ); j++) {
+                int jown = j - domain.min( 1 );
+                int coords[3] = { 0, j, 0 };
+                state_t x_coords[3];
+                local_mesh.coordinates( Cajita::Cell(), coords, x_coords );
+                y[jown] = x_coords[1] - 0.5 * dy;
+            }
 
             meshid = DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
                         coords, dims, ndims, SiloTraits<state_t>::type(), DB_COLLINEAR, optlist);
@@ -160,34 +185,138 @@ class SiloWriter
         };
 
 
+        static void* createSiloFile( const char* filename, const char* nsname, void* user_data ) {
+            if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
+
+            int driver = *( ( int* ) user_data );
+            DBfile* silo_file = DBCreate( filename, DB_CLOBBER, DB_LOCAL, "ExaCLAMRRaw", driver );
+
+            if ( silo_file ) {
+                DBMkDir( silo_file, nsname );
+                DBSetDir( silo_file, nsname );
+            }
+
+            return ( void * ) silo_file;
+        };
+
+        static void* openSiloFile( const char* filename, const char* nsname, PMPIO_iomode_t ioMode, void* user_data ) {
+            DBfile* silo_file = DBOpen( filename, DB_UNKNOWN, ioMode == PMPIO_WRITE ? DB_APPEND : DB_READ );
+
+            if ( silo_file ) {
+                if ( ioMode == PMPIO_WRITE ) {
+                    DBMkDir( silo_file, nsname );
+                }
+                DBSetDir( silo_file, nsname );
+            }
+
+            return ( void * ) silo_file;
+        };
+
+        static void closeSiloFile( void* file, void* user_data ) {
+            DBfile* silo_file = ( DBfile * ) file;
+            if ( silo_file ) DBClose( silo_file );
+        };
+
+        void writeMultiObjects( DBfile* silo_file, PMPIO_baton_t* baton, int size, int time_step, const char* file_ext ) {
+            char** mesh_block_names = ( char ** ) malloc( size * sizeof( char * ) );
+            char** h_block_names = ( char ** ) malloc( size * sizeof( char * ) );
+            char** u_block_names = ( char ** ) malloc( size * sizeof( char * ) );
+            char** v_block_names = ( char ** ) malloc( size * sizeof( char * ) );
+            char** mom_block_names = ( char ** ) malloc( size * sizeof( char * ) );
+
+            int* block_types = ( int * ) malloc( size * sizeof( int ) );
+            int* var_types = ( int * ) malloc( size * sizeof( int ) );
+
+            DBSetDir( silo_file, "/" );
+
+            for ( int i = 0; i < size; i++ ) {
+                int group_rank = PMPIO_GroupRank( baton, i );
+                mesh_block_names[i] = ( char * ) malloc( 1024 );
+                h_block_names[i] = ( char * ) malloc( 1024 );
+                u_block_names[i] = ( char * ) malloc( 1024 );
+                v_block_names[i] = ( char * ) malloc( 1024 );
+                mom_block_names[i] = ( char * ) malloc( 1024 );
+
+                sprintf( mesh_block_names[i], "raw/ExaCLAMROutput%05d%05d.pdb:/domain_%05d/Mesh", group_rank, time_step, i );
+                sprintf( h_block_names[i], "raw/ExaCLAMROutput%05d%05d.pdb:/domain_%05d/height", group_rank, time_step, i );
+                sprintf( u_block_names[i], "raw/ExaCLAMROutput%05d%05d.pdb:/domain_%05d/ucomp", group_rank, time_step, i );
+                sprintf( v_block_names[i], "raw/ExaCLAMROutput%05d%05d.pdb:/domain_%05d/vcomp", group_rank, time_step, i );
+                sprintf( mom_block_names[i], "raw/ExaCLAMROutput%05d%05d.pdb:/domain_%05d/momentum", group_rank, time_step, i );
+
+                block_types[i] = DB_QUADMESH;
+                var_types[i] = DB_QUADVAR;
+            }
+
+            DBPutMultimesh( silo_file, "multi_mesh", size, mesh_block_names, block_types, 0 );
+            DBPutMultivar( silo_file, "multi_height", size, h_block_names, var_types, 0 );
+            DBPutMultivar( silo_file, "multi_ucomp", size, u_block_names, var_types, 0 );
+            DBPutMultivar( silo_file, "multi_vcomp", size, v_block_names, var_types, 0 );
+            DBPutMultivar( silo_file, "multi_momentum", size, mom_block_names, var_types, 0 );
+
+            for ( int i = 0; i < size; i++ ) {
+                free( mesh_block_names[i] );
+                free( h_block_names[i] );
+                free( u_block_names[i] );
+                free( v_block_names[i] );
+                free( mom_block_names[i] );
+            }
+
+            free( mesh_block_names );
+            free( h_block_names );
+            free( u_block_names );
+            free( v_block_names );
+            free( mom_block_names );
+            free( block_types );
+            free( var_types );
+        }
+
         // Function to Create New DB File for Current Time Step
         void siloWrite( char *name, int time_step, state_t time, state_t dt ) {
             // Initalize Variables
-            DBfile *silo_file;
+            DBfile* silo_file;
+            DBfile* master_file;
+            int size;
             int driver = DB_PDB;
-            char filename[30];
+            // TODO: Make the Number of Groups a Constant or a Runtime Parameter ( Between 8 and 64 )
+            int numGroups = 2;
+            char masterfilename[256], filename[256], nsname[256];
+            PMPIO_baton_t* baton;
+
+            MPI_Comm_size(MPI_COMM_WORLD, &size);
+            MPI_Bcast( &numGroups, 1, MPI_INT, 0, MPI_COMM_WORLD );
+            MPI_Bcast( &driver, 1, MPI_INT, 0, MPI_COMM_WORLD );
+
+            baton = PMPIO_Init( numGroups, PMPIO_WRITE, MPI_COMM_WORLD, 1, createSiloFile, openSiloFile, closeSiloFile, &driver );
 
             // Set Filename to Reflect TimeStep
-            sprintf( filename, "data/ExaCLAMROutput%05d.pdb", time_step );
+            sprintf( masterfilename, "data/ExaCLAMR%05d.pdb", time_step );
+            sprintf( filename, "data/raw/ExaCLAMROutput%05d%05d.pdb", PMPIO_GroupRank( baton, _pm->mesh()->rank() ), time_step );
+            sprintf( nsname, "domain_%05d", _pm->mesh()->rank() );
 
             // Show Errors and Force FLoating Point
             DBShowErrors( DB_ALL, NULL );
             DBForceSingle( 1 );
 
-            // Only Rank 0 Creates the File and then Writes to it
+            silo_file = ( DBfile * ) PMPIO_WaitForBaton( baton, filename, nsname );
+
+            writeFile( silo_file, strdup( "Mesh" ), time_step, time, dt );
+
             if ( _pm->mesh()->rank() == 0 ) {
-                if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
-                silo_file = DBCreate(filename, 0, DB_LOCAL, "ExaCLAMR", driver);
-                writeFile( silo_file, strdup( "Mesh" ), time_step, time, dt );
-                DBClose( silo_file );
+                master_file = DBCreate( masterfilename, DB_CLOBBER, DB_LOCAL, "ExaCLAMR", driver );
+                writeMultiObjects( master_file, baton, size, time_step, "pdb" );
+                DBClose( master_file );
             }
-        };
+
+            PMPIO_HandOffBaton( baton, silo_file );
+
+            PMPIO_Finish( baton );
+            }
 
     private:
         std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;
 
 };
 
-}
+};
 
 #endif
