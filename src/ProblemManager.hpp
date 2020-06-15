@@ -36,8 +36,7 @@ struct Node {};
 // Fields Struct
 namespace Field
 {
-// TODO: Change from Velocity to Momentum
-struct Velocity {};
+struct Momentum {};
 struct Height {};
 
 struct HxFluxPlus {};
@@ -89,15 +88,15 @@ class ProblemManager
                                             comm );
 
             // Create Vector and Scalar Layouts
-            auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );   // 2-Dimensional ( Velocity / Momentum )
+            auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );   // 2-Dimensional ( Momentum )
             auto cell_scalar_layout = Cajita::createArrayLayout( _mesh->localGrid(), 1, Cajita::Cell() );
 
             // Initialize State Arrays
             // A and B Arrays used to Update State Data without Overwriting
-            _velocity_a = Cajita::createArray<state_t, MemorySpace>( "velocity", cell_vector_layout );
+            _momentum_a = Cajita::createArray<state_t, MemorySpace>( "momentum", cell_vector_layout );
             _height_a = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
 
-            _velocity_b = Cajita::createArray<state_t, MemorySpace>( "velocity", cell_vector_layout );
+            _momentum_b = Cajita::createArray<state_t, MemorySpace>( "momentum", cell_vector_layout );
             _height_b = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
 
 
@@ -140,7 +139,7 @@ class ProblemManager
             _cell_vector_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_vector_layout, halo_pattern );
             _cell_scalar_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_scalar_layout, halo_pattern );
 
-            // Initialize State Values ( Height, Velocity/Momentum )
+            // Initialize State Values ( Height, Momentum )
             initialize( create_functor );
 
         };
@@ -167,9 +166,9 @@ class ProblemManager
             auto owned_cells = local_grid.indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 
             // Get State Arrays
-            auto u_a = get(Location::Cell(), Field::Velocity(), 0 );
+            auto u_a = get(Location::Cell(), Field::Momentum(), 0 );
             auto h_a = get(Location::Cell(), Field::Height(), 0 );
-            auto u_b = get(Location::Cell(), Field::Velocity(), 1 );
+            auto u_b = get(Location::Cell(), Field::Momentum(), 1 );
             auto h_b = get(Location::Cell(), Field::Height(), 1 );
 
             // Loop Over All Ghost Cells ( i, j, k )
@@ -179,7 +178,7 @@ class ProblemManager
                 if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tGhost Extent: " << ghost_cells.extent( 0 ) << ghost_cells.extent( 1 ) << ghost_cells.extent( 2 ) << "\n";
                 
                 // Initialize State Vectors
-                state_t velocity[2];
+                state_t momentum[2];
                 state_t height;
 
                 // Get Coordinates Associated with Indices ( i, j, k )
@@ -189,19 +188,19 @@ class ProblemManager
                 local_mesh.coordinates( Cajita::Cell(), coords, x );
 
                 // Initialization Function
-                create_functor(coords, x, velocity, height);
+                create_functor(coords, x, momentum, height);
 
-                // DEBUG: Print Rank, Indices, Coordinates, and Initialized Velocities and Height
+                // DEBUG: Print Rank, Indices, Coordinates, and Initialized Momentums and Height
                 if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\tx: " << x[0] << "\ty: " << x[1] << "\tz: " \
-                << x[2] << "\tvx: " << velocity[0] << "\tvy: " << velocity[1] << "\th: " << height << "\n";
+                << x[2] << "\tu: " << momentum[0] << "\tv: " << momentum[1] << "\th: " << height << "\n";
 
                 // Assign Values to State Views
-		        u_a( i, j, k, 0 ) = velocity[0];
-		        u_a( i, j, k, 1 ) = velocity[1];
+		        u_a( i, j, k, 0 ) = momentum[0];
+		        u_a( i, j, k, 1 ) = momentum[1];
                 h_a( i, j, k, 0 ) = height;
 
-                u_b( i, j, k, 0 ) = velocity[0];
-		        u_b( i, j, k, 1 ) = velocity[1];
+                u_b( i, j, k, 0 ) = momentum[0];
+		        u_b( i, j, k, 1 ) = momentum[1];
                 h_b( i, j, k, 0 ) = height;
 
             } );
@@ -212,9 +211,9 @@ class ProblemManager
             return _mesh;
         };
 
-        typename cell_array::view_type get( Location::Cell, Field::Velocity, int t ) const {
-            if ( t == 0 ) return _velocity_a->view();
-            else return _velocity_b->view();
+        typename cell_array::view_type get( Location::Cell, Field::Momentum, int t ) const {
+            if ( t == 0 ) return _momentum_a->view();
+            else return _momentum_b->view();
         };
 
         typename cell_array::view_type get( Location::Cell, Field::Height, int t ) const {
@@ -278,9 +277,9 @@ class ProblemManager
             return _u_w_minus->view();
         }
 
-        void scatter( Location::Cell, Field::Velocity, int t ) const {
-            if ( t == 0 ) _cell_vector_halo->scatter( *_velocity_a );
-            else _cell_vector_halo->scatter( *_velocity_b );
+        void scatter( Location::Cell, Field::Momentum, int t ) const {
+            if ( t == 0 ) _cell_vector_halo->scatter( *_momentum_a );
+            else _cell_vector_halo->scatter( *_momentum_b );
         };
 
         void scatter( Location::Cell, Field::Height, int t ) const {
@@ -288,9 +287,9 @@ class ProblemManager
             else _cell_scalar_halo->scatter( *_height_b );
         };
 
-        void gather( Location::Cell, Field::Velocity, int t ) const {
-            if ( t == 0 ) _cell_vector_halo->gather( *_velocity_a );
-            else _cell_vector_halo->gather( *_velocity_b );
+        void gather( Location::Cell, Field::Momentum, int t ) const {
+            if ( t == 0 ) _cell_vector_halo->gather( *_momentum_a );
+            else _cell_vector_halo->gather( *_momentum_b );
         }
 
         void gather( Location::Cell, Field::Height, int t ) const {
@@ -303,9 +302,9 @@ class ProblemManager
         Cabana::AoSoA<cell_members, MemorySpace> _cells;
 #endif
         std::shared_ptr<Mesh<MemorySpace, ExecutionSpace, state_t>> _mesh;
-        std::shared_ptr<cell_array> _velocity_a;
+        std::shared_ptr<cell_array> _momentum_a;
         std::shared_ptr<cell_array> _height_a;
-        std::shared_ptr<cell_array> _velocity_b;
+        std::shared_ptr<cell_array> _momentum_b;
         std::shared_ptr<cell_array> _height_b;
 
         std::shared_ptr<cell_array> _hx_flux_plus;

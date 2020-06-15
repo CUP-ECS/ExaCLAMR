@@ -33,7 +33,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Applying Boundary Conditions\n";
     // Get Current State Views
     auto h_current = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
-    auto u_current = pm.get( Location::Cell(), Field::Velocity(), CURRENTFIELD( time_step ) );
+    auto u_current = pm.get( Location::Cell(), Field::Momentum(), CURRENTFIELD( time_step ) );
 
     // Get Local Grid to get OWNED Index Space
     auto local_grid = pm.mesh()->localGrid();
@@ -113,9 +113,9 @@ void haloExchange( const ProblemManagerType& pm, const int time_step ) {
     // DEBUG: Trace in Halo Exchange
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Starting Halo Exchange\n";
 
-    // Perform Halo Exchange on Height and Velocity State Views
+    // Perform Halo Exchange on Height and Momentum State Views
     pm.gather( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
-    pm.gather( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
+    pm.gather( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
 
     MPI_Barrier( MPI_COMM_WORLD );
 }
@@ -129,7 +129,7 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
 
     // Get Current State Variables
     auto h_current = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
-    auto u_current = pm.get( Location::Cell(), Field::Velocity(), CURRENTFIELD( time_step ) );
+    auto u_current = pm.get( Location::Cell(), Field::Momentum(), CURRENTFIELD( time_step ) );
 
     // Get Domain Index Space to Loop Over
     auto domain = pm.mesh()->domainSpace();
@@ -234,11 +234,11 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     applyBoundaryConditions( pm, exec_space, mem_space, gravity, time_step );
 
     // Get Current State Views
-    auto u_current = pm.get( Location::Cell(), Field::Velocity(), CURRENTFIELD( time_step ) );
+    auto u_current = pm.get( Location::Cell(), Field::Momentum(), CURRENTFIELD( time_step ) );
     auto h_current = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
 
     // Get New State Views
-    auto u_new = pm.get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
+    auto u_new = pm.get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
     auto h_new = pm.get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
     // Get Flux Views

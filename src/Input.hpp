@@ -22,8 +22,8 @@
 #include <stdlib.h>
 
 
-// Short Args: a - Halo Size, d - Domain Size, h - Print Help, g - Gravitational Constant, m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, p - Periodicity, t - Time Steps, w - Write Frequency, 
-static char *shortargs = ( char * )"a::d::g::hm::n::p::t::w::";
+// Short Args: a - Halo Size, d - Domain Size, h - Print Help, g - Gravitational Constant, m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency, 
+static char *shortargs = ( char * )"a::d::g::hm::n::p::s::t::w::";
 
 /**
  * Template struct to organize and keep track of parameters controlled by command line arguments
@@ -36,6 +36,7 @@ struct cl_args {
     int write_freq;                                     /**< Write frequency */
     state_t hx, hy, hz;                                 /**< Size of the domain */
     state_t gravity;                                    /**< Gravitation constant */
+    state_t sigma;                                      /**< Sigma */
     std::string device;                                 /**< Threading setting ( Serial, OpenMP, CUDA ) */
 
     std::array<int, 3> global_num_cells;                /**< Globar array of number of cells */
@@ -59,6 +60,7 @@ void help( const int rank, char* progname ){
         std::cout << std::left << std::setw( 10 ) << "-n" << std::setw( 40 ) << "Number of Cells (default 50 50 1)"        << std::left << "\n";
         std::cout << std::left << std::setw( 10 ) << "-p" << std::setw( 40 ) << "Periodicity (default: false false false)" << std::left << "\n";
         std::cout << std::left << std::setw( 20 ) << "  " << std::setw( 50 ) << "-p0 (false false false) -p1 (true false false) -p2(false true false) etc\n";
+        std::cout << std::left << std::setw( 10 ) << "-s" << std::setw( 40 ) << "Timestep Sigma Value (default 0.95)"      << std::left << "\n";
         std::cout << std::left << std::setw( 10 ) << "-t" << std::setw( 40 ) << "Number of Time Steps (default 3000)"      << std::left << "\n";
         std::cout << std::left << std::setw( 10 ) << "-w" << std::setw( 40 ) << "Write Frequency (default 100)"            << std::left << "\n";
     }
@@ -69,13 +71,13 @@ void help( const int rank, char* progname ){
  * Outputs usage hint if invalid command line arguments are given.
  */
 void usage( const int rank, char* progname ) {
-    if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-d size-of-domain] [-g gravity] [-h help] [-m threading] [-n number-of-cells] [-p periodicity] [-t number-time-steps] [-w write-frequency]\n";
+    if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-d size-of-domain] [-g gravity] [-h help] [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
 }
 
 
 /**
  * Parses command line input and updates the command line variables accordingly.\n
- * Usage: ./[program] [-a halo-size] [-d size-of-domain] [-g gravity] [-h help] [-m threading] [-n number-of-cells] [-p periodicity] [-t number-time-steps] [-w write-frequency]
+ * Usage: ./[program] [-a halo-size] [-d size-of-domain] [-g gravity] [-h help] [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]
  */
 template <typename state_t>
 int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& cl ) {
@@ -88,6 +90,7 @@ int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& 
 
     cl.halo_size = 2;                           // Default Halo Size = 2
     cl.gravity = 9.80;                          // Default Gravitational Constant = 9.80
+    cl.sigma = 0.95;                            // Default Timestep Sigma Value
     cl.time_steps = 3000;                       // Default Time Steps = 3000
     cl.write_freq = 100;                        // Default Write Frequency = 10
 
@@ -131,8 +134,8 @@ int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& 
             // Threading
             case 'm':
                 cl.device = optarg;
-                if ( cl.device.compare( "serial" ) || cl.device.compare( "openmp" ) ) {
-                    if ( rank == 0 ) std::cout << "Valid threading inputs are: serial, openmp\n";
+                if ( cl.device.compare( "serial" ) && cl.device.compare( "openmp" ) ) {
+                    if ( rank == 0 ) std::cout << cl.device << "Valid threading inputs are: serial, openmp\n";
                     return -1;
                 }
                 break;
@@ -157,6 +160,14 @@ int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& 
                     for ( int i = 0; i < 3; i++ ) {
                         cl.periodic[i] = ( ( ( periodicval >> i ) & 1 ) == 1 ) ? true : false;
                     }
+                }
+                break;
+            // Timestep Sigma
+            case 's':
+                cl.sigma = atoi( optarg );
+                if ( cl.sigma > 2.0 || cl.sigma < 0.0 ) {
+                    std::cout << "Sigma must be a value between 0 and 2\n";
+                    return -1;
                 }
                 break;
             // Number of Time Steps

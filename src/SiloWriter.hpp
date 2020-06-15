@@ -21,6 +21,19 @@
 
 namespace ExaCLAMR {
 
+template <typename SiloType>
+struct SiloTraits;
+
+template <>
+struct SiloTraits<float> {
+    static DBdatatype type() { return DB_FLOAT; }
+};
+
+template <>
+struct SiloTraits<double> {
+    static DBdatatype type() { return DB_DOUBLE; }
+};
+
 template<class MemorySpace, class ExecutionSpace, typename state_t>
 class SiloWriter
 {
@@ -95,12 +108,11 @@ class SiloWriter
             for (int i = 0; i < dims[0]; i++) x[i] = ( state_t ) i * dx;
             for (int j = 0; j < dims[1]; j++) y[j] = ( state_t ) j * dy;
 
-            // TODO: Scenario where we need DB_FLOAT
             meshid = DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
-                        coords, dims, ndims, DB_DOUBLE, DB_COLLINEAR, optlist);
+                        coords, dims, ndims, SiloTraits<state_t>::type(), DB_COLLINEAR, optlist);
 
             // Get State Views
-            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );
+            auto uNew = _pm->get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
             auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
             // Loop Over Domain ( i, j, k )
@@ -124,30 +136,26 @@ class SiloWriter
 
             // Write Scalar Variables
             // Height
-            // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "height", name, height, zdims, ndims,
-                                NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
+                                NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
             
             // Vx
-            // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "ucomp", name, u, zdims, ndims,
-                        NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
+                        NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
 
             // Vy
-            // TODO: Scenario where we need DB_FLOAT
             DBPutQuadvar1( dbfile, "vcomp", name, v, zdims, ndims,
-                        NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
+                        NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
 
-            // Setup and Write Vector Velocity Variable
+            // Setup and Write Momentum Variable
             vars[0] = u;
             vars[1] = v;
             varnames[0] = strdup( "u" );
             varnames[1] = strdup( "v" );
 
-            // Velocity
-            // TODO: Scenario where we need DB_FLOAT
-            DBPutQuadvar( dbfile, "velocity", name, 2, (DBCAS_t) varnames,
-                vars, zdims, ndims, NULL, 0, DB_DOUBLE, DB_ZONECENT, optlist );
+            // Momentum
+            DBPutQuadvar( dbfile, "momentum", name, 2, (DBCAS_t) varnames,
+                vars, zdims, ndims, NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
 
             // Free Option List
             DBFreeOptlist( optlist );

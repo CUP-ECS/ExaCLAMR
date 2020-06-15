@@ -55,28 +55,23 @@ class Solver : public SolverBase<state_t> {
          * @param
          */
         template <class InitFunc>
-        Solver( MPI_Comm comm, 
+        Solver( const cl_args<state_t>& cl,
+                MPI_Comm comm, 
                 const InitFunc& create_functor,
-                const std::array<state_t, 6>& global_bounding_box, 
-                const std::array<int, 3>& global_num_cell, 
-                const std::array<bool, 3>& periodic,
                 const Cajita::Partitioner& partitioner,
-                const int halo_size, 
-                const int time_steps, 
-                const state_t gravity,
                 ExaCLAMR::Timer& timer )
-        : _halo_size ( halo_size ), _time_steps ( time_steps ), _gravity ( gravity ) {
+        : _halo_size ( cl.halo_size ), _time_steps ( cl.time_steps ), _gravity ( cl.gravity ), _sigma ( cl.sigma ) {
             MPI_Comm_rank( comm, &_rank );
 
             if ( _rank == 0 && DEBUG ) std::cout << "Created Solver\n";         // DEBUG: Trace Created Solver
                 
             // Create Problem Manager
             _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, state_t>>( 
-                                            global_bounding_box, 
-                                            global_num_cell, 
-                                            periodic, 
+                                            cl.global_bounding_box, 
+                                            cl.global_num_cells, 
+                                            cl.periodic, 
                                             partitioner, 
-                                            halo_size, 
+                                            cl.halo_size, 
                                             comm, 
                                             create_functor );
 
@@ -96,7 +91,7 @@ class Solver : public SolverBase<state_t> {
 
             // Get State Views
             auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );               // New Height State View
-            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );             // New Velocity State View
+            auto uNew = _pm->get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );             // New Momentum State View
 
             state_t summed_height = 0, total_height = 0;
 
@@ -105,7 +100,8 @@ class Solver : public SolverBase<state_t> {
                 l_height += hNew( i, j, k, 0 );
             }, Kokkos::Sum<state_t>( summed_height ) );
 
-            MPI_Allreduce( &summed_height, &total_height, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+            // Get Total Height
+            MPI_Allreduce( &summed_height, &total_height, 1, Cajita::MpiTraits<state_t>::type(), MPI_SUM, MPI_COMM_WORLD );
 
             if ( time_step == 0 ) _initial_mass = total_height;
             else _current_mass = total_height;
@@ -123,7 +119,7 @@ class Solver : public SolverBase<state_t> {
 
             // Get State Views
             auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );               // New Height State View
-            auto uNew = _pm->get( Location::Cell(), Field::Velocity(), NEWFIELD( time_step ) );             // New Velocity State View
+            auto uNew = _pm->get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );             // New Momentum State View
 
             // Only Loop if Rank is the Specified Rank
             if ( _pm->mesh()->rank() == rank ) {
@@ -164,15 +160,13 @@ class Solver : public SolverBase<state_t> {
 
             // Loop Over Time
             for (time_step = 1; time_step <= nt; time_step++) {
-                // TODO: Declare Sigma = 0.95 elsewhere instead of hard-coded
-
                 timer.computeStart();
-                state_t dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), MemorySpace(), _gravity, 0.95, time_step );       // Calculate Time Step
+                state_t dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), MemorySpace(), _gravity, _sigma, time_step );       // Calculate Time Step
                 timer.computeStop();
 
-                // TODO: Scenario where we need MPI_FLOAT
                 timer.communicationStart();
-                MPI_Allreduce( &dt, &mindt, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD );                                               // Get Minimum Time Step
+                // Get Minimum Time Step
+                MPI_Allreduce( &dt, &mindt, 1, Cajita::MpiTraits<state_t>::type(), MPI_MIN, MPI_COMM_WORLD );
                 timer.communicationStop();
 
                 timer.computeStart();
@@ -214,6 +208,7 @@ class Solver : public SolverBase<state_t> {
     private:
         int _rank, _time_steps, _halo_size;
         state_t _gravity;
+        state_t _sigma;
         state_t _initial_mass, _current_mass;
         std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;
         #ifdef HAVE_SILO
@@ -223,48 +218,32 @@ class Solver : public SolverBase<state_t> {
 
 // Create Solver with Templates
 template <typename state_t, class InitFunc>
-std::shared_ptr<SolverBase<state_t>> createSolver( const std::string& device,
+std::shared_ptr<SolverBase<state_t>> createSolver( const cl_args<state_t>& cl,
                                             MPI_Comm comm, 
                                             const InitFunc& create_functor,
-                                            const std::array<state_t, 6>& global_bounding_box, 
-                                            const std::array<int, 3>& global_num_cell,
-                                            const std::array<bool, 3>& periodic,
-                                            const Cajita::Partitioner& partitioner, 
-                                            const int halo_size, 
-                                            const int time_steps, 
-                                            const state_t gravity,
+                                            const Cajita::Partitioner& partitioner,
                                             ExaCLAMR::Timer& timer ) {
     // Serial
-    if ( 0 == device.compare( "serial" ) ) {
+    if ( 0 == cl.device.compare( "serial" ) ) {
         #ifdef KOKKOS_ENABLE_SERIAL
             return std::make_shared<ExaCLAMR::Solver<Kokkos::HostSpace, Kokkos::Serial, state_t>>(
-                comm, 
+                cl,
+                comm,
                 create_functor,
-                global_bounding_box, 
-                global_num_cell, 
-                periodic,
                 partitioner,
-                halo_size, 
-                time_steps, 
-                gravity,
                 timer );
         #else
             throw std::runtime_error( "Serial Backend Not Enabled" );
         #endif
     }
     // OpenMP
-    else if ( 0 == device.compare( "openmp" ) ) {
+    else if ( 0 == cl.device.compare( "openmp" ) ) {
         #ifdef KOKKOS_ENABLE_OPENMP
             return std::make_shared<ExaCLAMR::Solver<Kokkos::HostSpace, Kokkos::OpenMP, state_t>>(
+                cl,
                 comm, 
                 create_functor,
-                global_bounding_box, 
-                global_num_cell, 
-                periodic,
                 partitioner,
-                halo_size, 
-                time_steps, 
-                gravity,
                 timer );
         #else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );

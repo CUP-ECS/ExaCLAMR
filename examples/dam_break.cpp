@@ -56,7 +56,6 @@ struct MeshInitFunc
         if ( DEBUG ) std::cout << x[0] << ", " << x[1] << " is " << r << " from the center: ";
 
         // Set Height
-        // TODO: Make it Possible to Tweak Tall and Short Values, Along with R Threshold Calculation with Command Line Args
         if ( r <= width[0] * ( 6.0 / 128.0 ) ) {
             // DEBUG: Print Indicated Tall Height Assigned to Point
             if ( DEBUG ) std::cout << "Tall\n";
@@ -94,17 +93,11 @@ void clamr(  cl_args<state_t>& cl, ExaCLAMR::Timer& timer) {
     Cajita::ManualPartitioner partitioner( ranks_per_dim );     // Create Cajita Partitioner
 
     // Create Solver
-    auto solver = ExaCLAMR::createSolver( cl.device,
-                                            MPI_COMM_WORLD, 
-                                            MeshInitFunc<state_t>( cl.global_bounding_box ),
-                                            cl.global_bounding_box, 
-                                            cl.global_num_cells,
-                                            cl.periodic,
-                                            partitioner, 
-                                            cl.halo_size, 
-                                            cl.time_steps, 
-                                            cl.gravity,
-                                            timer );
+    auto solver = ExaCLAMR::createSolver( cl,
+                                        MPI_COMM_WORLD, 
+                                        MeshInitFunc<state_t>( cl.global_bounding_box ),
+                                        partitioner, 
+                                        timer );
     timer.setupStop();
 
     // Solve
@@ -147,6 +140,7 @@ int main( int argc, char* argv[] ) {
         std::cout << std::left << std::setw( 20 ) << "Domain"            << ": " << std::setw( 8 ) << cl.hx          << std::setw( 8 ) << cl.hy << std::setw( 8 ) << cl.hz << "\n";     // Span of Domain
         std::cout << std::left << std::setw( 20 ) << "Periodicity"       << ": " << std::setw( 8 ) <<                                                                                   // Periodicity
         cl.periodic[0] << std::setw( 8 ) << cl.periodic[1] << std::setw( 8 ) << cl.periodic[2] << "\n";
+        std::cout << std::left << std::setw( 20 ) << "Sigma"             << ": " << std::setw( 8 ) << cl.sigma       << "\n";                                                           // Sigma
         std::cout << std::left << std::setw( 20 ) << "Gravity"           << ": " << std::setw( 8 ) << cl.gravity     << "\n";                                                           // Gravitational Constant
         std::cout << std::left << std::setw( 20 ) << "Time Steps"        << ": " << std::setw( 8 ) << cl.time_steps  << "\n";                                                           // Number of Time Steps
         std::cout << std::left << std::setw( 20 ) << "Write Frequency"   << ": " << std::setw( 8 ) << cl.write_freq  << "\n";                                                           // Time Steps between each Write
