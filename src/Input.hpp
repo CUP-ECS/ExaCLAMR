@@ -134,8 +134,8 @@ int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& 
             // Threading
             case 'm':
                 cl.device = optarg;
-                if ( cl.device.compare( "serial" ) && cl.device.compare( "openmp" ) ) {
-                    if ( rank == 0 ) std::cout << cl.device << "Valid threading inputs are: serial, openmp\n";
+                if ( cl.device.compare( "serial" ) && cl.device.compare( "openmp" ) && cl.device.compare( "cuda" ) ) {
+                    if ( rank == 0 ) std::cout << cl.device << "Valid threading inputs are: serial, openmp, and cuda\n";
                     return -1;
                 }
                 break;

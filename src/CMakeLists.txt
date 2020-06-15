@@ -1,4 +1,5 @@
 set(HEADERS
+  ExaCLAMR.hpp
   Solver.hpp
   Mesh.hpp
   ProblemManager.hpp

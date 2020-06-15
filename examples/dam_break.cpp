@@ -126,7 +126,6 @@ int main( int argc, char* argv[] ) {
     cl_args<state_t> cl;
     if ( parseInput( rank, argc, argv, cl ) != 0 ) return -1; // Return if Failed
 
-    // TODO: Add Cuda
     timer.setupStop();
 
     timer.writeStart();

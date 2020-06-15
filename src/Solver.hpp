@@ -14,6 +14,7 @@
     #define DEBUG 0 
 #endif
 
+#include <ExaCLAMR.hpp>
 #include <Mesh.hpp>
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
@@ -106,11 +107,6 @@ class Solver : public SolverBase<state_t> {
             if ( time_step == 0 ) _initial_mass = total_height;
             else _current_mass = total_height;
         }
-
-        // TODO: Place These in Only 1 File Rather than 3
-        // Toggle Between Current and New State Vectors
-        #define NEWFIELD( time_step ) ( ( time_step + 1 ) % 2 )
-        #define CURRENTFIELD( time_step ) ( ( time_step ) % 2 )
 
         // Print Output of Height Array to Console for Debugging
         void output( const int rank, const int time_step, const state_t current_time, const state_t dt ) {
@@ -249,7 +245,19 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const cl_args<state_t>& cl,
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
         #endif
     }
-    // TODO: Add CUDA
+    // Cuda
+    else if ( 0 == cl.device.compare( "cuda" ) ) {
+        #ifdef KOKKOS_ENABLE_CUDA
+            return std::make_shared<ExaCLAMR::Solver<Kokkos::CudaSpace, Kokkos::Cuda, state_t>>(
+                cl,
+                comm,
+                create_functor,
+                partitioner,
+                timer );
+        #else
+            throw std::runtime_error( "Cuda Backend Not Enabled" );
+        #endif
+    }
     // Otherwise
     else {
         throw std::runtime_error( "Invalid Backend" );

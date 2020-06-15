@@ -14,6 +14,7 @@
     #define DEBUG 0 
 #endif
 
+#include <ExaCLAMR.hpp>
 #include <ProblemManager.hpp>
 
 #include <stdio.h>
@@ -22,10 +23,6 @@ namespace ExaCLAMR
 {
 namespace TimeIntegrator
 {
-
-// Toggle Between Current and New State Vectors
-#define NEWFIELD( time_step ) ( ( time_step + 1 ) % 2 )
-#define CURRENTFIELD( time_step ) ( ( time_step ) % 2 )
 
 // Applying Boundary Conditions
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
@@ -44,9 +41,8 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
 
     // Loop Over All Owned Cells and Update Boundary Cells ( i, j, k )
     Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-        // TODO: Move Boundary Checking to Mesh Class so we only need a Function Call
         // Left Boundary
-        if ( j == domain.min( 1 ) - 1 && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) {
+        if ( pm.mesh()->isLeftBoundary( i, j, k ) ) {
             // DEBUG: Print Rank and Left Boundary Indices
             if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tLeft Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             // No Flux Boundary Condition
@@ -60,7 +56,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         }
         
         // Right Boundary
-        if ( j == domain.max( 1 ) && i >= domain.min( 0 ) && i <= domain.max( 0 ) - 1 ) {
+        if ( pm.mesh()->isRightBoundary( i, j, k ) ) {
             // DEBUG: Print Rank and Right Boundary Indices
             if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tRight Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             // No Flux Boundary Condition
@@ -74,7 +70,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         }
 
         // Bottom Boundary
-        if ( i == domain.max( 0 ) && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) {
+        if ( pm.mesh()->isBottomBoundary( i, j, k ) ) {
             // DEBUG: Print Rank and Bottom Boundary Indices
             if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tBottom Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             // No Flux Boundary Condition
@@ -88,7 +84,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         }
 
         // Top Boundary
-        if ( i == domain.min( 0 ) - 1 && j >= domain.min( 1 ) && j <= domain.max( 1 ) - 1 ) {
+        if ( pm.mesh()->isTopBoundary( i, j, k ) ) {
             // DEBUG: Print Rank and Top Boundary Indices
             if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tTop Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             // No Flux Boundary Condition

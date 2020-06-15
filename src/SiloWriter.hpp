@@ -14,6 +14,8 @@
     #define DEBUG 0 
 #endif
 
+#include <ExaCLAMR.hpp>
+
 #ifdef HAVE_SILO
     #include <silo.h>
 #endif
@@ -47,10 +49,6 @@ class SiloWriter
         template<class ProblemManagerType>
         SiloWriter( ProblemManagerType& pm ) 
         : _pm ( pm ) { }
-
-        // Toggle Between Current and New State Vectors
-        #define NEWFIELD( time_step ) ( ( time_step + 1 ) % 2 )
-        #define CURRENTFIELD( time_step ) ( ( time_step ) % 2 )
 
         // Function to Write File in Serial
         // TODO: PMPIO Write File in Parallel

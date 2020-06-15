@@ -153,6 +153,22 @@ class Mesh
             return Cajita::IndexSpace<3>( _domainMin, _domainMax );
         };
 
+        bool isLeftBoundary( const int i, const int j, const int k ) const {
+            return ( j == _domainMin[1] - 1 && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
+        };
+
+        bool isRightBoundary( const int i, const int j, const int k ) const {
+            return ( j == _domainMax[1] && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
+        };
+
+        bool isBottomBoundary( const int i, const int j, const int k ) const {
+            return ( i == _domainMax[0] && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
+        };
+
+        bool isTopBoundary( const int i, const int j, const int k ) const {
+            return ( i == _domainMin[0] - 1 && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
+        };
+
     private:
         int _rank;
         std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<state_t>>> _local_grid;
