@@ -71,21 +71,9 @@ class ProblemManager
          * @param
          */
         template <class InitFunc>
-        ProblemManager( const std::array<state_t, 6>& global_bounding_box, 
-                const std::array<int, 3>& global_num_cell,
-                const std::array<bool, 3>& periodic,
-                const Cajita::Partitioner& partitioner, 
-                const int halo_size, 
-                MPI_Comm comm,
-                const InitFunc& create_functor ) {
+        ProblemManager( const cl_args<state_t>& cl, const Cajita::Partitioner& partitioner, MPI_Comm comm, const InitFunc& create_functor ) {
             // Create Mesh
-            _mesh = std::make_shared<Mesh<MemorySpace, ExecutionSpace, state_t>> ( 
-                                            global_bounding_box, 
-                                            global_num_cell, 
-                                            periodic, 
-                                            partitioner, 
-                                            halo_size, 
-                                            comm );
+            _mesh = std::make_shared<Mesh<MemorySpace, ExecutionSpace, state_t>> ( cl, partitioner, comm );
 
             // Create Vector and Scalar Layouts
             auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );   // 2-Dimensional ( Momentum )

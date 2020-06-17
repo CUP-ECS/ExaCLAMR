@@ -33,13 +33,10 @@ class Mesh
          * 
          * @param
          */
-        Mesh( const std::array<state_t, 6>& global_bounding_box, 
-                const std::array<int, 3>& global_num_cell,
-                const std::array<bool, 3>& periodic,
-                const Cajita::Partitioner& partitioner, 
-                const int halo_width, 
+        Mesh( const cl_args<state_t>& cl,
+                const Cajita::Partitioner& partitioner,
                 MPI_Comm comm ) :
-                _global_bounding_box ( global_bounding_box ) {
+                _global_bounding_box ( cl.global_bounding_box ) {
             // Define device_type for Later Use
             using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
@@ -47,18 +44,18 @@ class Mesh
 
             // 2-D Mesh - Ignore Z Cells
             std::array<int, 3> num_cell;
-            num_cell[0] = global_num_cell[0];   // Set X Num Cells
-            num_cell[1] = global_num_cell[1];   // Set Y Num Cells
+            num_cell[0] = cl.global_num_cells[0];  // Set X Num Cells
+            num_cell[1] = cl.global_num_cells[1];  // Set Y Num Cells
             num_cell[2] = 1;                    // Set Z Num Cells to 1
 
             // 2-D Mesh - Z Domain is From 0 to 1
             std::array<state_t, 6> bounding_box;
-            bounding_box[0] = global_bounding_box[0];   // Set X Min Coordinate
-            bounding_box[1] = global_bounding_box[1];   // Set Y Min Coordinate
-            bounding_box[2] = 0;                        // Set Z Min Coordinate to 0
-            bounding_box[3] = global_bounding_box[3];   // Set X Max Coordinate
-            bounding_box[4] = global_bounding_box[4];   // Set Y Max Coordinate
-            bounding_box[5] = 1;                        // Set Z Max Coordinate to 1
+            bounding_box[0] = cl.global_bounding_box[0];    // Set X Min Coordinate
+            bounding_box[1] = cl.global_bounding_box[1];    // Set Y Min Coordinate
+            bounding_box[2] = 0;                            // Set Z Min Coordinate to 0
+            bounding_box[3] = cl.global_bounding_box[3];    // Set X Max Coordinate
+            bounding_box[4] = cl.global_bounding_box[4];    // Set Y Max Coordinate
+            bounding_box[5] = 1;                            // Set Z Max Coordinate to 1
 
             // Calculate Cell Size
             std::array<state_t, 3> cell_size;
@@ -87,16 +84,16 @@ class Mesh
 
             // Adjust Global Corners and Number of Cells for Halo Cells
             for ( int dim = 0; dim < 3; ++dim ) {
-                if ( !periodic[dim] && num_cell[dim] != 1 ) {
-                    global_low_corner[dim] -= cell_size[dim] * halo_width;
-                    global_high_corner[dim] += cell_size[dim] * halo_width;
-                    num_cell[dim] += 2 * halo_width;
+                if ( !cl.periodic[dim] && num_cell[dim] != 1 ) {
+                    global_low_corner[dim] -= cell_size[dim] * cl.halo_size;
+                    global_high_corner[dim] += cell_size[dim] * cl.halo_size;
+                    num_cell[dim] += 2 * cl.halo_size;
                 }
             }
 
             // Create Global Mesh and Global Grid - Need to Create Local Grid
             auto global_mesh = Cajita::createUniformGlobalMesh( global_low_corner, global_high_corner, cell_size );
-            auto global_grid = Cajita::createGlobalGrid( comm, global_mesh, periodic, partitioner );
+            auto global_grid = Cajita::createGlobalGrid( comm, global_mesh, cl.periodic, partitioner );
 
             // DEBUG: Print Global Grid Rank, Number of Cells, and Index Offset
             if ( DEBUG ) std::cout << "Global Grid: Rank: " << global_grid->blockId() << \
@@ -104,7 +101,7 @@ class Mesh
             "\tOffset x: " << global_grid->globalOffset( 0 ) << "\tOffset y: " << global_grid->globalOffset( 1 ) << "\tOffset z: " << global_grid->globalOffset( 2 ) << "\n";
 
             // Create Local Grid
-            _local_grid = Cajita::createLocalGrid( global_grid, halo_width );
+            _local_grid = Cajita::createLocalGrid( global_grid, cl.halo_size );
 
             // Get Local Mesh and Owned Cells for Domain Calculation
             auto local_mesh = Cajita::createLocalMesh<device_type>( *_local_grid );
@@ -121,8 +118,8 @@ class Mesh
                 local_mesh.coordinates( Cajita::Cell(), coords, x );
 
                 // If Current Coordinate ( at Current Index ) is outside of the Domain ( Original Bounding Box before Halo Updates ), Update Stored Index
-                if ( x[0] >= global_bounding_box[0] && x[1] >= global_bounding_box[1] && x[2] >= global_bounding_box[2] 
-                && x[0] <= global_bounding_box[3] && x[1] <= global_bounding_box[4] && x[2] <= global_bounding_box[5] ) {
+                if ( x[0] >= cl.global_bounding_box[0] && x[1] >= cl.global_bounding_box[1] && x[2] >= cl.global_bounding_box[2] 
+                && x[0] <= cl.global_bounding_box[3] && x[1] <= cl.global_bounding_box[4] && x[2] <= cl.global_bounding_box[5] ) {
                     _domainMin[0] = ( i < _domainMin[0] ) ? i : _domainMin[0];
                     _domainMin[1] = ( j < _domainMin[1] ) ? j : _domainMin[1];
                     _domainMin[2] = ( k < _domainMin[2] ) ? k : _domainMin[2];

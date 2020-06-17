@@ -56,25 +56,14 @@ class Solver : public SolverBase<state_t> {
          * @param
          */
         template <class InitFunc>
-        Solver( const cl_args<state_t>& cl,
-                MPI_Comm comm, 
-                const InitFunc& create_functor,
-                const Cajita::Partitioner& partitioner,
-                ExaCLAMR::Timer& timer )
+        Solver( const cl_args<state_t>& cl, MPI_Comm comm, const InitFunc& create_functor, const Cajita::Partitioner& partitioner, ExaCLAMR::Timer& timer )
         : _halo_size ( cl.halo_size ), _time_steps ( cl.time_steps ), _gravity ( cl.gravity ), _sigma ( cl.sigma ) {
             MPI_Comm_rank( comm, &_rank );
 
             if ( _rank == 0 && DEBUG ) std::cout << "Created Solver\n";         // DEBUG: Trace Created Solver
                 
             // Create Problem Manager
-            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, state_t>>( 
-                                            cl.global_bounding_box, 
-                                            cl.global_num_cells, 
-                                            cl.periodic, 
-                                            partitioner, 
-                                            cl.halo_size, 
-                                            comm, 
-                                            create_functor );
+            _pm = std::make_shared<ProblemManager<MemorySpace, ExecutionSpace, state_t>>( cl, partitioner, comm, create_functor );
 
             // Create Silo Writer
             #ifdef HAVE_SILO

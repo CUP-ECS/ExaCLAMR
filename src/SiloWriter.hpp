@@ -53,8 +53,7 @@ class SiloWriter
         SiloWriter( ProblemManagerType& pm ) 
         : _pm ( pm ) { }
 
-        // Function to Write File in Serial
-        // TODO: PMPIO Write File in Parallel
+        // Function to Write File
         void writeFile( DBfile *dbfile, char *name, int time_step, state_t time, state_t dt ) {
             // Initialize Variables
             int            dims[2], zdims[2], zones[2], nx, ny, offsetx, offsety, ndims, meshid;
