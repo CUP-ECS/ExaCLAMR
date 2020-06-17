@@ -210,11 +210,11 @@ inline state_t wCorrector( state_t dt, state_t dr, state_t u_eigen, state_t grad
     state_t nu = 0.5 * u_eigen * dt / dr;
     nu *= ( 1.0 - nu );
 
-    state_t rDenom = 1.0 / max( POW2( grad_half ), 1.0e-30 );
+    state_t rDenom = 1.0 / fmax( POW2( grad_half ), 1.0e-30 );
     state_t rPlus = ( grad_plus * grad_half ) * rDenom;
     state_t rMinus = ( grad_minus * grad_half ) * rDenom;
 
-    return 0.5 * nu * ( 1.0 - max( min( min( 1.0, rPlus ), rMinus ), 0.0 ) );
+    return 0.5 * nu * ( 1.0 - fmax( fmin( fmin( 1.0, rPlus ), rMinus ), 0.0 ) );
 }
 
 // Full Step Shallow Water Calculation
