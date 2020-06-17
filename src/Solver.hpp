@@ -237,7 +237,7 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const cl_args<state_t>& cl,
     // Cuda
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
-            return std::make_shared<ExaCLAMR::Solver<Kokkos::CudaSpace, Kokkos::Cuda, state_t>>(
+            return std::make_shared<ExaCLAMR::Solver<Kokkos::CudaUVMSpace, Kokkos::Cuda, state_t>>(
                 cl,
                 comm,
                 create_functor,

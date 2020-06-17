@@ -18,6 +18,7 @@
 #include <ProblemManager.hpp>
 
 #include <stdio.h>
+#include <math.h>
 
 namespace ExaCLAMR
 {
@@ -40,63 +41,69 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
     auto domain = pm.mesh()->domainSpace();
 
     // Loop Over All Owned Cells and Update Boundary Cells ( i, j, k )
-    Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-        // Left Boundary
-        if ( pm.mesh()->isLeftBoundary( i, j, k ) ) {
-            // DEBUG: Print Rank and Left Boundary Indices
-            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tLeft Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
-            // No Flux Boundary Condition
-            h_current( i, j, k, 0 ) = h_current( i, j + 1, k, 0 );
-            u_current( i, j, k, 0 ) = u_current( i, j + 1, k, 0 );
-            u_current( i, j, k, 1 ) = -u_current( i, j + 1, k, 1 );
-            // Second Boundary Node set to 0
-            h_current( i, j - 1, k, 0 ) = 0;
-            u_current( i, j - 1, k, 0 ) = 0;
-            u_current( i, j - 1, k, 1 ) = 0;
-        }
+    // Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+    for ( int i = owned_cells.min( 0 ); i < owned_cells.max( 0 ); i++ ) {
+        for ( int j = owned_cells.min( 1 ); j < owned_cells.max( 1 ); j++ ) {
+            for ( int k = owned_cells.min( 2 ); k < owned_cells.max( 2 ); k++ ) {
+                    // Left Boundary
+                    if ( pm.mesh()->isLeftBoundary( i, j, k ) ) {
+                        // DEBUG: Print Rank and Left Boundary Indices
+                        // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tLeft Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                        // No Flux Boundary Condition
+                        h_current( i, j, k, 0 ) = h_current( i, j + 1, k, 0 );
+                        u_current( i, j, k, 0 ) = u_current( i, j + 1, k, 0 );
+                        u_current( i, j, k, 1 ) = -u_current( i, j + 1, k, 1 );
+                        // Second Boundary Node set to 0
+                        h_current( i, j - 1, k, 0 ) = 0;
+                        u_current( i, j - 1, k, 0 ) = 0;
+                        u_current( i, j - 1, k, 1 ) = 0;
+                    }
         
-        // Right Boundary
-        if ( pm.mesh()->isRightBoundary( i, j, k ) ) {
-            // DEBUG: Print Rank and Right Boundary Indices
-            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tRight Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
-            // No Flux Boundary Condition
-            h_current( i, j, k, 0 ) = h_current( i, j - 1, k, 0 );
-            u_current( i, j, k, 0 ) = u_current( i, j - 1, k, 0 );
-            u_current( i, j, k, 1 ) = -u_current( i, j - 1, k, 1 );
-            // Second Boundary Node set to 0
-            h_current( i, j + 1, k, 0 ) = 0;
-            u_current( i, j + 1, k, 0 ) = 0;
-            u_current( i, j + 1, k, 1 ) = 0;
-        }
+                    // Right Boundary
+                    if ( pm.mesh()->isRightBoundary( i, j, k ) ) {
+                        // DEBUG: Print Rank and Right Boundary Indices
+                        // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tRight Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                        // No Flux Boundary Condition
+                        h_current( i, j, k, 0 ) = h_current( i, j - 1, k, 0 );
+                        u_current( i, j, k, 0 ) = u_current( i, j - 1, k, 0 );
+                        u_current( i, j, k, 1 ) = -u_current( i, j - 1, k, 1 );
+                        // Second Boundary Node set to 0
+                        h_current( i, j + 1, k, 0 ) = 0;
+                        u_current( i, j + 1, k, 0 ) = 0;
+                        u_current( i, j + 1, k, 1 ) = 0;
+                    }
 
-        // Bottom Boundary
-        if ( pm.mesh()->isBottomBoundary( i, j, k ) ) {
-            // DEBUG: Print Rank and Bottom Boundary Indices
-            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tBottom Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
-            // No Flux Boundary Condition
-            h_current( i, j, k, 0 ) = h_current( i - 1, j, k, 0 );
-            u_current( i, j, k, 0 ) = -u_current( i - 1, j, k, 0 );
-            u_current( i, j, k, 1 ) = u_current( i - 1, j, k, 1 );
-            // Second Boundary Node set to 0
-            h_current( i + 1, j, k, 0 ) = 0;
-            u_current( i + 1, j, k, 0 ) = 0;
-            u_current( i + 1, j, k, 1 ) = 0;
-        }
+                    // Bottom Boundary
+                    if ( pm.mesh()->isBottomBoundary( i, j, k ) ) {
+                        // DEBUG: Print Rank and Bottom Boundary Indices
+                        // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tBottom Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                        // No Flux Boundary Condition
+                        h_current( i, j, k, 0 ) = h_current( i - 1, j, k, 0 );
+                        u_current( i, j, k, 0 ) = -u_current( i - 1, j, k, 0 );
+                        u_current( i, j, k, 1 ) = u_current( i - 1, j, k, 1 );
+                        // Second Boundary Node set to 0
+                        h_current( i + 1, j, k, 0 ) = 0;
+                        u_current( i + 1, j, k, 0 ) = 0;
+                        u_current( i + 1, j, k, 1 ) = 0;
+                    }
 
-        // Top Boundary
-        if ( pm.mesh()->isTopBoundary( i, j, k ) ) {
-            // DEBUG: Print Rank and Top Boundary Indices
-            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tTop Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
-            // No Flux Boundary Condition
-            h_current( i, j, k, 0 ) = h_current( i + 1, j, k, 0 );
-            u_current( i, j, k, 0 ) = -u_current( i + 1, j, k, 0 );
-            u_current( i, j, k, 1 ) = u_current( i + 1, j, k, 1 );
-            // Second Boundary Node set to 0
-            h_current( i - 1, j, k, 0 ) = 0;
-            u_current( i - 1, j, k, 0 ) = 0;
-            u_current( i - 1, j, k, 1 ) = 0;
+                    // Top Boundary
+                    if ( pm.mesh()->isTopBoundary( i, j, k ) ) {
+                        // DEBUG: Print Rank and Top Boundary Indices
+                        // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tTop Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                        // No Flux Boundary Condition
+                        h_current( i, j, k, 0 ) = h_current( i + 1, j, k, 0 );
+                        u_current( i, j, k, 0 ) = -u_current( i + 1, j, k, 0 );
+                        u_current( i, j, k, 1 ) = u_current( i + 1, j, k, 1 );
+                        // Second Boundary Node set to 0
+                        h_current( i - 1, j, k, 0 ) = 0;
+                        u_current( i - 1, j, k, 0 ) = 0;
+                        u_current( i - 1, j, k, 1 ) = 0;
+                    }
+                }
+            }
         }
-    } );
+    // } );
 
     // Kokkos Fence
     Kokkos::fence();
@@ -203,11 +210,11 @@ inline state_t wCorrector( state_t dt, state_t dr, state_t u_eigen, state_t grad
     state_t nu = 0.5 * u_eigen * dt / dr;
     nu *= ( 1.0 - nu );
 
-    state_t rDenom = 1.0 / std::max( POW2( grad_half ), 1.0e-30 );
+    state_t rDenom = 1.0 / max( POW2( grad_half ), 1.0e-30 );
     state_t rPlus = ( grad_plus * grad_half ) * rDenom;
     state_t rMinus = ( grad_minus * grad_half ) * rDenom;
 
-    return 0.5 * nu * ( 1.0 - std::max( std::min( std::min( 1.0, rPlus ), rMinus ), 0.0 ) );
+    return 0.5 * nu * ( 1.0 - max( min( min( 1.0, rPlus ), rMinus ), 0.0 ) );
 }
 
 // Full Step Shallow Water Calculation
