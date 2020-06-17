@@ -40,7 +40,7 @@ struct MeshInitFunc
         }
         
         // DEBUG: Print 2-D Center Location and X, Y Width
-        if ( DEBUG ) std::cout << "Center: (" << center[0] << ", " << center[1] << \
+        // if ( DEBUG ) std::cout << "Center: (" << center[0] << ", " << center[1] << \
         ")\tX-width: " << width[0] << "\tY-width: " << width[1] << "\n";       
     };
 
@@ -53,17 +53,17 @@ struct MeshInitFunc
         state_t r = sqrt( pow( x[0] - center[0], 2 ) + pow( x[1] - center[1], 2 ) );
         
         // DEBUG: Print (X, Y) Coordinate and Distance from the Center
-        if ( DEBUG ) std::cout << x[0] << ", " << x[1] << " is " << r << " from the center: ";
+        // if ( DEBUG ) std::cout << x[0] << ", " << x[1] << " is " << r << " from the center: ";
 
         // Set Height
         if ( r <= width[0] * ( 6.0 / 128.0 ) ) {
             // DEBUG: Print Indicated Tall Height Assigned to Point
-            if ( DEBUG ) std::cout << "Tall\n";
+            // if ( DEBUG ) std::cout << "Tall\n";
             height = 100.0;
         } 
         else {
             // DEBUG: Print Inidicating Short Height Assigned to Point
-            if ( DEBUG ) std::cout << "Short\n";
+            // if ( DEBUG ) std::cout << "Short\n";
             height = 7.0;
         }
 

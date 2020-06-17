@@ -250,7 +250,6 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const cl_args<state_t>& cl,
     // Otherwise
     else {
         throw std::runtime_error( "Invalid Backend" );
-        return nullptr;
     }
 };
 

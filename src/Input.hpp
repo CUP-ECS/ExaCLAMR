@@ -96,7 +96,6 @@ int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& 
 
     // Initialize
     char c;
-    int optindex;
     int periodicval;
 
     // Loop through Command-Line Args

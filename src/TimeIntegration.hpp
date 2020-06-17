@@ -44,7 +44,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         // Left Boundary
         if ( pm.mesh()->isLeftBoundary( i, j, k ) ) {
             // DEBUG: Print Rank and Left Boundary Indices
-            if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tLeft Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tLeft Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             // No Flux Boundary Condition
             h_current( i, j, k, 0 ) = h_current( i, j + 1, k, 0 );
             u_current( i, j, k, 0 ) = u_current( i, j + 1, k, 0 );
@@ -58,7 +58,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         // Right Boundary
         if ( pm.mesh()->isRightBoundary( i, j, k ) ) {
             // DEBUG: Print Rank and Right Boundary Indices
-            if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tRight Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tRight Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             // No Flux Boundary Condition
             h_current( i, j, k, 0 ) = h_current( i, j - 1, k, 0 );
             u_current( i, j, k, 0 ) = u_current( i, j - 1, k, 0 );
@@ -72,7 +72,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         // Bottom Boundary
         if ( pm.mesh()->isBottomBoundary( i, j, k ) ) {
             // DEBUG: Print Rank and Bottom Boundary Indices
-            if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tBottom Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tBottom Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             // No Flux Boundary Condition
             h_current( i, j, k, 0 ) = h_current( i - 1, j, k, 0 );
             u_current( i, j, k, 0 ) = -u_current( i - 1, j, k, 0 );
@@ -86,7 +86,7 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
         // Top Boundary
         if ( pm.mesh()->isTopBoundary( i, j, k ) ) {
             // DEBUG: Print Rank and Top Boundary Indices
-            if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tTop Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tTop Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
             // No Flux Boundary Condition
             h_current( i, j, k, 0 ) = h_current( i + 1, j, k, 0 );
             u_current( i, j, k, 0 ) = -u_current( i + 1, j, k, 0 );
@@ -144,7 +144,7 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
         state_t dt = sigma / ( xspeed + yspeed );
 
         // DEBUG: Print Wave Speed, X Speed, Y Speed, and Time Step Calculated for Current Index ( i, j, k )
-        if ( DEBUG ) std::cout << "'Wavespeed: " << wavespeed << "\txspeed: " << xspeed << "\tyspeed: " << yspeed << "\tdeltaT: " << dt << "\n";
+        // if ( DEBUG ) std::cout << "'Wavespeed: " << wavespeed << "\txspeed: " << xspeed << "\tyspeed: " << yspeed << "\tdeltaT: " << dt << "\n";
 
         // Set Minimum
         if ( dt < lmin ) lmin = dt;
@@ -265,6 +265,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
     // Kokkos Parallel Section over Domain Space Indices to Calculate New State Values ( i, j, k )
     Kokkos::parallel_for( Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {            
+        /*
         if ( DEBUG ) {
             auto local_mesh = Cajita::createLocalMesh<device_type>( * pm.mesh()->localGrid() );
             int coords[3] = { i, j, k };
@@ -272,6 +273,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
             local_mesh.coordinates( Cajita::Cell(), coords, x );
             std::cout << "Rank: " << pm.mesh()->rank() << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\tx: " << x[0] << "\ty: " << x[1] << "\tz: " << x[2] << "\n";
         }
+        */
             
         // Simple Diffusion Problem
         // h_new( i, j, k, 0 ) = ( h_current( i - 1, j, k, 0 ) + h_current( i + 1, j, k, 0 ) + h_current( i, j - 1, k, 0 ) + h_current( i, j + 1, k, 0 ) ) / 4;
@@ -313,7 +315,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         state_t ux_minus = 0.5 * ( ( u_left + u_ic ) - ( dt ) / ( dx ) * ( ( UXRGFLUXIC ) - ( UXRGFLUXNL ) ) );
         state_t vx_minus = 0.5 * ( ( v_left + v_ic ) - ( dt ) / ( dx ) * ( ( VXRGFLUXIC ) - ( VXRGFLUXNL ) ) );
         // DEBUG: Print hx_minus, ux_minus, vx_minus, i, j, k
-        if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_minus: " << std::setw( 6 ) << hx_minus << \
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_minus: " << std::setw( 6 ) << hx_minus << \
         "\tux_minus: " << std::setw( 6 ) << ux_minus << "\tvx_minus: " << std::setw( 6 ) << vx_minus << "\ti: " << i << "\tj: "<< j << "\tk: " << k << "\n";
 
         // X Plus Direction
@@ -321,7 +323,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         state_t ux_plus  = 0.5 * ( ( u_ic + u_right ) - ( dt ) / ( dx ) * ( ( UXRGFLUXNR ) - ( UXRGFLUXIC ) ) );
         state_t vx_plus  = 0.5 * ( ( v_ic + v_right ) - ( dt ) / ( dx ) * ( ( VXRGFLUXNR ) - ( VXRGFLUXIC ) ) );
         // DEBUG: Print hx_plus, ux_plus, vx_plus, i, j, k
-        if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_plus: " << std::setw( 6 ) << hx_plus << \
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_plus: " << std::setw( 6 ) << hx_plus << \
         "\tux_plus: " << std::setw( 6 ) << ux_plus << "\tvx_plus: " << std::setw( 6 ) << vx_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         // Y Minus Direction
@@ -329,7 +331,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         state_t uy_minus = 0.5 * ( ( u_bot + u_ic ) - ( dt ) / ( dy ) * ( ( UYRGFLUXIC ) - ( UYRGFLUXNB ) ) );
         state_t vy_minus = 0.5 * ( ( v_bot + v_ic ) - ( dt ) / ( dy ) * ( ( VYRGFLUXIC ) - ( VYRGFLUXNB ) ) );
         // DEBUG: Print hy_minus, uy_minus, vy_minus, i, j, k
-        if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_minus: " << std::setw( 6 ) << hy_minus << \
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_minus: " << std::setw( 6 ) << hy_minus << \
         "\tuy_minus: " << std::setw( 6 ) << uy_minus << "\tvy_minus: " << std::setw( 6 ) << vy_minus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         // Y Plus Direction
@@ -337,7 +339,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         state_t uy_plus  = 0.5 * ( ( u_ic + u_top ) - ( dt ) / ( dy ) * ( ( UYRGFLUXNT ) - ( UYRGFLUXIC ) ) );
         state_t vy_plus  = 0.5 * ( ( v_ic + v_top ) - ( dt ) / ( dy ) * ( ( VYRGFLUXNT ) - ( VYRGFLUXIC ) ) );
         // DEBUG: Print hy_plus, uy_plus, vy_plus, i, j, k
-        if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_plus: " << std::setw( 6 ) << hy_plus << \
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_plus: " << std::setw( 6 ) << hy_plus << \
         "\tuy_plus: " << std::setw( 6 ) << uy_plus << "\tvy_plus: " << std::setw( 6 ) << vy_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
         // Flux View Updates

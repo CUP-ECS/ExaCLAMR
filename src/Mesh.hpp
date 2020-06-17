@@ -112,22 +112,28 @@ class Mesh
             _domainMax = { 0, 0, 0 };
             
             // Loop Over All Owned Cells to Build the Domain Min and Domain Max Arrays used to Return a Domain Index Space ( i, j, k )
-            Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-                int coords[3] = { i, j, k };
-                state_t x[3];
-                local_mesh.coordinates( Cajita::Cell(), coords, x );
+            // Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+            for( int i = owned_cells.min( 0 ); i < owned_cells.max( 0 ); i++ ) {
+                for ( int j = owned_cells.min( 1 ); j < owned_cells.max( 1 ); j++ ) {
+                    for ( int k = owned_cells.min( 2 ); k < owned_cells.max( 2 ); k++ ) {
+                        int coords[3] = { i, j, k };
+                        state_t x[3];
+                        local_mesh.coordinates( Cajita::Cell(), coords, x );
 
-                // If Current Coordinate ( at Current Index ) is outside of the Domain ( Original Bounding Box before Halo Updates ), Update Stored Index
-                if ( x[0] >= cl.global_bounding_box[0] && x[1] >= cl.global_bounding_box[1] && x[2] >= cl.global_bounding_box[2] 
-                && x[0] <= cl.global_bounding_box[3] && x[1] <= cl.global_bounding_box[4] && x[2] <= cl.global_bounding_box[5] ) {
-                    _domainMin[0] = ( i < _domainMin[0] ) ? i : _domainMin[0];
-                    _domainMin[1] = ( j < _domainMin[1] ) ? j : _domainMin[1];
-                    _domainMin[2] = ( k < _domainMin[2] ) ? k : _domainMin[2];
-                    _domainMax[0] = ( i + 1 > _domainMax[0] ) ? i + 1 : _domainMax[0];
-                    _domainMax[1] = ( j + 1 > _domainMax[1] ) ? j + 1 : _domainMax[1];
-                    _domainMax[2] = ( k + 1 > _domainMax[2] ) ? k + 1 : _domainMax[2];
+                        // If Current Coordinate ( at Current Index ) is outside of the Domain ( Original Bounding Box before Halo Updates ), Update Stored Index
+                        if ( x[0] >= cl.global_bounding_box[0] && x[1] >= cl.global_bounding_box[1] && x[2] >= cl.global_bounding_box[2] 
+                        && x[0] <= cl.global_bounding_box[3] && x[1] <= cl.global_bounding_box[4] && x[2] <= cl.global_bounding_box[5] ) {
+                            _domainMin[0] = ( i < _domainMin[0] ) ? i : _domainMin[0];
+                            _domainMin[1] = ( j < _domainMin[1] ) ? j : _domainMin[1];
+                            _domainMin[2] = ( k < _domainMin[2] ) ? k : _domainMin[2];
+                            _domainMax[0] = ( i + 1 > _domainMax[0] ) ? i + 1 : _domainMax[0];
+                            _domainMax[1] = ( j + 1 > _domainMax[1] ) ? j + 1 : _domainMax[1];
+                            _domainMax[2] = ( k + 1 > _domainMax[2] ) ? k + 1 : _domainMax[2];
+                        }
+                    }
                 }
-            } );
+            }
+            // } );
         };
 
         state_t cellSize() const {
