@@ -159,7 +159,7 @@ class Solver : public SolverBase<state_t> {
                 timer.computeStop();
 
                 timer.communicationStart();
-                TimeIntegrator::haloExchange( *_pm, time_step );                                                                    // Perform Communication
+                TimeIntegrator::haloExchange( *_pm, ExecutionSpace(), MemorySpace(), mindt, time_step );                                                                    // Perform Communication
                 timer.communicationStop();
 
                 timer.computeStart();

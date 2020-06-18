@@ -13,16 +13,18 @@ rm -rf build
 mkdir -p build
 cd build
 cmake -D CMAKE_CXX_FLAGS="--expt-relaxed-constexpr" -D CMAKE_CXX_COMPILER=~/Research/LANL/ExaCLAMR/libs/kokkos/bin/nvcc_wrapper -D Kokkos_ENABLE_CUDA_UVM=On -D Kokkos_ARCH_KEPLER35=On -D Kokkos_ENABLE_CUDA_LAMBDA=On -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On ..
-make DESTDIR=~/xena-scratch/tmp install
+make DESTDIR=~/xena-scratch/tmp install -j8
+
 cd ../../Cabana/
 rm -rf build
 mkdir build
 cd build
 cmake -D CMAKE_CXX_COMPILER=~/Research/LANL/ExaCLAMR/libs/kokkos/bin/nvcc_wrapper -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On ..
-make DESTDIR=~/xena-scratch/tmp install
+make DESTDIR=~/xena-scratch/tmp install -j8
+
 cd ../../../
 rm -rf build
 mkdir -p build
 cd build
 cmake -D CMAKE_CXX_FLAGS="--expt-relaxed-constexpr" -D CMAKE_CXX_COMPILER=~/Research/LANL/ExaCLAMR/libs/kokkos/bin/nvcc_wrapper -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On ..
-make
+make -j8
