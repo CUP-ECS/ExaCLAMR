@@ -55,16 +55,21 @@ struct MeshInitFunc
         // DEBUG: Print (X, Y) Coordinate and Distance from the Center
         // if ( DEBUG ) std::cout << x[0] << ", " << x[1] << " is " << r << " from the center: ";
 
+        state_t threshold = width[0] * ( 6.0 / 128.0 );
+
         // Set Height
-        if ( r <= width[0] * ( 6.0 / 128.0 ) ) {
+        if ( r <= threshold ) {
             // DEBUG: Print Indicated Tall Height Assigned to Point
             // if ( DEBUG ) std::cout << "Tall\n";
-            height = 100.0;
-        } 
+            height = 80.0;
+        }
+        else if ( r <= 1.5 * threshold ) {
+            height = 70.0;
+        }
         else {
             // DEBUG: Print Inidicating Short Height Assigned to Point
             // if ( DEBUG ) std::cout << "Short\n";
-            height = 7.0;
+            height = 10.0;
         }
 
         return true;
