@@ -183,8 +183,8 @@ class ProblemManager
                 << x[2] << "\tu: " << momentum[0] << "\tv: " << momentum[1] << "\th: " << height << "\n";
 
                 // Assign Values to State Views
-		        u_a( i, j, k, 0 ) = momentum[0];
-		        u_a( i, j, k, 1 ) = momentum[1];
+                u_a( i, j, k, 0 ) = momentum[0];
+                u_a( i, j, k, 1 ) = momentum[1];
                 h_a( i, j, k, 0 ) = height;
 
                 u_b( i, j, k, 0 ) = momentum[0];

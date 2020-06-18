@@ -112,7 +112,6 @@ class Mesh
             _domainMax = { 0, 0, 0 };
             
             // Loop Over All Owned Cells to Build the Domain Min and Domain Max Arrays used to Return a Domain Index Space ( i, j, k )
-            // Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
             for( int i = owned_cells.min( 0 ); i < owned_cells.max( 0 ); i++ ) {
                 for ( int j = owned_cells.min( 1 ); j < owned_cells.max( 1 ); j++ ) {
                     for ( int k = owned_cells.min( 2 ); k < owned_cells.max( 2 ); k++ ) {
@@ -133,7 +132,6 @@ class Mesh
                     }
                 }
             }
-            // } );
         };
 
         state_t cellSize() const {
