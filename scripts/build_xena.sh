@@ -45,7 +45,7 @@ update_repos() {
         git clone https://github.com/kokkos/kokkos.git
         git clone https://github.com/ECP-cop/Cabana.git
         cd ${MYDIR}
-    elif [ [ ! -d "libs/kokkos" ] || [ ! -d "libs/Cabana" ] ]; then
+    elif [ ! -d "libs/kokkos" ] || [ ! -d "libs/Cabana" ]; then
         if [ ! -d "libs/kokkos" ]; then
             cd libs
             git clone https://github.com/kokkos/kokkos.git
