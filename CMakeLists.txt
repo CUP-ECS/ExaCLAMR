@@ -8,9 +8,6 @@ project(ExaCLAMR LANGUAGES CXX VERSION 0.1.0)
 
 # find dependencies
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
-set(CMAKE_PREFIX_PATH /usr/local)
-set(CMAKE_PREFIX_PATH ~/wheeler-scratch/tmp/usr/local)
-set(CMAKE_PREFIX_PATH ~/xena-scratch/tmp/usr/local)
 
 find_library(SILO NAMES silo libsilo HINTS "/usr/local/lib")
 
