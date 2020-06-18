@@ -163,7 +163,7 @@ int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& 
                 break;
             // Timestep Sigma
             case 's':
-                cl.sigma = atoi( optarg );
+                cl.sigma = atof( optarg );
                 if ( cl.sigma > 2.0 || cl.sigma < 0.0 ) {
                     std::cout << "Sigma must be a value between 0 and 2\n";
                     return -1;
