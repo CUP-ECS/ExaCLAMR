@@ -5,7 +5,7 @@ MYDIR=`pwd`
 INSTALL_DIR=~/xena-scratch/tmp
 NVCC_CXX=${MYDIR}/libs/kokkos/bin/nvcc_wrapper
 KOKKOS_GIT=https://github.com/kokkos/kokkos.git
-CABANA_GIT=https://github.com/ECP-cop/Cabana.git
+CABANA_GIT=https://github.com/ECP-copa/Cabana.git
 
 # Load Modules
 module load cmake-3.13.4-gcc-7.4.0-rdapt4e
