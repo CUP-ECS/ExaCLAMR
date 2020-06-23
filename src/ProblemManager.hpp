@@ -531,7 +531,7 @@ class ProblemManager
          * @param mindt Time step (dt)
          * @param time_Step Current time step
          **/
-        void gatherCuda( state_t mindt, int time_step ) const {
+        void gatherCuda( int time_step ) const {
             auto local_grid = mesh()->localGrid();
             auto owned_cells = local_grid->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 

@@ -213,7 +213,7 @@ class Solver : public SolverBase<state_t> {
 
                 timer.communicationStart();
                 // Halo Exchange
-                TimeIntegrator::haloExchange( *_pm, ExecutionSpace(), MemorySpace(), mindt, time_step );
+                TimeIntegrator::haloExchange<state_t>( *_pm, ExecutionSpace(), time_step );
                 timer.communicationStop();
 
                 timer.computeStart();

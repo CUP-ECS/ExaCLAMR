@@ -43,8 +43,8 @@ namespace TimeIntegrator
 * @param mindt Time increment/step (dt)
 * @param time_step Current time step
 **/
-template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
-void haloExchange( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t mindt, const int time_step ) {
+template<typename state_t, class ProblemManagerType, class ExecutionSpace>
+void haloExchange( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const int time_step ) {
     // DEBUG: Trace in Halo Exchange
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Starting Halo Exchange\n";
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << exec_space.name() << "\n";
@@ -56,10 +56,9 @@ void haloExchange( const ProblemManagerType& pm, const ExecutionSpace& exec_spac
         pm.gather( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
     }
     // If Cuda, use Custom Halo Exchange
-    // TODO: Get state_t to gatherCuda without passing unnecessary mindt
     // TODO: Break gatherCuda up by field
     // TODO: Helper function to eliminate duplicate work of gatherCuda
-    else pm.gatherCuda( mindt, time_step );
+    else pm.gatherCuda( time_step );
 
     MPI_Barrier( MPI_COMM_WORLD );
 }
