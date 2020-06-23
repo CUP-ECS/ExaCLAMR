@@ -4,7 +4,7 @@
  * @author Jered Dominguez-Trujillo <jereddt@unm.edu>
  * 
  * @section DESCRIPTION
- * 
+ * Silo Writer class to write results to a silo file using PMPIO
  */
 
 #ifndef EXACLAMR_SILOWRITER_HPP
@@ -14,6 +14,7 @@
     #define DEBUG 0 
 #endif
 
+// Include Statements
 #include <ExaCLAMR.hpp>
 
 #include <Cajita.hpp>
@@ -26,19 +27,37 @@
 
 namespace ExaCLAMR {
 
+/**
+ * @struct SiloTraits
+ * @brief Parent SiloTraits Struct to template and allow writing floats or doubles to silo file
+ **/
 template <typename SiloType>
 struct SiloTraits;
 
+/**
+ * @struct SiloTraits<float>
+ * @brief Child SiloTraits Struct to write floats to silo file
+ **/
 template <>
 struct SiloTraits<float> {
     static DBdatatype type() { return DB_FLOAT; }
 };
 
+/**
+ * @struct SiloTraits<double>
+ * @brief Child SiloTraits Struct to write doubles to silo file
+ **/
 template <>
 struct SiloTraits<double> {
     static DBdatatype type() { return DB_DOUBLE; }
 };
 
+
+/**
+ * The SiloWriter Class
+ * @class SiloWriter
+ * @brief SiloWriter class to write results to Silo file using PMPIO
+ **/
 template<class MemorySpace, class ExecutionSpace, typename state_t>
 class SiloWriter
 {
@@ -46,14 +65,24 @@ class SiloWriter
     public:
         /**
          * Constructor
+         * Create new SiloWriter
          * 
-         * @param
+         * @param pm Problem manager object
          */
         template<class ProblemManagerType>
         SiloWriter( ProblemManagerType& pm ) 
-        : _pm ( pm ) { }
+        : _pm ( pm ) {};
 
-        // Function to Write File
+
+
+        /**
+         * Write File
+         * @param dbile File handler to dbfile
+         * @param name File name
+         * @param time_step Current time step
+         * @param time Current tim
+         * @param dt Time Step (dt)
+         **/
         void writeFile( DBfile *dbfile, char *name, int time_step, state_t time, state_t dt ) {
             // Initialize Variables
             int            dims[2], zdims[2], zones[2], nx, ny, offsetx, offsety, ndims, meshid;
@@ -183,7 +212,12 @@ class SiloWriter
             DBFreeOptlist( optlist );
         };
 
-
+        /**
+         * Create New Silo File for Current Time Step and Owning Group
+         * @param filename Name of file
+         * @param nsname Name of directory inside of the file
+         * @param user_data File Driver/Type (PDB, HDF5)
+         **/
         static void* createSiloFile( const char* filename, const char* nsname, void* user_data ) {
             if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
 
@@ -198,6 +232,13 @@ class SiloWriter
             return ( void * ) silo_file;
         };
 
+        /**
+         * Open Silo File
+         * @param filename Name of file
+         * @param nsname Name of directory inside of file
+         * @param ioMode Read/Write/Append Mode
+         * @param user_data File Driver/Type (PDB, HDF5)
+         **/
         static void* openSiloFile( const char* filename, const char* nsname, PMPIO_iomode_t ioMode, void* user_data ) {
             DBfile* silo_file = DBOpen( filename, DB_UNKNOWN, ioMode == PMPIO_WRITE ? DB_APPEND : DB_READ );
 
@@ -211,11 +252,26 @@ class SiloWriter
             return ( void * ) silo_file;
         };
 
+        /**
+         * Close Silo File
+         * @param file File pointer
+         * @param user_data File Driver/Type (PDB, HDF5)
+         **/
         static void closeSiloFile( void* file, void* user_data ) {
             DBfile* silo_file = ( DBfile * ) file;
             if ( silo_file ) DBClose( silo_file );
         };
 
+        /**
+         * Write Multi Object Silo File the References Child Files in order to have entire set of data for the time step within a Single File
+         * Combines several Silo Files into a Single Silo File
+         * 
+         * @param silo_file Pointer to the Silo File
+         * @param baton Baton object from PMPIO
+         * @param size Number of Ranks
+         * @param time_step Current time step
+         * @param file_ext File extension (PDB, HDF5)
+         **/
         void writeMultiObjects( DBfile* silo_file, PMPIO_baton_t* baton, int size, int time_step, const char* file_ext ) {
             char** mesh_block_names = ( char ** ) malloc( size * sizeof( char * ) );
             char** h_block_names = ( char ** ) malloc( size * sizeof( char * ) );
@@ -270,6 +326,13 @@ class SiloWriter
         }
 
         // Function to Create New DB File for Current Time Step
+        /**
+         * Createe New DB File for Current Time Step
+         * @param name Name of directory in silo file
+         * @param time_step Current time step
+         * @param time Current time
+         * @param dt Time step (dt)
+         **/
         void siloWrite( char *name, int time_step, state_t time, state_t dt ) {
             // Initalize Variables
             DBfile* silo_file;
@@ -294,11 +357,10 @@ class SiloWriter
 
             // Show Errors and Force FLoating Point
             DBShowErrors( DB_ALL, NULL );
-            DBForceSingle( 1 );
 
             silo_file = ( DBfile * ) PMPIO_WaitForBaton( baton, filename, nsname );
 
-            writeFile( silo_file, strdup( "Mesh" ), time_step, time, dt );
+            writeFile( silo_file, name, time_step, time, dt );
 
             if ( _pm->mesh()->rank() == 0 ) {
                 master_file = DBCreate( masterfilename, DB_CLOBBER, DB_LOCAL, "ExaCLAMR", driver );
@@ -312,7 +374,7 @@ class SiloWriter
             }
 
     private:
-        std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;
+        std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;      /**< Problem Manager Shared Pointer */
 
 };
 

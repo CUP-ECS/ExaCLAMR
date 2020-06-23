@@ -4,7 +4,7 @@
  * @author Jered Dominguez-Trujillo <jereddt@unm.edu>
  * 
  * @section DESCRIPTION
- * 
+ * Mesh class that stores rank, bounding box, domain index spaces and Cajita local grid
  */
 
 #ifndef EXACLAMR_MESH_HPP
@@ -14,6 +14,7 @@
     #define DEBUG 0 
 #endif 
 
+// Include Statements
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
 
@@ -24,16 +25,26 @@
 
 namespace ExaCLAMR
 {
+/**
+ * The Mesh Class
+ * @class Mesh
+ * @brief Mesh class to handle and wrap the Cajita Regular Grid class and 
+ * to track the domain index spaces and track which cells are boundary cells.
+ **/
 template <class MemorySpace, class ExecutionSpace, typename state_t>
 class Mesh
 {
     public:
         /**
          * Constructor
+         * Creates a new mesh and calculates the bounding box, number of cells, and the domain index space.
+         * Creates a Cajita Local Grid on each rank as a class member
          * 
-         * @param
+         * @param cl Command line arguments
+         * @param partitioner Cajita MPI partitioner
+         * @param comm MPI communicator
          */
-        Mesh( const cl_args<state_t>& cl,
+        Mesh( const ExaCLAMR::ClArgs<state_t>& cl,
                 const Cajita::Partitioner& partitioner,
                 MPI_Comm comm ) :
                 _global_bounding_box ( cl.global_bounding_box ) {
@@ -44,9 +55,9 @@ class Mesh
 
             // 2-D Mesh - Ignore Z Cells
             std::array<int, 3> num_cell;
-            num_cell[0] = cl.global_num_cells[0];  // Set X Num Cells
-            num_cell[1] = cl.global_num_cells[1];  // Set Y Num Cells
-            num_cell[2] = 1;                    // Set Z Num Cells to 1
+            num_cell[0] = cl.global_num_cells[0];   // Set X Num Cells
+            num_cell[1] = cl.global_num_cells[1];   // Set Y Num Cells
+            num_cell[2] = 1;                        // Set Z Num Cells to 1
 
             // 2-D Mesh - Z Domain is From 0 to 1
             std::array<state_t, 6> bounding_box;
@@ -107,6 +118,7 @@ class Mesh
             auto local_mesh = Cajita::createLocalMesh<device_type>( *_local_grid );
             auto ghost_cells = _local_grid->indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
 
+            // Calculate domain index space - assumes regular grid
             for ( int i = 0; i < 3; i ++ ) {
                 if ( ghost_cells.max( i ) != 1 ) {
                     _domainMin[i] = ghost_cells.min( i ) + cl.halo_size;
@@ -119,48 +131,97 @@ class Mesh
             }
         };
 
-        state_t cellSize() const {
-            return _local_grid->globalGrid().globalMesh().cellSize( 0 );
+        /**
+         * Returns cell size in given dimension
+         * @param dim Dimension of interest
+         * @return Cell size of the grid in the given dimension
+         **/ 
+        state_t cellSize( int dim ) const {
+            return _local_grid->globalGrid().globalMesh().cellSize( dim );
         };
 
+        /**
+         * Returns the Cajita Local Grid
+         * @return The shared pointer to the Cajita Local Grid
+         **/
         const std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<state_t>>>& localGrid() const {
             return _local_grid;
         };
 
+        /**
+         * Returns the global bounding box array
+         * @return The array of length 6 of the global bounding box {xmin, ymin, zmin, xmax, ymax, zmax}
+         **/ 
         const std::array<state_t, 6> globalBoundingBox() const {
             return _global_bounding_box;
         };
 
+        /**
+         * Returns the rank of the mesh
+         * @return The rank of the mesh
+         **/
         int rank() const {
             return _rank;
         };
 
+        /**
+         * Returns the index space of the domain
+         * @return The index space of the domain (excluding ghost and halo cells)
+         **/
         const Cajita::IndexSpace<3> domainSpace() const {
             return Cajita::IndexSpace<3>( _domainMin, _domainMax );
         };
 
+        /**
+         * Determine whether the cell is on the left boundary
+         * @param i Index in x-direction
+         * @param j Index in y-direction
+         * @param k Index in z-direction
+         * @return Returns true if the cell is on the left boundary
+         **/
         bool isLeftBoundary( const int i, const int j, const int k ) const {
             return ( j == _domainMin[1] - 1 && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
         };
 
+        /**
+         * Determine whether the cell is on the right boundary
+         * @param i Index in x-direction
+         * @param j Index in y-direction
+         * @param k Index in z-direction
+         * @return Returns true if the cell is on the right boundary
+         **/
         bool isRightBoundary( const int i, const int j, const int k ) const {
             return ( j == _domainMax[1] && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
         };
 
+        /**
+         * Determine whether the cell is on the bottom boundary
+         * @param i Index in x-direction
+         * @param j Index in y-direction
+         * @param k Index in z-direction
+         * @return Returns true if the cell is on the bottom boundary
+         **/
         bool isBottomBoundary( const int i, const int j, const int k ) const {
             return ( i == _domainMax[0] && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
         };
 
+        /**
+         * Determine whether the cell is on the top boundary
+         * @param i Index in x-direction
+         * @param j Index in y-direction
+         * @param k Index in z-direction
+         * @return Returns true if the cell is on the top boundary
+         **/
         bool isTopBoundary( const int i, const int j, const int k ) const {
             return ( i == _domainMin[0] - 1 && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
         };
 
     private:
-        int _rank;
-        std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<state_t>>> _local_grid;
-        std::array<long, 3> _domainMin;
-        std::array<long, 3> _domainMax;
-        const std::array<state_t, 6> _global_bounding_box;
+        int _rank;                                                                      /**< Rank of the mesh */
+        std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<state_t>>> _local_grid;   /**< Cajita Local Grid */
+        std::array<long, 3> _domainMin;                                                 /**< Indices of lower corner of domain */
+        std::array<long, 3> _domainMax;                                                 /**< Indices of upper corner of domain */
+        const std::array<state_t, 6> _global_bounding_box;                              /**< Array of global bounding box */
 };
 
 }

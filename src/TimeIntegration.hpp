@@ -4,7 +4,13 @@
  * @author Jered Dominguez-Trujillo <jereddt@unm.edu>
  * 
  * @section DESCRIPTION
- * 
+ * Time Integration Step, include functions to:
+ * Apply boundary conditions
+ * Perform halo exchange
+ * Calculate dynamic timestep based on wave speed
+ * Flux corrector calculation
+ * Full time step calculation
+ * Integration step using the shallow water equations
  */
 
 #ifndef EXACLAMR_TIMEINTEGRATION_HPP
@@ -14,18 +20,28 @@
     #define DEBUG 0 
 #endif
 
+// Include Statements
 #include <ExaCLAMR.hpp>
 #include <ProblemManager.hpp>
 
 #include <stdio.h>
 #include <math.h>
 
+
 namespace ExaCLAMR
 {
 namespace TimeIntegrator
 {
 
-// Applying Boundary Conditions
+/**
+* Apply reflective boundary conditions
+*
+* @param pm Problem manager
+* @param exec_space Execution space
+* @param mem_space Memory space
+* @param gravity Gravitational constant
+* @param time_step Current time step
+**/
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
 void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const int time_step ) {
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Applying Boundary Conditions\n";
@@ -106,6 +122,15 @@ void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace
 
 }
 
+/**
+* Perform Halo Exchange
+*
+* @param pm Problem manager
+* @param exec_space Execution space
+* @param mem_space Memory space
+* @param mindt Time increment/step (dt)
+* @param time_step Current time step
+**/
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
 void haloExchange( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t mindt, const int time_step ) {
     // DEBUG: Trace in Halo Exchange
@@ -118,103 +143,30 @@ void haloExchange( const ProblemManagerType& pm, const ExecutionSpace& exec_spac
         pm.gather( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
         pm.gather( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
     }
-    // If Cuda, Use Custom Halo Exchange for Now
-    else {
-        auto local_grid = pm.mesh()->localGrid();
-        auto owned_cells = local_grid->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
+    // If Cuda, use Custom Halo Exchange
+    // TODO: Get state_t to gatherCuda without passing unnecessary mindt
+    // TODO: Break gatherCuda up by field
+    // TODO: Helper function to eliminate duplicate work of gatherCuda
+    else pm.gatherCuda( mindt, time_step );
 
-        auto uCurrent = pm.get( Location::Cell(), Field::Momentum(), CURRENTFIELD( time_step ) );
-        auto hCurrent = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
-
-        auto uNew = pm.get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
-        auto hNew = pm.get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
-
-        for ( int i = -1; i < 2; i++ ) {
-            for (int j = -1; j < 2; j++) {
-                if ( ( i == 0 || j == 0 ) && !( i == 0 && j == 0 ) ){
-                    int neighbor = local_grid->neighborRank( i, j, 0 );
-                    if ( neighbor != -1 ) {
-                        auto shared_recv_cells = local_grid->sharedIndexSpace( Cajita::Ghost(), Cajita::Cell(), i, j, 0 );
-                        auto shared_send_cells = local_grid->sharedIndexSpace( Cajita::Own(), Cajita::Cell(), i, j, 0 );
-
-                        
-                        if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\t i: " << i << "\tj: " << j << "\tk: " << 0 << "\tNeighbor: " << neighbor << "\n";
-                        if ( DEBUG ) std::cout << "Rank (Recv): " << pm.mesh()->rank() << "\txmin: " << shared_recv_cells.min( 0 ) << "\txmax: " << shared_recv_cells.max( 0 ) \
-                        << "\tymin: " << shared_recv_cells.min( 1 ) << "\tymax: " << shared_recv_cells.max( 1 ) << "\tzmin: " << shared_recv_cells.min( 2 ) << "\tzmax: " << shared_recv_cells.max( 2 ) << "\n";
-                        if ( DEBUG ) std::cout << "Rank (Send): " << pm.mesh()->rank() << "\txmin: " << shared_send_cells.min( 0 ) << "\txmax: " << shared_send_cells.max( 0 ) \
-                        << "\tymin: " << shared_send_cells.min( 1 ) << "\tymax: " << shared_send_cells.max( 1 ) << "\tzmin: " << shared_send_cells.min( 2 ) << "\tzmax: " << shared_send_cells.max( 2 ) << "\n";
-
-                        double sendH[shared_send_cells.size()];
-                        double sendU[shared_send_cells.size()];
-                        double sendV[shared_send_cells.size()];
-                        double recvH[shared_recv_cells.size()];
-                        double recvU[shared_recv_cells.size()];
-                        double recvV[shared_recv_cells.size()];
-
-                        for ( int ii = shared_send_cells.min( 0 ); ii < shared_send_cells.max( 0 ); ii++ ) {
-                            for ( int jj = shared_send_cells.min( 1 ); jj < shared_send_cells.max( 1 ); jj++ ) {
-                                for ( int kk = shared_send_cells.min( 2 ); kk < shared_send_cells.max( 2 ); kk++ ) {
-                                    int ii_own = ii - shared_send_cells.min( 0 );
-                                    int jj_own = jj - shared_send_cells.min( 1 );
-                                    int kk_own = kk - shared_send_cells.min( 2 );
-
-                                    int inx = ii_own + shared_send_cells.extent( 0 ) * ( jj_own + shared_send_cells.extent( 1 ) * kk_own );
-
-                                    if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "ii: " << ii << "\tjj: " << jj << "\tkk: " << kk \
-                                    << "\t ii_own: " << ii_own << "\tjj_own: " << jj_own << "\tkk_own: " << kk_own << "\tinx: " << inx << "\n";
-
-                                    sendH[inx] = hNew( ii, jj, kk, 0 );
-                                    sendU[inx] = uNew( ii, jj, kk, 0 );
-                                    sendV[inx] = uNew( ii, jj, kk, 1 );
-                                }
-                            }
-                        }
-
-                        MPI_Request request[6];
-                        MPI_Status statuses[6];
-
-                        MPI_Isend( sendH, shared_send_cells.size(), Cajita::MpiTraits<state_t>::type(), neighbor, 0, MPI_COMM_WORLD, &request[0] );
-                        MPI_Isend( sendU, shared_send_cells.size(), Cajita::MpiTraits<state_t>::type(), neighbor, 0, MPI_COMM_WORLD, &request[1] );
-                        MPI_Isend( sendV, shared_send_cells.size(), Cajita::MpiTraits<state_t>::type(), neighbor, 0, MPI_COMM_WORLD, &request[2] );
-
-                        MPI_Irecv( recvH, shared_recv_cells.size(), Cajita::MpiTraits<state_t>::type(), neighbor, 0, MPI_COMM_WORLD, &request[3] );
-                        MPI_Irecv( recvU, shared_recv_cells.size(), Cajita::MpiTraits<state_t>::type(), neighbor, 0, MPI_COMM_WORLD, &request[4] );
-                        MPI_Irecv( recvV, shared_recv_cells.size(), Cajita::MpiTraits<state_t>::type(), neighbor, 0, MPI_COMM_WORLD, &request[5] );
-
-                        MPI_Waitall( 6, request, statuses );
-                        
-                        for ( int ii = shared_recv_cells.min( 0 ); ii < shared_recv_cells.max( 0 ); ii++ ) {
-                            for ( int jj = shared_recv_cells.min( 1 ); jj < shared_recv_cells.max( 1 ); jj++ ) {
-                                for ( int kk = shared_recv_cells.min( 2 ); kk < shared_recv_cells.max( 2 ); kk++ ) {
-                                    int ii_own = ii - shared_recv_cells.min( 0 );
-                                    int jj_own = jj - shared_recv_cells.min( 1 );
-                                    int kk_own = kk - shared_recv_cells.min( 2 );
-
-                                    int inx = ii_own + shared_recv_cells.extent( 0 ) * ( jj_own + shared_recv_cells.extent( 1 ) * kk_own );
-
-                                    if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tii: " << ii << "\tjj: " << jj << "\tkk: " << kk \
-                                    << "\t ii_own: " << ii_own << "\tjj_own: " << jj_own << "\tkk_own: " << kk_own << "\tinx: " << inx << "\trecvH: " << recvH[inx] << "\n";
-
-                                    hNew( ii, jj, kk, 0 ) = recvH[inx];
-                                    uNew( ii, jj, kk, 0 ) = recvU[inx];
-                                    uNew( ii, jj, kk, 1 ) = recvV[inx];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
     MPI_Barrier( MPI_COMM_WORLD );
 }
 
-// Function to Calculate Dynamic Time Step Based off of Wave Speed and Cell Size
+/**
+* Calculate dynamic time step based off of wave speed and cell size
+*
+* @param pm Problem manager
+* @param exec_space Execution space
+* @param mem_space Memory space
+* @param gravity Gravitational constant
+* @param sigma Factor to control CFL number, stability and size of time step
+* @param time_step Current time step
+**/
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
 state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const state_t sigma, const int time_step ) {
     // Get dx and dy of Regular Mesh Cell
-    state_t dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
-    state_t dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+    state_t dx = pm.mesh()->cellSize( 0 );
+    state_t dy = pm.mesh()->cellSize( 1 );
 
     // Get Current State Variables
     auto h_current = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
@@ -290,7 +242,17 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
 #define VYRGFLUXNB ( POW2( v_bot )   / h_bot   + ghalf * POW2( h_bot ) )
 #define VYRGFLUXNT ( POW2( v_top )   / h_top   + ghalf * POW2( h_top ) )
 
-// Flux Correction Function
+
+/**
+ * Flux corrector
+ * 
+ * @param dt Time step
+ * @param dr Spatial step (dx or dy)
+ * @param u_eigen Eigenvalue of the system
+ * @param grad_half Gradient
+ * @param grad_minus Gradient to the left/bottom
+ * @param grad_plus Gradient to the right/top 
+**/
 template<typename state_t>
 inline state_t wCorrector( state_t dt, state_t dr, state_t u_eigen, state_t grad_half, state_t grad_minus, state_t grad_plus ) {
     state_t nu = 0.5 * u_eigen * dt / dr;
@@ -303,23 +265,45 @@ inline state_t wCorrector( state_t dt, state_t dr, state_t u_eigen, state_t grad
     return 0.5 * nu * ( 1.0 - fmax( fmin( fmin( 1.0, rPlus ), rMinus ), 0.0 ) );
 }
 
-// Full Step Shallow Water Calculation
+/**
+ * Full Step Shallow Water Calculation
+ * 
+ * @param dt Time step
+ * @param dr Spatial step (dx or dy)
+ * @param u Current state value
+ * @param f_plus Positive flux in x-direction
+ * @param f_minus Negative flux in x-direction
+ * @param g_plus Positive flux in y-direction
+ * @param g_minus Negative flux in y-direction
+**/
 template<typename state_t>
 inline state_t uFullStep( state_t dt, state_t dr, state_t u, state_t f_plus, state_t f_minus, state_t g_plus, state_t g_minus ) {
     return ( u + ( - ( dt / dr) * ( ( f_plus - f_minus ) + ( g_plus - g_minus ) ) ) );
 }
 
-// Time Step Iteration
+
+/**
+ * Time Step Iteration of Shallow Water Equations
+ * 
+ * @param pm Problem manager
+ * @param exec_space Execution space
+ * @param mem_space Memory space
+ * @param dt Time step (dt)
+ * @param gravity Gravitational constant
+ * @param time_step Current time step (count) 
+**/
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
 void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t dt, const state_t gravity, const int time_step ) {
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Time Stepper\n";
-    // Declare  if DEBUG
+
     using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-    state_t dx = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 0 );
-    state_t dy = pm.mesh()->localGrid()->globalGrid().globalMesh().cellSize( 1 );
+    // Get dx and dy
+    state_t dx = pm.mesh()->cellSize( 0 );
+    state_t dy = pm.mesh()->cellSize( 1 );
     state_t ghalf = 0.5 * gravity;
 
+    // Apply Boundary Conditions
     applyBoundaryConditions( pm, exec_space, mem_space, gravity, time_step );
 
     // Get Current State Views
@@ -407,33 +391,41 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         state_t hx_minus = 0.5 * ( ( h_left + h_ic ) - ( dt ) / ( dx ) * ( ( HXRGFLUXIC ) - ( HXRGFLUXNL ) ) );
         state_t ux_minus = 0.5 * ( ( u_left + u_ic ) - ( dt ) / ( dx ) * ( ( UXRGFLUXIC ) - ( UXRGFLUXNL ) ) );
         state_t vx_minus = 0.5 * ( ( v_left + v_ic ) - ( dt ) / ( dx ) * ( ( VXRGFLUXIC ) - ( VXRGFLUXNL ) ) );
+
         // DEBUG: Print hx_minus, ux_minus, vx_minus, i, j, k
         // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_minus: " << std::setw( 6 ) << hx_minus << \
         "\tux_minus: " << std::setw( 6 ) << ux_minus << "\tvx_minus: " << std::setw( 6 ) << vx_minus << "\ti: " << i << "\tj: "<< j << "\tk: " << k << "\n";
+
 
         // X Plus Direction
         state_t hx_plus  = 0.5 * ( ( h_ic + h_right ) - ( dt ) / ( dx ) * ( ( HXRGFLUXNR ) - ( HXRGFLUXIC ) ) );
         state_t ux_plus  = 0.5 * ( ( u_ic + u_right ) - ( dt ) / ( dx ) * ( ( UXRGFLUXNR ) - ( UXRGFLUXIC ) ) );
         state_t vx_plus  = 0.5 * ( ( v_ic + v_right ) - ( dt ) / ( dx ) * ( ( VXRGFLUXNR ) - ( VXRGFLUXIC ) ) );
+
         // DEBUG: Print hx_plus, ux_plus, vx_plus, i, j, k
         // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_plus: " << std::setw( 6 ) << hx_plus << \
         "\tux_plus: " << std::setw( 6 ) << ux_plus << "\tvx_plus: " << std::setw( 6 ) << vx_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
 
         // Y Minus Direction
         state_t hy_minus = 0.5 * ( ( h_bot + h_ic ) - ( dt ) / ( dy ) * ( ( HYRGFLUXIC ) - ( HYRGFLUXNB ) ) );
         state_t uy_minus = 0.5 * ( ( u_bot + u_ic ) - ( dt ) / ( dy ) * ( ( UYRGFLUXIC ) - ( UYRGFLUXNB ) ) );
         state_t vy_minus = 0.5 * ( ( v_bot + v_ic ) - ( dt ) / ( dy ) * ( ( VYRGFLUXIC ) - ( VYRGFLUXNB ) ) );
+
         // DEBUG: Print hy_minus, uy_minus, vy_minus, i, j, k
         // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_minus: " << std::setw( 6 ) << hy_minus << \
         "\tuy_minus: " << std::setw( 6 ) << uy_minus << "\tvy_minus: " << std::setw( 6 ) << vy_minus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
 
         // Y Plus Direction
         state_t hy_plus  = 0.5 * ( ( h_ic + h_top ) - ( dt ) / ( dy ) * ( ( HYRGFLUXNT ) - ( HYRGFLUXIC ) ) );
         state_t uy_plus  = 0.5 * ( ( u_ic + u_top ) - ( dt ) / ( dy ) * ( ( UYRGFLUXNT ) - ( UYRGFLUXIC ) ) );
         state_t vy_plus  = 0.5 * ( ( v_ic + v_top ) - ( dt ) / ( dy ) * ( ( VYRGFLUXNT ) - ( VYRGFLUXIC ) ) );
+
         // DEBUG: Print hy_plus, uy_plus, vy_plus, i, j, k
         // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_plus: " << std::setw( 6 ) << hy_plus << \
         "\tuy_plus: " << std::setw( 6 ) << uy_plus << "\tvy_plus: " << std::setw( 6 ) << vy_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
 
         // Flux View Updates
         // X Direction
@@ -441,18 +433,42 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         ux_flux_minus( i, j, k, 0 ) = ( POW2( ux_minus ) / hx_minus + ghalf * POW2( hx_minus ) );
         ux_flux_minus( i, j, k, 1 ) = ux_minus * vx_minus / hx_minus;
 
+        // DEBUG: Print hx_flux_minus, ux_flux_minus, ux_flux_minus, i, j, k
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_flux_minus: " << std::setw( 6 ) << hx_flux_minus( i, j, k, 0 ) << \
+        "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus( i, j, k, 0 ) << "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus( i, j, k, 1 ) << \
+        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
+
         hx_flux_plus( i, j, k, 0 ) = ux_plus;
         ux_flux_plus( i, j, k, 0 ) = ( POW2( ux_plus ) / hx_plus + ghalf * POW2( hx_plus ) );
         ux_flux_plus( i ,j, k, 1 ) = ( ux_plus * vx_plus / hx_plus );
+
+        // DEBUG: Print hx_flux_plus, ux_flux_plus, ux_flux_plus, i, j, k
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_flux_plus: " << std::setw( 6 ) << hx_flux_plus( i, j, k, 0 ) << \
+        "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus( i, j, k, 0 ) << "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus( i, j, k, 1 ) << \
+        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
 
         // Y Direction
         hy_flux_minus( i, j, k, 0 ) = vy_minus;
         uy_flux_minus( i, j, k, 0 ) = ( vy_minus * uy_minus / hy_minus );
         uy_flux_minus( i, j, k, 1 ) = ( POW2( vy_minus ) / hy_minus + ghalf * POW2( hy_minus ) );
 
+        // DEBUG: Print hy_flux_minus, uy_flux_minus, uy_flux_minus, i, j, k
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_flux_minus: " << std::setw( 6 ) << hy_flux_minus( i, j, k, 0 ) << \
+        "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus( i, j, k, 0 ) << "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus( i, j, k, 1 ) << \
+        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
+
         hy_flux_plus( i, j, k, 0 ) = vy_plus;
         uy_flux_plus( i, j, k, 0 ) = ( vy_plus * uy_plus / hy_plus );
         uy_flux_plus( i, j, k, 1 ) = ( POW2( vy_plus ) / hy_plus + ghalf * POW2( hy_plus ) );
+
+        // DEBUG: Print hy_flux_plus, uy_flux_plus, uy_flux_plus, i, j, k
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_flux_plus: " << std::setw( 6 ) << hy_flux_plus( i, j, k, 0 ) << \
+        "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus( i, j, k, 0 ) << "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus( i, j, k, 1 ) << \
+        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
 
         // Flux Corrector Calculations
         // X Direction
@@ -468,6 +484,12 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         u_w_plus( i, j, k, 0 )   = wCorrector( dt, dx, fabs( ux_plus / hx_plus ) + sqrt( gravity * hx_plus ), u_right - u_ic, u_ic - u_left, u_right2 - u_right );
         u_w_plus( i, j, k, 0 )   *= u_right - u_ic;
 
+        // DEBUG: Print hx_w_minus, hx_w_plus, u_w_minus, u_w_plus, i, j, k
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_w_minus: " << std::setw( 6 ) << hx_w_minus( i, j, k, 0 ( i, j, k, 0 ) << "\thx_w_plus: " << std::setw( 6 ) << hx_w_plus( i, j, k, 0 ) <<\
+        "\tu_w_minus: " << std::setw( 6 ) << u_w_minus( i, j, k, 0 ) << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus( i, j, k, 0 ) << \
+        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
+
         // Y Direction
         hy_w_minus( i, j, k, 0 ) = wCorrector( dt, dy, fabs( vy_minus / hy_minus ) + sqrt( gravity * hy_minus ), h_ic - h_bot, h_bot - h_bot2, h_top - h_ic );
         hy_w_minus( i, j, k, 0 ) *= h_ic - h_bot;
@@ -481,11 +503,21 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         u_w_plus( i, j, k, 1 )   = wCorrector( dt, dy, fabs( vy_plus / hy_plus ) + sqrt( gravity * hy_plus ), v_top - v_ic, v_ic - v_bot, v_top2 - v_top );
         u_w_plus( i, j, k, 1 )   *= v_top - v_ic;
 
+        // DEBUG: Print hy_w_minus, hy_w_plus, u_w_minus, u_w_plus, i, j, k
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_w_minus: " << std::setw( 6 ) << hy_w_minus( i, j, k, 0 ( i, j, k, 0 ) << "\thy_w_plus: " << std::setw( 6 ) << hy_w_plus( i, j, k, 0 ) <<\
+        "\tu_w_minus: " << std::setw( 6 ) << u_w_minus( i, j, k, 1 ) << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus( i, j, k, 1 ) << \
+        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
+
         // Full Step Update
-        h_new ( i, j, k, 0 ) = uFullStep( dt, dx, h_ic, hx_flux_plus( i, j, k, 0 ), hx_flux_minus( i, j, k, 0 ), hy_flux_plus( i, j, k, 0 ), hy_flux_minus( i, j, k, 0 ) ) - hx_w_minus( i, j, k, 0 ) + hx_w_plus( i, j, k, 0 ) - hy_w_minus( i, j, k, 0 ) + hy_w_plus( i, j, k, 0 );
-        u_new ( i, j, k, 0 ) = uFullStep( dt, dx, u_ic, ux_flux_plus( i, j, k, 0 ), ux_flux_minus( i, j, k, 0 ), uy_flux_plus( i, j, k, 0 ), uy_flux_minus( i, j, k, 0 ) ) - u_w_minus( i, j, k, 0 ) + u_w_plus( i, j, k, 0 );
-        u_new ( i, j, k, 1 ) = uFullStep( dt, dy, v_ic, ux_flux_plus( i, j, k, 1 ), ux_flux_minus( i, j, k, 1 ), uy_flux_plus( i, j, k, 1 ), uy_flux_minus( i, j, k, 1 ) ) - u_w_minus( i, j, k, 1 ) + u_w_plus( i, j, k, 1 );
+        h_new( i, j, k, 0 ) = uFullStep( dt, dx, h_ic, hx_flux_plus( i, j, k, 0 ), hx_flux_minus( i, j, k, 0 ), hy_flux_plus( i, j, k, 0 ), hy_flux_minus( i, j, k, 0 ) ) - hx_w_minus( i, j, k, 0 ) + hx_w_plus( i, j, k, 0 ) - hy_w_minus( i, j, k, 0 ) + hy_w_plus( i, j, k, 0 );
+        u_new( i, j, k, 0 ) = uFullStep( dt, dx, u_ic, ux_flux_plus( i, j, k, 0 ), ux_flux_minus( i, j, k, 0 ), uy_flux_plus( i, j, k, 0 ), uy_flux_minus( i, j, k, 0 ) ) - u_w_minus( i, j, k, 0 ) + u_w_plus( i, j, k, 0 );
+        u_new( i, j, k, 1 ) = uFullStep( dt, dy, v_ic, ux_flux_plus( i, j, k, 1 ), ux_flux_minus( i, j, k, 1 ), uy_flux_plus( i, j, k, 1 ), uy_flux_minus( i, j, k, 1 ) ) - u_w_minus( i, j, k, 1 ) + u_w_plus( i, j, k, 1 );
        
+       // DEBUG: Print h_new, u_new, v_new, i, j, k
+        // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "h_new: " << std::setw( 6 ) << h_new( i, j, k, 0 ) << \
+        "\tu_new: " << std::setw( 6 ) << u_new( i, j, k, 0 ) << "\tv_new: " << std::setw( 6 ) << u_new( i, j, k, 1 ) << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+
     } );
 
     // Kokkos Fence

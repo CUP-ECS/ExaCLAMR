@@ -4,13 +4,18 @@
  * @author Jered Dominguez-Trujillo <jereddt@unm.edu>
  * 
  * @section DESCRIPTION
- * 
+ * Dam Break Problem on a Regular Grid using the Shallow Water Equations:
+ * Cells Inside a Circular Radius of Size ( 6 / 128 ) * Width, Height = 80
+ * Cells Inside a Circular Radius of Size 1.5 * ( 6 / 128 ) * Width and outside of Inner Circle, Height = 70
+ * Other Cells, Height = 10
+ * All Cells, X-Momentum = 0, Y-Momentum = 0
  */
 
 #ifndef DEBUG
     #define DEBUG 0 
 #endif
 
+// Include Statements
 #include <Input.hpp>
 #include <Solver.hpp>
 #include <Timer.hpp>
@@ -26,6 +31,7 @@
 #endif
 
 
+// Initialization Function
 template <typename state_t>
 struct MeshInitFunc
 {
@@ -77,14 +83,14 @@ struct MeshInitFunc
 };
 
 
+// Create Solver and Run CLAMR
 template <typename state_t>
-void clamr(  cl_args<state_t>& cl, ExaCLAMR::Timer& timer) {
+void clamr(  ExaCLAMR::ClArgs<state_t>& cl, ExaCLAMR::Timer& timer) {
     int comm_size, rank;                                        // Initialize Variables
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );                // Number of Ranks
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );                     // Get My Rank
 
     timer.setupStart();
-
     // Splits Ranks up as Evenly as Possible Across X and Y Dimensions
     int x_ranks = comm_size;
     while ( x_ranks % 2 == 0 && x_ranks > 2 ) {
@@ -95,14 +101,10 @@ void clamr(  cl_args<state_t>& cl, ExaCLAMR::Timer& timer) {
 
     std::array<int,3> ranks_per_dim = { x_ranks, y_ranks, 1 };      // Ranks per Dimension
 
-    Cajita::ManualPartitioner partitioner( ranks_per_dim );     // Create Cajita Partitioner
+    Cajita::ManualPartitioner partitioner( ranks_per_dim );         // Create Cajita Partitioner
 
     // Create Solver
-    auto solver = ExaCLAMR::createSolver( cl,
-                                        MPI_COMM_WORLD, 
-                                        MeshInitFunc<state_t>( cl.global_bounding_box ),
-                                        partitioner, 
-                                        timer );
+    auto solver = ExaCLAMR::createSolver( cl, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
     timer.setupStop();
 
     // Solve
@@ -116,6 +118,7 @@ int main( int argc, char* argv[] ) {
     timer.overallStart();
 
     timer.setupStart();
+    
     // Using doubles
     using state_t = double;
 
@@ -128,13 +131,13 @@ int main( int argc, char* argv[] ) {
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );             // My Rank
 
     // Parse Input
-    cl_args<state_t> cl;
-    if ( parseInput( rank, argc, argv, cl ) != 0 ) return -1; // Return if Failed
+    ExaCLAMR::ClArgs<state_t> cl;
+    if ( ExaCLAMR::parseInput( rank, argc, argv, cl ) != 0 ) return -1;
 
     timer.setupStop();
 
     timer.writeStart();
-    // Only Rank 0 Print Command Line Options
+    // Only Rank 0 Prints Command Line Options
     if ( rank == 0 ) {
         // Print Command Line Options
         std::cout << "ExaClamr\n";
@@ -158,8 +161,10 @@ int main( int argc, char* argv[] ) {
     Kokkos::finalize();                                 // Finalize Kokkos
     MPI_Finalize();                                     // Finalize MPI
 
+    // Stop Timer
     timer.overallStop();
 
+    // Print Timer Report
     if (rank == 0 ) {
         timer.report();
     }

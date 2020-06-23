@@ -6,7 +6,8 @@
  * 
  * @section DESCRIPTION
  * Parses optional command line input that gives the user control over problem parameters such as
- * number of cells, size of domain, number of time steps, and frequency of output.
+ * halo cells, number of cells, size of domain, gravitational constant, execution space, number of time steps, 
+ * periodicity, dynamic time stepping, and frequency of output.
  */
 
 #ifndef INPUT_HPP
@@ -16,20 +17,23 @@
     #define DEBUG 0 
 #endif
 
+// Include Statements
 #include <iostream>
 #include <iomanip>
 #include <getopt.h>
 #include <stdlib.h>
 
-
-// Short Args: a - Halo Size, d - Domain Size, h - Print Help, g - Gravitational Constant, m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency, 
+namespace ExaCLAMR {
+// Short Args: a - Halo Size, d - Domain Size, h - Print Help, g - Gravitational Constant, 
+// m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency, 
 static char *shortargs = ( char * )"a::d::g::hm::n::p::s::t::w::";
 
 /**
- * Template struct to organize and keep track of parameters controlled by command line arguments
+ * @struct ClArgs
+ * @brief Template struct to organize and keep track of parameters controlled by command line arguments
  */
 template <typename state_t>
-struct cl_args {
+struct ClArgs {
     int nx, ny, nz;                                     /**< Number of cells */
     int halo_size;                                      /**< Number of halo cells in each direction */
     int time_steps;                                     /**< Number of time steps in simulation */
@@ -47,6 +51,8 @@ struct cl_args {
 
 /**
  * Outputs help message explaining command line options.
+ * @param rank The rank calling the function
+ * @param progname The name of the program
  */
 void help( const int rank, char* progname ){
     if ( rank == 0 ) {
@@ -69,18 +75,26 @@ void help( const int rank, char* progname ){
 
 /**
  * Outputs usage hint if invalid command line arguments are given.
+ * @param rank The rank calling the function
+ * @param progname The name of the program
  */
 void usage( const int rank, char* progname ) {
-    if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-d size-of-domain] [-g gravity] [-h help] [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
+    if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-d size-of-domain] [-g gravity] [-h help]" <<\
+    " [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
 }
 
 
 /**
  * Parses command line input and updates the command line variables accordingly.\n
  * Usage: ./[program] [-a halo-size] [-d size-of-domain] [-g gravity] [-h help] [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]
+ * @param rank The rank calling the function
+ * @param argc Number of command line options passed to program
+ * @param argv List of command line options passed to program
+ * @param cl Command line arguments structure to store options
+ * @return Error status
  */
 template <typename state_t>
-int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& cl ) {
+int parseInput( const int rank, const int argc, char ** argv, ClArgs<state_t>& cl ) {
     cl.device = "serial";                       // Default Thread Setting
     cl.nx = 50, cl.ny = 50, cl.nz = 1;          // Default Cell Count
 
@@ -184,10 +198,13 @@ int parseInput( const int rank, const int argc, char ** argv, cl_args<state_t>& 
         }
     }
 
+    // Set Cell Count and Bounding Box Arrays
     cl.global_num_cells = { cl.nx, cl.ny, cl.nz };
     cl.global_bounding_box = { 0, 0, 0, cl.hx, cl.hy, cl.hz };
 
+    // Return Successfully
     return 0;
 }
 
+}
 #endif
