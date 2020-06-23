@@ -179,6 +179,7 @@ class Mesh
          * @param k Index in z-direction
          * @return Returns true if the cell is on the bottom boundary
          **/
+        KOKKOS_INLINE_FUNCTION
         bool isBottomBoundary( const int i, const int j, const int k ) const {
             return ( j == _domainMin[1] - 1 && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
         };
@@ -190,6 +191,7 @@ class Mesh
          * @param k Index in z-direction
          * @return Returns true if the cell is on the top boundary
          **/
+        KOKKOS_INLINE_FUNCTION
         bool isTopBoundary( const int i, const int j, const int k ) const {
             return ( j == _domainMax[1] && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
         };
@@ -201,6 +203,7 @@ class Mesh
          * @param k Index in z-direction
          * @return Returns true if the cell is on the right boundary
          **/
+        KOKKOS_INLINE_FUNCTION
         bool isRightBoundary( const int i, const int j, const int k ) const {
             return ( i == _domainMax[0] && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
         };
@@ -212,6 +215,7 @@ class Mesh
          * @param k Index in z-direction
          * @return Returns true if the cell is on the left boundary
          **/
+        KOKKOS_INLINE_FUNCTION
         bool isLeftBoundary( const int i, const int j, const int k ) const {
             return ( i == _domainMin[0] - 1 && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
         };
