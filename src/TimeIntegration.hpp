@@ -113,47 +113,29 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
     return dt_min;
 }
 
-// Macros for Shallow Water Calculation
-// Squared Macro
-#define POW2( x ) ( ( x ) * ( x ) )
+/**
+ * Flux for Uy and Vx directions
+ * 
+ * @param u X-Momentum ( u )
+ * @param v Y-Momentum ( v )
+ * @param h Height
+**/
+template<typename state_t>
+inline state_t fluxUyVx( state_t u, state_t v, state_t h ) {
+    return u * v / h;
+}
 
-// Flux Macros
-#define HXRGFLUXIC ( u_ic )
-#define HXRGFLUXNL ( u_left )
-#define HXRGFLUXNR ( u_right )
-#define HXRGFLUXNT ( u_bot )
-#define HXRGFLUXNB ( u_top )
-
-#define UXRGFLUXIC ( POW2( u_ic )    / h_ic    + ghalf * POW2( h_ic ) )
-#define UXRGFLUXNL ( POW2( u_left )  / h_left  + ghalf * POW2( h_left ) )
-#define UXRGFLUXNR ( POW2( u_right ) / h_right + ghalf * POW2( h_right ) )
-#define UXRGFLUXNB ( POW2( u_bot )   / h_bot   + ghalf * POW2( h_bot ) )
-#define UXRGFLUXNT ( POW2( u_top )   / h_top   + ghalf * POW2( h_top ) )
-
-#define VXRGFLUXIC ( u_ic    * v_ic    / h_ic )
-#define VXRGFLUXNL ( u_left  * v_left  / h_left )
-#define VXRGFLUXNR ( u_right * v_right / h_right )
-#define VXRGFLUXNB ( u_bot   * v_bot   / h_bot )
-#define VXRGFLUXNT ( u_top   * v_top   / h_top )
-
-#define HYRGFLUXIC ( v_ic )
-#define HYRGFLUXNL ( v_left )
-#define HYRGFLUXNR ( v_right )
-#define HYRGFLUXNB ( v_bot )
-#define HYRGFLUXNT ( v_top )
-
-#define UYRGFLUXIC ( v_ic    * u_ic    / h_ic )
-#define UYRGFLUXNL ( v_left  * u_left  / h_left )
-#define UYRGFLUXNR ( v_right * u_right / h_right )
-#define UYRGFLUXNB ( v_bot   * u_bot   / h_bot )
-#define UYRGFLUXNT ( v_top   * u_top   / h_top )
-
-#define VYRGFLUXIC ( POW2( v_ic )    / h_ic    + ghalf * POW2( h_ic ) )
-#define VYRGFLUXNL ( POW2( v_left )  / h_left  + ghalf * POW2( h_left ) )
-#define VYRGFLUXNR ( POW2( v_right ) / h_right + ghalf * POW2( h_right ) )
-#define VYRGFLUXNB ( POW2( v_bot )   / h_bot   + ghalf * POW2( h_bot ) )
-#define VYRGFLUXNT ( POW2( v_top )   / h_top   + ghalf * POW2( h_top ) )
-
+/**
+ * Flux for Ux and Vy directions
+ * 
+ * @param u Momentum (x or y i.e. u or v)
+ * @param h Height
+ * @param ghalf Half of the gravitational constant
+**/
+template<typename state_t>
+inline state_t fluxUxVy( state_t u, state_t h, state_t ghalf ) {
+    return POW2( u ) / h + ghalf * POW2( h );
+}
 
 /**
  * Flux corrector
@@ -317,9 +299,9 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
         // Shallow Water Equations
         // X Minus Direction
-        state_t hx_minus = 0.5 * ( ( h_left + h_ic ) - ( dt ) / ( dx ) * ( ( HXRGFLUXIC ) - ( HXRGFLUXNL ) ) );
-        state_t ux_minus = 0.5 * ( ( u_left + u_ic ) - ( dt ) / ( dx ) * ( ( UXRGFLUXIC ) - ( UXRGFLUXNL ) ) );
-        state_t vx_minus = 0.5 * ( ( v_left + v_ic ) - ( dt ) / ( dx ) * ( ( VXRGFLUXIC ) - ( VXRGFLUXNL ) ) );
+        state_t hx_minus = 0.5 * ( ( h_left + h_ic ) - ( dt ) / ( dx ) * ( ( u_ic ) - ( u_left ) ) );
+        state_t ux_minus = 0.5 * ( ( u_left + u_ic ) - ( dt ) / ( dx ) * ( ( fluxUxVy( u_ic, h_ic, ghalf ) ) - ( fluxUxVy( u_left, h_left, ghalf ) ) ) );
+        state_t vx_minus = 0.5 * ( ( v_left + v_ic ) - ( dt ) / ( dx ) * ( ( fluxUyVx( u_ic, v_ic, h_ic ) ) - ( fluxUyVx( u_left, v_left, h_left ) ) ) );
 
         // DEBUG: Print hx_minus, ux_minus, vx_minus, i, j, k
         // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_minus: " << std::setw( 6 ) << hx_minus << \
@@ -327,9 +309,9 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
 
         // X Plus Direction
-        state_t hx_plus  = 0.5 * ( ( h_ic + h_right ) - ( dt ) / ( dx ) * ( ( HXRGFLUXNR ) - ( HXRGFLUXIC ) ) );
-        state_t ux_plus  = 0.5 * ( ( u_ic + u_right ) - ( dt ) / ( dx ) * ( ( UXRGFLUXNR ) - ( UXRGFLUXIC ) ) );
-        state_t vx_plus  = 0.5 * ( ( v_ic + v_right ) - ( dt ) / ( dx ) * ( ( VXRGFLUXNR ) - ( VXRGFLUXIC ) ) );
+        state_t hx_plus  = 0.5 * ( ( h_ic + h_right ) - ( dt ) / ( dx ) * ( ( u_right ) - ( u_ic ) ) );
+        state_t ux_plus  = 0.5 * ( ( u_ic + u_right ) - ( dt ) / ( dx ) * ( ( fluxUxVy( u_right, h_right, ghalf ) ) - ( fluxUxVy( u_ic, h_ic, ghalf ) ) ) );
+        state_t vx_plus  = 0.5 * ( ( v_ic + v_right ) - ( dt ) / ( dx ) * ( ( fluxUyVx( u_right, v_right, h_right ) ) - ( fluxUyVx( u_ic, v_ic, h_ic ) ) ) );
 
         // DEBUG: Print hx_plus, ux_plus, vx_plus, i, j, k
         // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_plus: " << std::setw( 6 ) << hx_plus << \
@@ -337,9 +319,9 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
 
         // Y Minus Direction
-        state_t hy_minus = 0.5 * ( ( h_bot + h_ic ) - ( dt ) / ( dy ) * ( ( HYRGFLUXIC ) - ( HYRGFLUXNB ) ) );
-        state_t uy_minus = 0.5 * ( ( u_bot + u_ic ) - ( dt ) / ( dy ) * ( ( UYRGFLUXIC ) - ( UYRGFLUXNB ) ) );
-        state_t vy_minus = 0.5 * ( ( v_bot + v_ic ) - ( dt ) / ( dy ) * ( ( VYRGFLUXIC ) - ( VYRGFLUXNB ) ) );
+        state_t hy_minus = 0.5 * ( ( h_bot + h_ic ) - ( dt ) / ( dy ) * ( ( v_ic ) - ( v_bot ) ) );
+        state_t uy_minus = 0.5 * ( ( u_bot + u_ic ) - ( dt ) / ( dy ) * ( ( fluxUyVx( u_ic, v_ic, h_ic ) ) - ( fluxUyVx( u_bot, v_bot, h_bot ) ) ) );
+        state_t vy_minus = 0.5 * ( ( v_bot + v_ic ) - ( dt ) / ( dy ) * ( ( fluxUxVy( v_ic, h_ic, ghalf ) ) - ( fluxUxVy( v_bot, h_bot, ghalf ) ) ) );
 
         // DEBUG: Print hy_minus, uy_minus, vy_minus, i, j, k
         // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_minus: " << std::setw( 6 ) << hy_minus << \
@@ -347,9 +329,9 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
 
 
         // Y Plus Direction
-        state_t hy_plus  = 0.5 * ( ( h_ic + h_top ) - ( dt ) / ( dy ) * ( ( HYRGFLUXNT ) - ( HYRGFLUXIC ) ) );
-        state_t uy_plus  = 0.5 * ( ( u_ic + u_top ) - ( dt ) / ( dy ) * ( ( UYRGFLUXNT ) - ( UYRGFLUXIC ) ) );
-        state_t vy_plus  = 0.5 * ( ( v_ic + v_top ) - ( dt ) / ( dy ) * ( ( VYRGFLUXNT ) - ( VYRGFLUXIC ) ) );
+        state_t hy_plus  = 0.5 * ( ( h_ic + h_top ) - ( dt ) / ( dy ) * ( ( v_top ) - ( v_ic ) ) );
+        state_t uy_plus  = 0.5 * ( ( u_ic + u_top ) - ( dt ) / ( dy ) * ( ( fluxUyVx( u_top, v_top, h_top ) ) - ( fluxUyVx( u_ic, v_ic, h_ic ) ) ) );
+        state_t vy_plus  = 0.5 * ( ( v_ic + v_top ) - ( dt ) / ( dy ) * ( ( fluxUxVy( v_top, h_top, ghalf ) ) - ( fluxUxVy( v_ic, h_ic, ghalf ) ) ) );
 
         // DEBUG: Print hy_plus, uy_plus, vy_plus, i, j, k
         // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_plus: " << std::setw( 6 ) << hy_plus << \

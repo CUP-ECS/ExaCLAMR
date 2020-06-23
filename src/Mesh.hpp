@@ -215,6 +215,7 @@ class Mesh
         bool isLeftBoundary( const int i, const int j, const int k ) const {
             return ( i == _domainMin[0] - 1 && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
         };
+        
 
     private:
         int _rank;                                                                      /**< Rank of the mesh */
