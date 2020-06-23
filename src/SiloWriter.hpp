@@ -374,7 +374,7 @@ class SiloWriter
             }
 
     private:
-        std::shared_ptr<ProblemManager<MemorySpace, ExecutionSpace, state_t>> _pm;      /**< Problem Manager Shared Pointer */
+        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _pm;      /**< Problem Manager Shared Pointer */
 
 };
 

@@ -15,6 +15,8 @@
 #endif 
 
 // Include Statements
+#include <ExaClamrTypes.hpp>
+
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
 
@@ -25,29 +27,33 @@
 
 namespace ExaCLAMR
 {
+    
 /**
  * The Mesh Class
  * @class Mesh
  * @brief Mesh class to handle and wrap the Cajita Regular Grid class and 
  * to track the domain index spaces and track which cells are boundary cells.
  **/
-template <class MemorySpace, class ExecutionSpace, typename state_t>
-class Mesh
-{
+
+template <class MeshType, class MemorySpace, class ExecutionSpace>
+class Mesh;
+
+template <class state_t, class MemorySpace, class ExecutionSpace>
+class Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
     public:
-        /**
-         * Constructor
-         * Creates a new mesh and calculates the bounding box, number of cells, and the domain index space.
-         * Creates a Cajita Local Grid on each rank as a class member
-         * 
-         * @param cl Command line arguments
-         * @param partitioner Cajita MPI partitioner
-         * @param comm MPI communicator
-         */
+        Mesh() {
+            std::cout << "AMR Mesh\n";
+        }
+};
+template <class state_t, class MemorySpace, class ExecutionSpace>
+class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
+    public:
         Mesh( const ExaCLAMR::ClArgs<state_t>& cl,
                 const Cajita::Partitioner& partitioner,
-                MPI_Comm comm ) :
-                _global_bounding_box ( cl.global_bounding_box ) {
+                MPI_Comm comm ) 
+                : _global_bounding_box ( cl.global_bounding_box ){
+            std::cout << "Regular Mesh\n";
+
             // Define device_type for Later Use
             using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
@@ -218,7 +224,7 @@ class Mesh
         bool isLeftBoundary( const int i, const int j, const int k ) const {
             return ( i == _domainMin[0] - 1 && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
         };
-        
+
 
     private:
         int _rank;                                                                      /**< Rank of the mesh */
@@ -227,6 +233,8 @@ class Mesh
         std::array<long, 3> _domainMax;                                                 /**< Indices of upper corner of domain */
         const std::array<state_t, 6> _global_bounding_box;                              /**< Array of global bounding box */
 };
+
+
 
 }
 

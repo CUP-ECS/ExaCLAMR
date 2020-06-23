@@ -16,6 +16,7 @@
 
 // Include Statements
 #include <Mesh.hpp>
+#include <ExaClamrTypes.hpp>
 
 #include <Cabana_Core.hpp>
 #include <Cajita.hpp>
@@ -157,33 +158,30 @@ struct UWMinus {};
 }
 
 
-/**
- * The ProblemManager Class
- * @class ProblemManager
- * @brief ProblemManager class to store the mesh and state values, and to perform gathers and scatters.
- **/
-template<class MemorySpace, class ExecutionSpace, typename state_t>
-class ProblemManager
-{
-    using cell_array = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, MemorySpace>;
-    using halo = Cajita::Halo<state_t, MemorySpace>;
+template <class MeshType, class MemorySpace, class ExecutionSpace>
+class ProblemManager;
 
+template <class state_t, class MemorySpace, class ExecutionSpace>
+class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
     public:
-        /**
-         * Constructor
-         * Creates a new mesh
-         * Creates state cell layouts, halo layouts, and Cajita arrays to store state data
-         * Initializes state data
-         * 
-         * @param cl Command line arguments
-         * @param partitioner Cajita MPI partitioner
-         * @param comm MPI communicator
-         * @param create_functor Initialization function
-         */
+        ProblemManager() {
+            std::cout << "AMR Problem Manager\n";
+        }
+};
+
+template <class state_t, class MemorySpace, class ExecutionSpace>
+class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
+    public:
+
+        using cell_array = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, MemorySpace>;
+        using halo = Cajita::Halo<state_t, MemorySpace>;
+
         template <class InitFunc>
         ProblemManager( const ExaCLAMR::ClArgs<state_t>& cl, const Cajita::Partitioner& partitioner, MPI_Comm comm, const InitFunc& create_functor ) {
+            std::cout << "Regular Problem Manager\n";
+
             // Create Mesh
-            _mesh = std::make_shared<Mesh<MemorySpace, ExecutionSpace, state_t>> ( cl, partitioner, comm );
+            _mesh = std::make_shared<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> ( cl, partitioner, comm );
 
             // Create Vector and Scalar Layouts
             auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );   // 2-Dimensional ( Momentum )
@@ -239,7 +237,7 @@ class ProblemManager
 
             // Initialize State Values ( Height, Momentum )
             initialize( create_functor );
-
+            
         };
 
         /**
@@ -313,7 +311,7 @@ class ProblemManager
          * Return mesh
          * @return Returns Mesh object
          **/
-        const std::shared_ptr<Mesh<MemorySpace, ExecutionSpace, state_t>>& mesh() const {
+        const std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>>& mesh() const {
             return _mesh;
         };
 
@@ -527,7 +525,6 @@ class ProblemManager
 
         /**
          * Gather Height and Momentum from Neighbors if using Cuda UVM
-         * @param mindt Time step (dt)
          * @param time_Step Current time step
          **/
         void gatherCuda( int time_step ) const {
@@ -621,12 +618,12 @@ class ProblemManager
                 }   
             }
         };
-
+    
     private:
 #if 0
         Cabana::AoSoA<cell_members, MemorySpace> _cells;
 #endif
-        std::shared_ptr<Mesh<MemorySpace, ExecutionSpace, state_t>> _mesh;      /**< Mesh object */
+        std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _mesh;       /**< Mesh object */
         std::shared_ptr<cell_array> _momentum_a;                                /**< Momentum state array 1 */
         std::shared_ptr<cell_array> _height_a;                                  /**< Height state array 1 */
         std::shared_ptr<cell_array> _momentum_b;                                /**< Momentum state array 2 */
@@ -652,6 +649,7 @@ class ProblemManager
 
         std::shared_ptr<halo> _cell_vector_halo;                                /**< Halo for vector arrays */
         std::shared_ptr<halo> _cell_scalar_halo;                                /**< Halo for scalar arrays */
+
 };
 
 }

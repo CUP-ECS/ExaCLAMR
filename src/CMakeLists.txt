@@ -8,6 +8,7 @@ set(HEADERS
   Input.hpp
   SiloWriter.hpp
   Timer.hpp
+  ExaClamrTypes.hpp
   )
 
 set(SOURCES

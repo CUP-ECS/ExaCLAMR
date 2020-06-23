@@ -20,6 +20,7 @@
 #include <Solver.hpp>
 #include <BoundaryConditions.hpp>
 #include <Timer.hpp>
+#include <ExaClamrTypes.hpp>
 
 #include <Cajita.hpp>
 #include <Cabana_Core.hpp>
@@ -30,7 +31,6 @@
 #if DEBUG
     #include <iostream>
 #endif
-
 
 // Initialization Function
 template <typename state_t>
@@ -86,7 +86,7 @@ struct MeshInitFunc
 
 // Create Solver and Run CLAMR
 template <typename state_t>
-void clamr(  ExaCLAMR::ClArgs<state_t>& cl, ExaCLAMR::BoundaryCondition& bc, ExaCLAMR::Timer& timer) {
+void clamr( ExaCLAMR::ClArgs<state_t>& cl, ExaCLAMR::BoundaryCondition& bc, ExaCLAMR::Timer& timer ) {
     int comm_size, rank;                                        // Initialize Variables
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );                // Number of Ranks
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );                     // Get My Rank
@@ -105,7 +105,8 @@ void clamr(  ExaCLAMR::ClArgs<state_t>& cl, ExaCLAMR::BoundaryCondition& bc, Exa
     Cajita::ManualPartitioner partitioner( ranks_per_dim );         // Create Cajita Partitioner
 
     // Create Solver
-    auto solver = ExaCLAMR::createSolver( cl, bc, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
+    auto solver = ExaCLAMR::createRegularSolver( cl, bc, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
+    // auto solver = ExaCLAMR::createAMRSolver( );
     timer.setupStop();
 
     // Solve
@@ -165,6 +166,7 @@ int main( int argc, char* argv[] ) {
     }
     timer.writeStop();
 
+
     // Call Clamr - Double or Float as Template Arg
     clamr<state_t>( cl, bc, timer );
 
@@ -178,6 +180,8 @@ int main( int argc, char* argv[] ) {
     if (rank == 0 ) {
         timer.report();
     }
+
+
 
     return 0;
 };
