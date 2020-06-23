@@ -18,6 +18,7 @@
 // Include Statements
 #include <Input.hpp>
 #include <Solver.hpp>
+#include <BoundaryConditions.hpp>
 #include <Timer.hpp>
 
 #include <Cajita.hpp>
@@ -85,7 +86,7 @@ struct MeshInitFunc
 
 // Create Solver and Run CLAMR
 template <typename state_t>
-void clamr(  ExaCLAMR::ClArgs<state_t>& cl, ExaCLAMR::Timer& timer) {
+void clamr(  ExaCLAMR::ClArgs<state_t>& cl, ExaCLAMR::BoundaryCondition& bc, ExaCLAMR::Timer& timer) {
     int comm_size, rank;                                        // Initialize Variables
     MPI_Comm_size( MPI_COMM_WORLD, &comm_size );                // Number of Ranks
     MPI_Comm_rank( MPI_COMM_WORLD, &rank );                     // Get My Rank
@@ -104,7 +105,7 @@ void clamr(  ExaCLAMR::ClArgs<state_t>& cl, ExaCLAMR::Timer& timer) {
     Cajita::ManualPartitioner partitioner( ranks_per_dim );         // Create Cajita Partitioner
 
     // Create Solver
-    auto solver = ExaCLAMR::createSolver( cl, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
+    auto solver = ExaCLAMR::createSolver( cl, bc, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
     timer.setupStop();
 
     // Solve
@@ -134,6 +135,15 @@ int main( int argc, char* argv[] ) {
     ExaCLAMR::ClArgs<state_t> cl;
     if ( ExaCLAMR::parseInput( rank, argc, argv, cl ) != 0 ) return -1;
 
+    // Define boundary conditions to be Reflective in 2-Dimensions
+    ExaCLAMR::BoundaryCondition bc;
+    bc.boundary_type[0] = ExaCLAMR::BoundaryType::REFLECTIVE;   // X - Left
+    bc.boundary_type[1] = ExaCLAMR::BoundaryType::REFLECTIVE;   // Y - Bottom
+    bc.boundary_type[2] = ExaCLAMR::BoundaryType::NONE;         // Z - 
+    bc.boundary_type[3] = ExaCLAMR::BoundaryType::REFLECTIVE;   // X - Right
+    bc.boundary_type[4] = ExaCLAMR::BoundaryType::REFLECTIVE;   // Y - Top
+    bc.boundary_type[5] = ExaCLAMR::BoundaryType::NONE;         // Z - 
+    
     timer.setupStop();
 
     timer.writeStart();
@@ -156,7 +166,7 @@ int main( int argc, char* argv[] ) {
     timer.writeStop();
 
     // Call Clamr - Double or Float as Template Arg
-    clamr<state_t>( cl, timer );
+    clamr<state_t>( cl, bc, timer );
 
     Kokkos::finalize();                                 // Finalize Kokkos
     MPI_Finalize();                                     // Finalize MPI

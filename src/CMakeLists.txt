@@ -4,6 +4,7 @@ set(HEADERS
   Mesh.hpp
   ProblemManager.hpp
   TimeIntegration.hpp
+  BoundaryConditions.hpp
   Input.hpp
   SiloWriter.hpp
   Timer.hpp

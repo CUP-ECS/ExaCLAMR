@@ -23,6 +23,7 @@
 // Include Statements
 #include <ExaCLAMR.hpp>
 #include <ProblemManager.hpp>
+#include <BoundaryConditions.hpp>
 
 #include <stdio.h>
 #include <math.h>
@@ -32,95 +33,6 @@ namespace ExaCLAMR
 {
 namespace TimeIntegrator
 {
-
-/**
-* Apply reflective boundary conditions
-*
-* @param pm Problem manager
-* @param exec_space Execution space
-* @param mem_space Memory space
-* @param gravity Gravitational constant
-* @param time_step Current time step
-**/
-template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
-void applyBoundaryConditions( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const int time_step ) {
-    if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Applying Boundary Conditions\n";
-    // Get Current State Views
-    auto h_current = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
-    auto u_current = pm.get( Location::Cell(), Field::Momentum(), CURRENTFIELD( time_step ) );
-
-    // Get Local Grid to get OWNED Index Space
-    auto local_grid = pm.mesh()->localGrid();
-    auto owned_cells = local_grid->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
-
-    // Get Domain Index Space to Check Boundaries
-    auto domain = pm.mesh()->domainSpace();
-    auto mesh = *pm.mesh();
-
-    // Loop Over All Owned Cells and Update Boundary Cells ( i, j, k )
-    Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-        // Left Boundary
-        if ( mesh.isLeftBoundary( i, j, k ) ) {
-            // DEBUG: Print Rank and Left Boundary Indices
-            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tLeft Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
-            // No Flux Boundary Condition
-            h_current( i, j, k, 0 ) = h_current( i, j + 1, k, 0 );
-            u_current( i, j, k, 0 ) = u_current( i, j + 1, k, 0 );
-            u_current( i, j, k, 1 ) = -u_current( i, j + 1, k, 1 );
-            // Second Boundary Node set to 0
-            h_current( i, j - 1, k, 0 ) = 0;
-            u_current( i, j - 1, k, 0 ) = 0;
-            u_current( i, j - 1, k, 1 ) = 0;
-        }
-
-        // Right Boundary
-        if ( mesh.isRightBoundary( i, j, k ) ) {
-            // DEBUG: Print Rank and Right Boundary Indices
-            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tRight Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
-            // No Flux Boundary Condition
-            h_current( i, j, k, 0 ) = h_current( i, j - 1, k, 0 );
-            u_current( i, j, k, 0 ) = u_current( i, j - 1, k, 0 );
-            u_current( i, j, k, 1 ) = -u_current( i, j - 1, k, 1 );
-            // Second Boundary Node set to 0
-            h_current( i, j + 1, k, 0 ) = 0;
-            u_current( i, j + 1, k, 0 ) = 0;
-            u_current( i, j + 1, k, 1 ) = 0;
-        }
-
-        // Bottom Boundary
-        if ( mesh.isBottomBoundary( i, j, k ) ) {
-            // DEBUG: Print Rank and Bottom Boundary Indices
-            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tBottom Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
-            // No Flux Boundary Condition
-            h_current( i, j, k, 0 ) = h_current( i - 1, j, k, 0 );
-            u_current( i, j, k, 0 ) = -u_current( i - 1, j, k, 0 );
-            u_current( i, j, k, 1 ) = u_current( i - 1, j, k, 1 );
-            // Second Boundary Node set to 0
-            h_current( i + 1, j, k, 0 ) = 0;
-            u_current( i + 1, j, k, 0 ) = 0;
-            u_current( i + 1, j, k, 1 ) = 0;
-        }
-
-        // Top Boundary
-        if ( mesh.isTopBoundary( i, j, k ) ) {
-            // DEBUG: Print Rank and Top Boundary Indices
-            // if ( DEBUG ) std::cout << "Rank: " << pm.mesh()->rank() << "\tTop Boundary:\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
-            // No Flux Boundary Condition
-            h_current( i, j, k, 0 ) = h_current( i + 1, j, k, 0 );
-            u_current( i, j, k, 0 ) = -u_current( i + 1, j, k, 0 );
-            u_current( i, j, k, 1 ) = u_current( i + 1, j, k, 1 );
-            // Second Boundary Node set to 0
-            h_current( i - 1, j, k, 0 ) = 0;
-            u_current( i - 1, j, k, 0 ) = 0;
-            u_current( i - 1, j, k, 1 ) = 0;
-        }
-    } );
-
-    // Kokkos Fence
-    Kokkos::fence();
-    MPI_Barrier( MPI_COMM_WORLD );
-
-}
 
 /**
 * Perform Halo Exchange
@@ -288,12 +200,13 @@ inline state_t uFullStep( state_t dt, state_t dr, state_t u, state_t f_plus, sta
  * @param pm Problem manager
  * @param exec_space Execution space
  * @param mem_space Memory space
+ * @param bc Boundary conditions
  * @param dt Time step (dt)
  * @param gravity Gravitational constant
  * @param time_step Current time step (count) 
 **/
 template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
-void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t dt, const state_t gravity, const int time_step ) {
+void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const ExaCLAMR::BoundaryCondition& bc, const state_t dt, const state_t gravity, const int time_step ) {
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Time Stepper\n";
 
     using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
@@ -303,12 +216,28 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     state_t dy = pm.mesh()->cellSize( 1 );
     state_t ghalf = 0.5 * gravity;
 
-    // Apply Boundary Conditions
-    applyBoundaryConditions( pm, exec_space, mem_space, gravity, time_step );
+    // Get Local Grid to get Owned Index Space
+    auto local_grid = pm.mesh()->localGrid();
+    auto owned_cells = local_grid->indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
+
+    // Get Domain Index Space to Check Boundaries
+    auto mesh = *pm.mesh();
 
     // Get Current State Views
     auto u_current = pm.get( Location::Cell(), Field::Momentum(), CURRENTFIELD( time_step ) );
     auto h_current = pm.get( Location::Cell(), Field::Height(), CURRENTFIELD( time_step ) );
+
+    // Apply Boundary Conditions
+    // DEBUG: Print Boundary Condition Trace
+    if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Applying Boundary Conditions\n";
+    // Loop Over All Owned Cells and Update Boundary Cells ( i, j, k )
+    Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+        bc( pm, i, j, k, h_current, u_current, mesh );
+    } );
+
+    // Kokkos Fence
+    Kokkos::fence();
+    MPI_Barrier( MPI_COMM_WORLD );
 
     // Get New State Views
     auto u_new = pm.get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );

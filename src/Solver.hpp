@@ -21,6 +21,7 @@
 #include <Mesh.hpp>
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
+#include <BoundaryConditions.hpp>
 #include <Timer.hpp>
 
 #ifdef HAVE_SILO
@@ -81,14 +82,15 @@ class Solver : public SolverBase<state_t> {
          * Set private variables, halo size, time steps, gravity, and sigma
          * 
          * @param cl Command line arguments
+         * @param bc Boundary condition
          * @param comm MPI communicator
          * @param create_functor Initialization function
          * @param partitioner Cajita MPI Partitioner
          * @param timer ExaCLAMR timer to profile performance
          */
         template <class InitFunc>
-        Solver( const ExaCLAMR::ClArgs<state_t>& cl, MPI_Comm comm, const InitFunc& create_functor, const Cajita::Partitioner& partitioner, ExaCLAMR::Timer& timer )
-        : _halo_size ( cl.halo_size ), _time_steps ( cl.time_steps ), _gravity ( cl.gravity ), _sigma ( cl.sigma ) {
+        Solver( const ExaCLAMR::ClArgs<state_t>& cl, const ExaCLAMR::BoundaryCondition& bc, MPI_Comm comm, const InitFunc& create_functor, const Cajita::Partitioner& partitioner, ExaCLAMR::Timer& timer )
+        : _bc ( bc ), _halo_size ( cl.halo_size ), _time_steps ( cl.time_steps ), _gravity ( cl.gravity ), _sigma ( cl.sigma ) {
             MPI_Comm_rank( comm, &_rank );
             // DEBUG: Trace Created Solver
             if ( _rank == 0 && DEBUG ) std::cout << "Created Solver\n";
@@ -206,7 +208,7 @@ class Solver : public SolverBase<state_t> {
 
                 timer.computeStart();
                 // Perform Calculation
-                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), mindt, _gravity, time_step );
+                TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _bc, mindt, _gravity, time_step );
                 timer.computeStop();
 
                 timer.communicationStart();
@@ -256,12 +258,15 @@ class Solver : public SolverBase<state_t> {
         #ifdef HAVE_SILO
             std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace, state_t>> _silo;        /**< Silo writer object */
         #endif
+
+        ExaCLAMR::BoundaryCondition _bc;                                                    /**< Boundary conditions */
 };
 
 
 /**
  * Create Solver Pointer with Templates based on specified ExecutionSpace and MemorySpace
  * @param cl Command line arguments
+ * @param bc Boundary condition
  * @param comm MPI communicator
  * @param create_functor Initialization function
  * @param partitioner Cajita MPI Partitioner
@@ -269,6 +274,7 @@ class Solver : public SolverBase<state_t> {
 **/
 template <typename state_t, class InitFunc>
 std::shared_ptr<SolverBase<state_t>> createSolver( const ExaCLAMR::ClArgs<state_t>& cl,
+                                            const ExaCLAMR::BoundaryCondition& bc,
                                             MPI_Comm comm, 
                                             const InitFunc& create_functor,
                                             const Cajita::Partitioner& partitioner,
@@ -278,6 +284,7 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const ExaCLAMR::ClArgs<state_
         #ifdef KOKKOS_ENABLE_SERIAL
             return std::make_shared<ExaCLAMR::Solver<Kokkos::HostSpace, Kokkos::Serial, state_t>>(
                 cl,
+                bc,
                 comm,
                 create_functor,
                 partitioner,
@@ -291,6 +298,7 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const ExaCLAMR::ClArgs<state_
         #ifdef KOKKOS_ENABLE_OPENMP
             return std::make_shared<ExaCLAMR::Solver<Kokkos::HostSpace, Kokkos::OpenMP, state_t>>(
                 cl,
+                bc,
                 comm, 
                 create_functor,
                 partitioner,
@@ -304,6 +312,7 @@ std::shared_ptr<SolverBase<state_t>> createSolver( const ExaCLAMR::ClArgs<state_
         #ifdef KOKKOS_ENABLE_CUDA
             return std::make_shared<ExaCLAMR::Solver<Kokkos::CudaUVMSpace, Kokkos::Cuda, state_t>>(
                 cl,
+                bc,
                 comm,
                 create_functor,
                 partitioner,

@@ -173,28 +173,6 @@ class Mesh
         };
 
         /**
-         * Determine whether the cell is on the left boundary
-         * @param i Index in x-direction
-         * @param j Index in y-direction
-         * @param k Index in z-direction
-         * @return Returns true if the cell is on the left boundary
-         **/
-        bool isLeftBoundary( const int i, const int j, const int k ) const {
-            return ( j == _domainMin[1] - 1 && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
-        };
-
-        /**
-         * Determine whether the cell is on the right boundary
-         * @param i Index in x-direction
-         * @param j Index in y-direction
-         * @param k Index in z-direction
-         * @return Returns true if the cell is on the right boundary
-         **/
-        bool isRightBoundary( const int i, const int j, const int k ) const {
-            return ( j == _domainMax[1] && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
-        };
-
-        /**
          * Determine whether the cell is on the bottom boundary
          * @param i Index in x-direction
          * @param j Index in y-direction
@@ -202,7 +180,7 @@ class Mesh
          * @return Returns true if the cell is on the bottom boundary
          **/
         bool isBottomBoundary( const int i, const int j, const int k ) const {
-            return ( i == _domainMax[0] && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
+            return ( j == _domainMin[1] - 1 && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
         };
 
         /**
@@ -213,6 +191,28 @@ class Mesh
          * @return Returns true if the cell is on the top boundary
          **/
         bool isTopBoundary( const int i, const int j, const int k ) const {
+            return ( j == _domainMax[1] && i >= _domainMin[0] && i <= _domainMax[0] - 1 );
+        };
+
+        /**
+         * Determine whether the cell is on the right boundary
+         * @param i Index in x-direction
+         * @param j Index in y-direction
+         * @param k Index in z-direction
+         * @return Returns true if the cell is on the right boundary
+         **/
+        bool isRightBoundary( const int i, const int j, const int k ) const {
+            return ( i == _domainMax[0] && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
+        };
+
+        /**
+         * Determine whether the cell is on the left boundary
+         * @param i Index in x-direction
+         * @param j Index in y-direction
+         * @param k Index in z-direction
+         * @return Returns true if the cell is on the left boundary
+         **/
+        bool isLeftBoundary( const int i, const int j, const int k ) const {
             return ( i == _domainMin[0] - 1 && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
         };
 
