@@ -42,6 +42,11 @@
 namespace ExaCLAMR
 {
 
+/**
+ * The SolverBase Class
+ * @class SolverBase
+ * @brief SolverBase class to provide virutal functions for actual Solver class
+ **/
 template <typename MeshType>
 class SolverBase {
     public:
@@ -59,6 +64,11 @@ class SolverBase {
         virtual void solve( const int write_freq, ExaCLAMR::Timer& timer ) = 0;
 };
 
+/**
+ * The Solver Class
+ * @class Solver
+ * @brief Solver class to store problem manager and silo writer and to iterate over specified time steps and write results to file
+ **/
 
 template<class MeshType, class MemorySpace, class ExecutionSpace>
 class Solver : public SolverBase<MeshType> {};
@@ -82,7 +92,21 @@ class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> : public S
 template<typename state_t, class MemorySpace, class ExecutionSpace>
 class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> : public SolverBase<ExaCLAMR::RegularMesh<state_t>> {
     public:
-
+        /**
+         * Constructor
+         * Determine rank
+         * Create new problem manager object
+         * Create new silo object if silo is available
+         * Calculate initial mass of the system
+         * Set private variables, halo size, time steps, gravity, and sigma
+         * 
+         * @param cl Command line arguments
+         * @param bc Boundary condition
+         * @param comm MPI communicator
+         * @param create_functor Initialization function
+         * @param partitioner Cajita MPI Partitioner
+         * @param timer ExaCLAMR timer to profile performance
+         */
         template <class InitFunc>
         Solver( 
             const ExaCLAMR::ClArgs<state_t>& cl, 
@@ -102,7 +126,7 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> : publ
             // Create Silo Writer
             #ifdef HAVE_SILO
             // TODO: Silo for Cuda case
-                _silo = std::make_shared<SiloWriter<MemorySpace, ExecutionSpace, state_t>>( _pm );
+                _silo = std::make_shared<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>>( _pm );
             #endif
 
             MPI_Barrier( MPI_COMM_WORLD );
@@ -247,26 +271,34 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> : publ
         
 
     private:
-        int _rank;                                                                          /**< Rank of solver */
-        int _time_steps;                                                                    /**< Number of time steps to solve for */
-        int _halo_size;                                                                     /**< Halo size of the mesh */
+        int _rank;                                                                                          /**< Rank of solver */
+        int _time_steps;                                                                                    /**< Number of time steps to solve for */
+        int _halo_size;                                                                                     /**< Halo size of the mesh */
 
-        state_t _gravity;                                                                   /**< Gravitational constant */
-        state_t _sigma;                                                                     /**< Sigma used to control CFL number and calculate time step */
-        state_t _initial_mass;                                                              /**< Initial mass of the system */
-        state_t _current_mass;                                                              /**< Current mass of the system */
+        state_t _gravity;                                                                                   /**< Gravitational constant */
+        state_t _sigma;                                                                                     /**< Sigma used to control CFL number and calculate time step */
+        state_t _initial_mass;                                                                              /**< Initial mass of the system */
+        state_t _current_mass;                                                                              /**< Current mass of the system */
 
-        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _pm;                /**< Problem Manager object */
+        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _pm;   /**< Problem Manager object */
         #ifdef HAVE_SILO
-            std::shared_ptr<SiloWriter<MemorySpace, ExecutionSpace, state_t>> _silo;        /**< Silo writer object */
+            std::shared_ptr<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _silo; /**< Silo writer object */
         #endif
 
-        ExaCLAMR::BoundaryCondition _bc;                                                    /**< Boundary conditions */
+        ExaCLAMR::BoundaryCondition _bc;                                                                    /**< Boundary conditions */
 
 
 };
 
-
+/**
+ * Create Solver Pointer with Templates based on specified ExecutionSpace and MemorySpace
+ * @param cl Command line arguments
+ * @param bc Boundary condition
+ * @param comm MPI communicator
+ * @param create_functor Initialization function
+ * @param partitioner Cajita MPI Partitioner
+ * @param timer ExaCLAMR timer to profile performance
+**/
 template<typename state_t, class InitFunc>
 std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolver( 
                                             const ExaCLAMR::ClArgs<state_t>& cl,
@@ -324,6 +356,15 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     }
 };
 
+/**
+ * Create Solver Pointer with Templates based on specified ExecutionSpace and MemorySpace
+ * @param cl Command line arguments
+ * @param bc Boundary condition
+ * @param comm MPI communicator
+ * @param create_functor Initialization function
+ * @param partitioner Cajita MPI Partitioner
+ * @param timer ExaCLAMR timer to profile performance
+**/
 template<typename state_t, class InitFunc>
 std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegularSolver( 
                                             const ExaCLAMR::ClArgs<state_t>& cl,

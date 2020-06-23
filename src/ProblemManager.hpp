@@ -157,7 +157,11 @@ struct UWPlus {};
 struct UWMinus {};
 }
 
-
+/**
+ * The ProblemManager Class
+ * @class ProblemManager
+ * @brief ProblemManager class to store the mesh and state values, and to perform gathers and scatters.
+ **/
 template <class MeshType, class MemorySpace, class ExecutionSpace>
 class ProblemManager;
 
@@ -171,10 +175,21 @@ class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
 
 template <class state_t, class MemorySpace, class ExecutionSpace>
 class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
-    public:
+    using cell_array = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, MemorySpace>;
+    using halo = Cajita::Halo<state_t, MemorySpace>;
 
-        using cell_array = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, MemorySpace>;
-        using halo = Cajita::Halo<state_t, MemorySpace>;
+    public:
+        /**
+         * Constructor
+         * Creates a new mesh
+         * Creates state cell layouts, halo layouts, and Cajita arrays to store state data
+         * Initializes state data
+         * 
+         * @param cl Command line arguments
+         * @param partitioner Cajita MPI partitioner
+         * @param comm MPI communicator
+         * @param create_functor Initialization function
+         */
 
         template <class InitFunc>
         ProblemManager( const ExaCLAMR::ClArgs<state_t>& cl, const Cajita::Partitioner& partitioner, MPI_Comm comm, const InitFunc& create_functor ) {
@@ -624,31 +639,31 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
         Cabana::AoSoA<cell_members, MemorySpace> _cells;
 #endif
         std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _mesh;       /**< Mesh object */
-        std::shared_ptr<cell_array> _momentum_a;                                /**< Momentum state array 1 */
-        std::shared_ptr<cell_array> _height_a;                                  /**< Height state array 1 */
-        std::shared_ptr<cell_array> _momentum_b;                                /**< Momentum state array 2 */
-        std::shared_ptr<cell_array> _height_b;                                  /**< Height state array 2 */
+        std::shared_ptr<cell_array> _momentum_a;                                                        /**< Momentum state array 1 */
+        std::shared_ptr<cell_array> _height_a;                                                          /**< Height state array 1 */
+        std::shared_ptr<cell_array> _momentum_b;                                                        /**< Momentum state array 2 */
+        std::shared_ptr<cell_array> _height_b;                                                          /**< Height state array 2 */
 
-        std::shared_ptr<cell_array> _hx_flux_plus;                              /**< Height x-direction positive flux array */
-        std::shared_ptr<cell_array> _hx_flux_minus;                             /**< Height x-direction negative flux array */
-        std::shared_ptr<cell_array> _ux_flux_plus;                              /**< X-Momentum positive flux array */
-        std::shared_ptr<cell_array> _ux_flux_minus;                             /**< X-Momentum negative flux array */
+        std::shared_ptr<cell_array> _hx_flux_plus;                                                      /**< Height x-direction positive flux array */
+        std::shared_ptr<cell_array> _hx_flux_minus;                                                     /**< Height x-direction negative flux array */
+        std::shared_ptr<cell_array> _ux_flux_plus;                                                      /**< X-Momentum positive flux array */
+        std::shared_ptr<cell_array> _ux_flux_minus;                                                     /**< X-Momentum negative flux array */
 
-        std::shared_ptr<cell_array> _hy_flux_plus;                              /**< Height y-direction positive flux array */
-        std::shared_ptr<cell_array> _hy_flux_minus;                             /**< Height y-direction negative flux array */
-        std::shared_ptr<cell_array> _uy_flux_plus;                              /**< Y-Momentum positive flux array */
-        std::shared_ptr<cell_array> _uy_flux_minus;                             /**< Y-Momentum negative flux array */
+        std::shared_ptr<cell_array> _hy_flux_plus;                                                      /**< Height y-direction positive flux array */
+        std::shared_ptr<cell_array> _hy_flux_minus;                                                     /**< Height y-direction negative flux array */
+        std::shared_ptr<cell_array> _uy_flux_plus;                                                      /**< Y-Momentum positive flux array */
+        std::shared_ptr<cell_array> _uy_flux_minus;                                                     /**< Y-Momentum negative flux array */
 
-        std::shared_ptr<cell_array> _hx_w_plus;                                 /**< Height x-direction positive flux corrector array */
-        std::shared_ptr<cell_array> _hx_w_minus;                                /**< Height x-direction negative flux corrector array */
-        std::shared_ptr<cell_array> _hy_w_plus;                                 /**< Height y-direction positive flux corrector array */
-        std::shared_ptr<cell_array> _hy_w_minus;                                /**< Height y-direction negative flux corrector array */
+        std::shared_ptr<cell_array> _hx_w_plus;                                                         /**< Height x-direction positive flux corrector array */
+        std::shared_ptr<cell_array> _hx_w_minus;                                                        /**< Height x-direction negative flux corrector array */
+        std::shared_ptr<cell_array> _hy_w_plus;                                                         /**< Height y-direction positive flux corrector array */
+        std::shared_ptr<cell_array> _hy_w_minus;                                                        /**< Height y-direction negative flux corrector array */
 
-        std::shared_ptr<cell_array> _u_w_plus;                                  /**< Momentum positive flux corrector array */
-        std::shared_ptr<cell_array> _u_w_minus;                                 /**< Momentum negative flux corrector array */
+        std::shared_ptr<cell_array> _u_w_plus;                                                          /**< Momentum positive flux corrector array */
+        std::shared_ptr<cell_array> _u_w_minus;                                                         /**< Momentum negative flux corrector array */
 
-        std::shared_ptr<halo> _cell_vector_halo;                                /**< Halo for vector arrays */
-        std::shared_ptr<halo> _cell_scalar_halo;                                /**< Halo for scalar arrays */
+        std::shared_ptr<halo> _cell_vector_halo;                                                        /**< Halo for vector arrays */
+        std::shared_ptr<halo> _cell_scalar_halo;                                                        /**< Halo for scalar arrays */
 
 };
 

@@ -45,9 +45,19 @@ class Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
             std::cout << "AMR Mesh\n";
         }
 };
+
 template <class state_t, class MemorySpace, class ExecutionSpace>
 class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
     public:
+        /**
+         * Constructor
+         * Creates a new mesh and calculates the bounding box, number of cells, and the domain index space.
+         * Creates a Cajita Local Grid on each rank as a class member
+         * 
+         * @param cl Command line arguments
+         * @param partitioner Cajita MPI partitioner
+         * @param comm MPI communicator
+         */
         Mesh( const ExaCLAMR::ClArgs<state_t>& cl,
                 const Cajita::Partitioner& partitioner,
                 MPI_Comm comm ) 

@@ -58,10 +58,19 @@ struct SiloTraits<double> {
  * @class SiloWriter
  * @brief SiloWriter class to write results to Silo file using PMPIO
  **/
-template<class MemorySpace, class ExecutionSpace, typename state_t>
-class SiloWriter
-{
+template <class MeshType, class MemorySpace, class ExecutionSpace>
+class SiloWriter;
 
+template <class state_t, class MemorySpace, class ExecutionSpace>
+class SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
+    public:
+        SiloWriter() {
+            std::cout << "AMR Silo\n";
+        }
+};
+
+template <class state_t, class MemorySpace, class ExecutionSpace>
+class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
     public:
         /**
          * Constructor

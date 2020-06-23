@@ -23,27 +23,27 @@ struct AMRMesh
 
 // Type checker.
 template <class T>
-struct isMeshType : public std::false_type
+struct isExaMeshType : public std::false_type
 {
 };
 
 template <class Scalar>
-struct isMeshType<RegularMesh<Scalar>> : public std::true_type
+struct isExaMeshType<RegularMesh<Scalar>> : public std::true_type
 {
 };
 
 template <class Scalar>
-struct isMeshType<const RegularMesh<Scalar>> : public std::true_type
+struct isExaMeshType<const RegularMesh<Scalar>> : public std::true_type
 {
 };
 
 template <class Scalar>
-struct isMeshType<AMRMesh<Scalar>> : public std::true_type
+struct isExaMeshType<AMRMesh<Scalar>> : public std::true_type
 {
 };
 
 template <class Scalar>
-struct isMeshType<const AMRMesh<Scalar>> : public std::true_type
+struct isExaMeshType<const AMRMesh<Scalar>> : public std::true_type
 {
 };
 
