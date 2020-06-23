@@ -264,9 +264,8 @@ class ProblemManager
             if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tHigh Corner: " << \
             local_mesh.highCorner( Cajita::Own(), 0 ) << local_mesh.highCorner( Cajita::Own(), 1 ) << local_mesh.highCorner( Cajita::Own(), 2 ) << "\n";
 
-            // Get Ghost Cell and Owned Cells Index Spaces
+            // Get Ghost Cell Index Space
             auto ghost_cells = local_grid.indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
-            auto owned_cells = local_grid.indexSpace( Cajita::Own(), Cajita::Cell(), Cajita::Local() );
 
             // Get State Arrays
             auto u_a = get(Location::Cell(), Field::Momentum(), 0 );

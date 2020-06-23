@@ -100,6 +100,7 @@ class Solver : public SolverBase<state_t> {
 
             // Create Silo Writer
             #ifdef HAVE_SILO
+            // TODO: Silo for Cuda case
                 _silo = std::make_shared<SiloWriter<MemorySpace, ExecutionSpace, state_t>>( _pm );
             #endif
 

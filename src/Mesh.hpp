@@ -114,8 +114,7 @@ class Mesh
             // Create Local Grid
             _local_grid = Cajita::createLocalGrid( global_grid, cl.halo_size );
 
-            // Get Local Mesh and Owned Cells for Domain Calculation
-            auto local_mesh = Cajita::createLocalMesh<device_type>( *_local_grid );
+            // Get Ghost Cells for Domain Calculation
             auto ghost_cells = _local_grid->indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
 
             // Calculate domain index space - assumes regular grid
