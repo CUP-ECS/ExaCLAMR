@@ -11,7 +11,8 @@ CABANA_GIT=https://github.com/ECP-copa/Cabana.git
 module load cmake-3.13.4-gcc-7.4.0-rdapt4e
 module load cuda-10.0.130-gcc-7.4.0-7svpedx
 module load gcc-7.4.0-gcc-8.1.0-j26pfmd
-module load openmpi-3.1.3-gcc-7.4.0-ts2kdgn
+#module load openmpi-3.1.3-gcc-7.4.0-ts2kdgn
+module load openmpi-3.1.4-gcc-9.2.0-imwbtvi
 
 # Environment Variables for NVCC
 export NVCC_WRAPPER_DEFAULT_COMPILER=/opt/spack/opt/spack/linux-scientific7-x86_64/gcc-8.1.0/gcc-7.4.0-j26pfmdodybas2fpybqyi7hfvbc6kqot/bin/g++
