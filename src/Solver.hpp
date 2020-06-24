@@ -150,13 +150,19 @@ class Solver : public SolverBase<state_t> {
             auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
             auto uNew = _pm->get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
 
+            auto hHost = Kokkos::create_mirror_view( hNew );
+            auto uHost = Kokkos::create_mirror_view( uNew );
+
+            Kokkos::deep_copy( hHost, hNew );
+            Kokkos::deep_copy( uHost, uNew );
+
             // Only Loop if Rank is the Specified Rank
             if ( _pm->mesh()->rank() == rank ) {
                 for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                     for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                         for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
                             // DEBUG: Print Height array
-                            if ( DEBUG ) std::cout << std::left << std::setw( 8 ) << hNew( i, j, k, 0 );
+                            if ( DEBUG ) std::cout << std::left << std::setw( 8 ) << hHost( i, j, k, 0 );
                         }
                     }
                     // DEBUG: New Line
