@@ -163,6 +163,12 @@ class SiloWriter
             auto uNew = _pm->get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
             auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
+            auto uHost = Kokkos::create_mirror_view( uNew );
+            auto hHost = Kokkos::create_mirror_view( hNew );
+
+            Kokkos::deep_copy( uHost, uNew );
+            Kokkos::deep_copy( hHost, hNew );
+
             // Loop Over Domain ( i, j, k )
             for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                 for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
@@ -175,9 +181,9 @@ class SiloWriter
                         int inx = iown + domain.extent( 0 ) * ( jown + domain.extent( 1 ) * kown );
 
                         // Set State Values to be Written
-                        height[inx] = hNew( i, j, k, 0 );
-                        u[inx] = uNew( i, j, k, 0 );
-                        v[inx] = uNew( i, j, k, 1 );
+                        height[inx] = hHost( i, j, k, 0 );
+                        u[inx] = uHost( i, j, k, 0 );
+                        v[inx] = uHost( i, j, k, 1 );
                     }
                 }
             }
