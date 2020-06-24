@@ -16,9 +16,9 @@ Re-Implementation of the Shallow Water Solver LANL/CLAMR using Kokkos, Cabana, a
 
 ## Future Directions and Tasks
 
-- [ ] Fix Cuda MPI issue in use of Cajita Halo gather (currently functioning with a work around using CudaUVM and a custom halo exchange). It might be an issue with how ExaCLAMR is using the Cajita gather?
+- [x] Fix Cuda MPI issue in use of Cajita Halo gather (currently functioning with a work around using CudaUVM and a custom halo exchange). It might be an issue with how ExaCLAMR is using the Cajita gather?
 - [x] Get Silo to build on Wheeler and Xena and get it working with the CudaUVM case
-- [ ] Template the mesh and problem manager classes for regular grids, AMR grids, and space-filling curves
+- [x] Template the mesh and problem manager classes for regular grids, AMR grids, and space-filling curves (see Jered branch)
 - [ ] Investigate using Cabana AoSoA
 - [ ] Add particle physics
 

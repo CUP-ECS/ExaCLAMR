@@ -49,17 +49,9 @@ void haloExchange( const ProblemManagerType& pm, const ExecutionSpace& exec_spac
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Starting Halo Exchange\n";
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << exec_space.name() << "\n";
 
-    // If not Cuda ( OpenMP or Serial ), Use Cajita Gather
-    if ( strcmp( exec_space.name(), "Cuda" ) != 0 ) {
-        // Perform Halo Exchange on Height and Momentum State Views
-        pm.gather( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
-        pm.gather( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
-    }
-    // If Cuda, use Custom Halo Exchange
-    // TODO: Break gatherCuda up by field
-    // TODO: Helper function to eliminate duplicate work of gatherCuda
-    else pm.gatherCuda( time_step );
-
+    // Perform Halo Exchange on Height and Momentum State Views
+    pm.gather( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
+    pm.gather( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
     MPI_Barrier( MPI_COMM_WORLD );
 }
 
