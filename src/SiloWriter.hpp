@@ -85,7 +85,7 @@ class SiloWriter
          **/
         void writeFile( DBfile *dbfile, char *name, int time_step, state_t time, state_t dt ) {
             // Initialize Variables
-            int            dims[2], zdims[2], zones[2], nx, ny, offsetx, offsety, ndims, meshid;
+            int            dims[2], zdims[2], nx, ny, ndims;
             state_t       *coords[2], *vars[2], dx, dy;
             char          *coordnames[2], *varnames[2];
             DBoptlist     *optlist;
@@ -122,9 +122,6 @@ class SiloWriter
             // Account for Edge Node
             dims[0] = nx + 1;
             dims[1] = ny + 1;
-            // Get Correct Number of Cells
-            zones[0] = dims[0] - 1;         // Equivalent to nx
-            zones[1] = dims[1] - 1;         // Equivalent to ny
 
             // Correct Number of Cells/Zones
             zdims[0] = dims[0] - 1;         // Equivalent to nx
@@ -159,7 +156,7 @@ class SiloWriter
                 y[jown] = x_coords[1] - 0.5 * dy;
             }
 
-            meshid = DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
+            DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
                         coords, dims, ndims, SiloTraits<state_t>::type(), DB_COLLINEAR, optlist);
 
             // Get State Views
