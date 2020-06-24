@@ -23,6 +23,26 @@ exit_abnormal() {
     exit 1
 }
 
+# Get Silo
+get_silo() {
+        cd ${MYDIR}/libs
+            wget https://wci.llnl.gov/content/assets/docs/simulation/computer-codes/silo/silo-4.10.2/silo-4.10.2-bsd.tar.gz
+                tar -xvf silo-4.10.2-bsd.tar.gz
+                    mv silo-4.10.2-bsd silo
+                        rm silo-4.10.2-bsd.tar.gz
+                            cd ${MYDIR}
+
+}
+
+# Build Silo
+build_silo() {
+        cd ${MYDIR}/libs/silo
+            ./configure --prefix=${INSTALL_DIR}
+                make -j8 install
+                    cd ${MYDIR}
+
+}
+
 # Build Kokkos on Xena (Tesla K40 GPU - KEPLER 35) with Cuda UVM
 build_kokkos() {
     cd ${MYDIR}/libs/kokkos
@@ -54,7 +74,7 @@ update_repos() {
         git clone ${KOKKOS_GIT}
         git clone ${CABANA_GIT}
         cd ${MYDIR}
-    elif [ ! -d "libs/kokkos" ] || [ ! -d "libs/Cabana" ]; then
+    elif [ ! -d "libs/kokkos" ] || [ ! -d "libs/Cabana" ] || [ ! -d "libs/silo" ]; then
         if [ ! -d "libs/kokkos" ]; then
             cd libs
             git clone ${KOKKOS_GIT}
@@ -63,6 +83,11 @@ update_repos() {
         if [ ! -d "libs/Cabana" ]; then
             cd libs
             git clone ${CABANA_GIT}
+            cd ${MYDIR}
+        fi
+        if [ ! -d "libs/silo" ]; then
+            cd libs
+            get_silo
             cd ${MYDIR}
         fi
     else
@@ -86,6 +111,9 @@ build_workspace() {
         cd ${MYDIR}/libs
         git clone ${CABANA_GIT}
         build_cabana
+        cd ${MYDIR}/libs
+        get_silo
+        build_silo
         cd ${MYDIR}
     else
         if [ ! -d "libs/kokkos" ]; then
@@ -98,6 +126,12 @@ build_workspace() {
             cd ${MYDIR}/libs
             git clone ${CABANA_GIT}
             build_cabana
+            cd ${MYDIR}
+        fi
+            if [ ! -d "libs/silo"  ]; then
+            cd ${MYDIR}/libs
+            get_silo
+            build_silo
             cd ${MYDIR}
         fi
         cd ${MYDIR}
@@ -114,6 +148,7 @@ while getopts "a" opt; do
             cd ${MYDIR}
             build_kokkos
             build_cabana
+            build_silo
             ;;
         *)
             exit_abnormal
@@ -129,6 +164,7 @@ cd ${MYDIR}
 rm -rf build
 mkdir -p build
 cd build
-cmake -D CMAKE_PREFIX_PATH=${INSTALL_DIR}/usr/local -D CMAKE_CXX_FLAGS="--expt-relaxed-constexpr" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On ..
+cmake -D CMAKE_CXX_FLAGS=-I"${INSTALL_DIR}/include --expt-relaxed-constexpr"  -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;${INSTALL_DIR}/lib" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On ..
 make -j8
-
+mkdir data
+mkdir data/raw
