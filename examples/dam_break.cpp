@@ -105,12 +105,15 @@ void clamr( ExaCLAMR::ClArgs<state_t>& cl, ExaCLAMR::BoundaryCondition& bc, ExaC
     Cajita::ManualPartitioner partitioner( ranks_per_dim );         // Create Cajita Partitioner
 
     // Create Solver
-    auto solver = ExaCLAMR::createRegularSolver( cl, bc, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
-    // auto solver = ExaCLAMR::createAMRSolver( );
-    timer.setupStop();
-
-    // Solve
-    solver->solve( cl.write_freq, timer );
+    if ( !cl.meshtype.compare( "regular" ) ) {
+        auto solver = ExaCLAMR::createRegularSolver( cl, bc, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
+        timer.setupStop();
+        // Solve
+        solver->solve( cl.write_freq, timer );
+    }
+    else if ( !cl.meshtype.compare( "amr" ) ) auto solver = ExaCLAMR::createAMRSolver( cl, bc, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
+    else auto solver = ExaCLAMR::createRegularSolver( cl, bc, MPI_COMM_WORLD, MeshInitFunc<state_t>( cl.global_bounding_box ), partitioner, timer );
+    
 };
 
 
@@ -154,6 +157,7 @@ int main( int argc, char* argv[] ) {
         std::cout << "ExaClamr\n";
         std::cout << "=======Command line arguments=======\n";
         std::cout << std::left << std::setw( 20 ) << "Thread Setting"    << ": " << std::setw( 8 ) << cl.device      << "\n";                                                           // Threading Setting
+        std::cout << std::left << std::setw( 20 ) << "Mesh Type"         << ": " << std::setw( 8 ) << cl.meshtype    << "\n";                                                           // Mesh Type
         std::cout << std::left << std::setw( 20 ) << "Cells"             << ": " << std::setw( 8 ) << cl.nx          << std::setw( 8 ) << cl.ny << std::setw( 8 ) << cl.nz << "\n";     // Number of Cells
         std::cout << std::left << std::setw( 20 ) << "Domain"            << ": " << std::setw( 8 ) << cl.hx          << std::setw( 8 ) << cl.hy << std::setw( 8 ) << cl.hz << "\n";     // Span of Domain
         std::cout << std::left << std::setw( 20 ) << "Periodicity"       << ": " << std::setw( 8 ) <<                                                                                   // Periodicity

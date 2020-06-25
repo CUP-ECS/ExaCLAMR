@@ -78,10 +78,21 @@ template<typename state_t, class MemorySpace, class ExecutionSpace>
 class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> : public SolverBase<ExaCLAMR::AMRMesh<state_t>> {
     public:
 
-        Solver( ) {
+        template <class InitFunc>
+        Solver( const ExaCLAMR::ClArgs<state_t>& cl, 
+            const ExaCLAMR::BoundaryCondition& bc, 
+            MPI_Comm comm, 
+            const InitFunc& create_functor, 
+            const Cajita::Partitioner& partitioner, 
+            ExaCLAMR::Timer& timer ) {
+
             std::cout << "Created AMR Solver\n";
             _pm = std::make_shared<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace>>();
         };
+
+        void solve( const int write_freq, ExaCLAMR::Timer& timer ) override {
+            std::cout << "AMR Solve\n";
+        }
         
 
     private:
@@ -175,13 +186,19 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> : publ
             auto hNew = _pm->get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
             auto uNew = _pm->get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
 
+            auto hHost = Kokkos::create_mirror_view( hNew );
+            auto uHost = Kokkos::create_mirror_view( uNew );
+
+            Kokkos::deep_copy( hHost, hNew );
+            Kokkos::deep_copy( uHost, uNew );
+
             // Only Loop if Rank is the Specified Rank
             if ( _pm->mesh()->rank() == rank ) {
                 for ( int i = domain.min( 0 ); i < domain.max( 0 ); i++ ) {
                     for ( int j = domain.min( 1 ); j < domain.max( 1 ); j++ ) {
                         for ( int k = domain.min( 2 ); k < domain.max( 2 ); k++ ) {
                             // DEBUG: Print Height array
-                            if ( DEBUG ) std::cout << std::left << std::setw( 8 ) << hNew( i, j, k, 0 );
+                            if ( DEBUG ) std::cout << std::left << std::setw( 8 ) << hHost( i, j, k, 0 );
                         }
                     }
                     // DEBUG: New Line
@@ -339,7 +356,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     // Cuda
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
-            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaUVMSpace, Kokkos::Cuda>>(
+            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda>>(
                 cl,
                 bc,
                 comm,
@@ -405,7 +422,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
     // Cuda
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
-            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaUVMSpace, Kokkos::Cuda>>(
+            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda>>(
                 cl,
                 bc,
                 comm,

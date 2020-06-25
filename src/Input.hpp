@@ -24,9 +24,9 @@
 #include <stdlib.h>
 
 namespace ExaCLAMR {
-// Short Args: a - Halo Size, d - Domain Size, h - Print Help, g - Gravitational Constant, 
+// Short Args: a - Halo Size, b - Mesh Type, d - Domain Size, h - Print Help, g - Gravitational Constant, 
 // m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency, 
-static char *shortargs = ( char * )"a::d::g::hm::n::p::s::t::w::";
+static char *shortargs = ( char * )"a::b::d::g::hm::n::p::s::t::w::";
 
 /**
  * @struct ClArgs
@@ -42,6 +42,7 @@ struct ClArgs {
     state_t gravity;                                    /**< Gravitation constant */
     state_t sigma;                                      /**< Sigma */
     std::string device;                                 /**< Threading setting ( Serial, OpenMP, CUDA ) */
+    std::string meshtype;                               /**< Mesh Type ( Regular or AMR ) */
 
     std::array<int, 3> global_num_cells;                /**< Globar array of number of cells */
     std::array<state_t, 6> global_bounding_box;         /**< Global bounding box of domain */
@@ -59,6 +60,7 @@ void help( const int rank, char* progname ){
         std::cout << "ExaCLAMR\n";
         std::cout << "Usage: " << progname << "\n";
         std::cout << std::left << std::setw( 10 ) << "-a" << std::setw( 40 ) << "Halo Size (default 2)"                    << std::left << "\n";
+        std::cout << std::left << std::setw( 10 ) << "-b" << std::setw( 40 ) << "Mesh Type (default Regular)"              << std::left << "\n";
         std::cout << std::left << std::setw( 10 ) << "-d" << std::setw( 40 ) << "Size of Domain (default 50 50 1)"         << std::left << "\n";
         std::cout << std::left << std::setw( 10 ) << "-h" << std::setw( 40 ) << "Print Help Message"                       << std::left << "\n";
         std::cout << std::left << std::setw( 10 ) << "-g" << std::setw( 40 ) << "Gravitational Constant (default 9.80)"    << std::left << "\n";
@@ -79,14 +81,14 @@ void help( const int rank, char* progname ){
  * @param progname The name of the program
  */
 void usage( const int rank, char* progname ) {
-    if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-d size-of-domain] [-g gravity] [-h help]" <<\
+    if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-b mesh-type] [-d size-of-domain] [-g gravity] [-h help]" <<\
     " [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
 }
 
 
 /**
  * Parses command line input and updates the command line variables accordingly.\n
- * Usage: ./[program] [-a halo-size] [-d size-of-domain] [-g gravity] [-h help] [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]
+ * Usage: ./[program] [-a halo-size] [-b mesh-type] [-d size-of-domain] [-g gravity] [-h help] [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]
  * @param rank The rank calling the function
  * @param argc Number of command line options passed to program
  * @param argv List of command line options passed to program
@@ -95,6 +97,7 @@ void usage( const int rank, char* progname ) {
  */
 template <typename state_t>
 int parseInput( const int rank, const int argc, char ** argv, ClArgs<state_t>& cl ) {
+    cl.meshtype = "regular";                    // Default Mesh Type
     cl.device = "serial";                       // Default Thread Setting
     cl.nx = 50, cl.ny = 50, cl.nz = 1;          // Default Cell Count
 
@@ -123,6 +126,13 @@ int parseInput( const int rank, const int argc, char ** argv, ClArgs<state_t>& c
                     return -1;
                 }
                 break;
+            case 'b':
+                cl.meshtype = optarg;
+                if ( cl.meshtype.compare( "regular" ) && cl.meshtype.compare( "amr" ) ) {
+                    if ( rank == 0 ) std::cout << "Valid mesh type inputs are: regular and amr\n";
+                    return -1;
+                }
+                break;
             // Size of Domain
             case 'd':
                 cl.hx = atof( optarg );
@@ -148,7 +158,7 @@ int parseInput( const int rank, const int argc, char ** argv, ClArgs<state_t>& c
             case 'm':
                 cl.device = optarg;
                 if ( cl.device.compare( "serial" ) && cl.device.compare( "openmp" ) && cl.device.compare( "cuda" ) ) {
-                    if ( rank == 0 ) std::cout << cl.device << "Valid threading inputs are: serial, openmp, and cuda\n";
+                    if ( rank == 0 ) std::cout << "Valid threading inputs are: serial, openmp, and cuda\n";
                     return -1;
                 }
                 break;

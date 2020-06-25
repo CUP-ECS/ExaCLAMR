@@ -167,10 +167,16 @@ class ProblemManager;
 
 template <class state_t, class MemorySpace, class ExecutionSpace>
 class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
+    using cell_members = Cabana::MemberTypes<state_t[3], state_t[3], state_t[3][3]>;
+    
     public:
         ProblemManager() {
             std::cout << "AMR Problem Manager\n";
         }
+    
+    private:
+        Cabana::AoSoA<cell_members, MemorySpace> _cells;
+
 };
 
 template <class state_t, class MemorySpace, class ExecutionSpace>
@@ -539,9 +545,6 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
         };
 
     private:
-#if 0
-        Cabana::AoSoA<cell_members, MemorySpace> _cells;
-#endif
         std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _mesh;       /**< Mesh object */
         std::shared_ptr<cell_array> _momentum_a;                                                        /**< Momentum state array 1 */
         std::shared_ptr<cell_array> _height_a;                                                          /**< Height state array 1 */
