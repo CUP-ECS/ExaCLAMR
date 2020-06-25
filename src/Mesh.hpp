@@ -235,6 +235,37 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
             return ( i == _domainMin[0] - 1 && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
         };
 
+        void hilbertCurveRegular2() {
+            // Get Ghost Cells for Domain Calculation
+            auto ghost_cells = _local_grid->indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
+
+            int nx = ghost_cells.max( 0 );
+            int ny = ghost_cells.max( 1 );
+
+            Kokkos::parallel_for( Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) { 
+                int rx, ry, inx = 0;
+                int x = i;
+                int y = j;
+                int n = nx;
+
+                for ( int s = n / 2; s > 0; s /= 2 ) {
+                    rx = ( x & s ) > 0;
+                    ry = ( y & s ) > 0;
+                    inx += s * s * ( ( 3 * rx ) ^ ry );
+
+                    if ( ry == 0 ) {
+                        if ( rx == 1 ) {
+                            x = n - 1 - x;
+                            y = n - 1 - y;
+                        }
+
+                        int t = x;
+                        x = y;
+                        y = t;
+                    }
+                }
+            } );
+        };
 
     private:
         int _rank;                                                                      /**< Rank of the mesh */
