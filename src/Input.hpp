@@ -130,6 +130,7 @@ int parseInput( const int rank, const int argc, char ** argv, ClArgs<state_t>& c
                     return -1;
                 }
                 break;
+            // Mesh Type
             case 'b':
                 cl.meshtype = optarg;
                 if ( cl.meshtype.compare( "regular" ) && cl.meshtype.compare( "amr" ) ) {
@@ -176,6 +177,7 @@ int parseInput( const int rank, const int argc, char ** argv, ClArgs<state_t>& c
                     return -1;
                 }
                 break;
+            // Ordering
             case 'o':
                 cl.ordering = optarg;
                 if ( cl.ordering.compare( "regular" ) && cl.ordering.compare( "hilbert" ) ) {

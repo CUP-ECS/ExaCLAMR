@@ -258,7 +258,7 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
 
             // Initialize State Values ( Height, Momentum )
             initialize( create_functor );
-            
+            reorder( 0 );
         };
 
         /**
@@ -326,6 +326,32 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
 
             } );
 
+        };
+
+        void reorder( const int time_step ) const {
+            // Get Ghost Cells
+            auto ghost_cells = _mesh->localGrid()->indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
+
+            int nx = ghost_cells.max( 0 );
+            int ny = ghost_cells.max( 1 );
+
+            Kokkos::View<int *, Kokkos::Device<ExecutionSpace, MemorySpace>> index( "Index", nx * ny );
+
+            if ( !_mesh->ordering().compare( "hilbert" ) ) {
+                _mesh->hilbertCurveRegular2( nx, ny, ghost_cells, index );
+
+                Kokkos::View<state_t*, Kokkos::Device<ExecutionSpace, MemorySpace>> height_hilbert( "Height Hilbert", nx * ny );
+                Kokkos::View<state_t**, Kokkos::Device<ExecutionSpace, MemorySpace>> momentum_hilbert( "Momentum Hilbert", nx * ny, 2 );
+
+                auto uNew = get(Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
+                auto hNew = get(Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
+
+                Kokkos::parallel_for( Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+                    height_hilbert( index( i * nx + j ) ) = hNew( i, j, k, 0 );
+                    momentum_hilbert( index( i * nx + j), 0 ) = uNew( i, j, k, 0 );
+                    momentum_hilbert( index( i * nx + j ), 1 ) = uNew( i, j, k, 1 );
+                } );
+            }
         };
 
         /**

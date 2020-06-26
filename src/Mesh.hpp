@@ -61,7 +61,7 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
         Mesh( const ExaCLAMR::ClArgs<state_t>& cl,
                 const Cajita::Partitioner& partitioner,
                 MPI_Comm comm ) 
-                : _global_bounding_box ( cl.global_bounding_box ){
+                : _global_bounding_box ( cl.global_bounding_box ), _ordering ( cl.ordering ) {
             std::cout << "Regular Mesh\n";
 
             // Define device_type for Later Use
@@ -144,8 +144,6 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
                     _domainMax[i] = 1;
                 }
             }
-
-            if ( !cl.ordering.compare( "hilbert" ) ) hilbertCurveRegular2();
         };
 
         /**
@@ -172,6 +170,10 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
         const std::array<state_t, 6> globalBoundingBox() const {
             return _global_bounding_box;
         };
+
+        const std::string ordering() const {
+            return _ordering;
+        }
 
         /**
          * Returns the rank of the mesh
@@ -239,13 +241,8 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
 
         // TODO: Correct for parallel case
         // TODO: Actually re-order the data and place into 1-D array
-        void hilbertCurveRegular2() {
-            // Get Ghost Cells for Domain Calculation
-            auto ghost_cells = _local_grid->indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
-
-            int nx = ghost_cells.max( 0 );
-            int ny = ghost_cells.max( 1 );
-
+        template<class IndexType>
+        void hilbertCurveRegular2( const int nx, const int ny, Cajita::IndexSpace<3> ghost_cells, IndexType& index) {
             Kokkos::parallel_for( Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) { 
                 int rx, ry, inx = 0;
                 int x = i;
@@ -269,6 +266,8 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
                     }
                 }
 
+                index( i * nx + j ) = inx;
+
                 if ( ( DEBUG ) && ( _rank == 0 ) ) std::cout << "( " << i << ", " << j << ") " << inx << "\n";
             } );
         };
@@ -279,6 +278,7 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
         std::array<long, 3> _domainMin;                                                 /**< Indices of lower corner of domain */
         std::array<long, 3> _domainMax;                                                 /**< Indices of upper corner of domain */
         const std::array<state_t, 6> _global_bounding_box;                              /**< Array of global bounding box */
+        const std::string _ordering;                                                    /**< Mesh ordering */
 };
 
 

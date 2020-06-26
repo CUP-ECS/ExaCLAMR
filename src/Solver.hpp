@@ -248,6 +248,8 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> : publ
                 MPI_Allreduce( &dt, &mindt, 1, Cajita::MpiTraits<state_t>::type(), MPI_MIN, MPI_COMM_WORLD );
                 timer.communicationStop();
 
+                _pm->reorder( time_step );
+
                 timer.computeStart();
                 // Perform Calculation
                 TimeIntegrator::step( *_pm, ExecutionSpace(), MemorySpace(), _bc, mindt, _gravity, time_step );
