@@ -51,6 +51,34 @@ namespace Kokkos
             template <typename I0, typename I1>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1 ) const {
+                std::cout << i0 + m_dim.N0 * i1 << "\t";
+
+                int rotx, roty, s, temp, hilbert=0;
+                I0 x = i0;
+                I1 y = i1;
+
+                size_type nx = dimension_0();
+                size_type ny = dimension_1();
+
+                for ( s = nx / 2; s > 0; s /= 2 ) {
+                    rotx = ( x & s ) > 0;
+                    roty = ( y & s ) > 0;
+                    hilbert += s * s * ( ( 3 * rotx ) ^ roty );
+
+                    if ( roty == 0 ) {
+                        if ( rotx == 1 ) {
+                            x = nx - 1 - y;
+                            y = ny - 1 - x;
+                        }
+                    }
+
+                    temp = x;
+                    x = y;
+                    y = temp;
+                }
+
+                std::cout << "Hilbert Index: " << hilbert << "\t";
+
                 return i0 + m_dim.N0 * i1;
             };
 
@@ -58,6 +86,7 @@ namespace Kokkos
             template <typename I0, typename I1, typename I2>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2 ) const {
+                std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * i2 ) << "\t";
                 return i0 + m_dim.N0 * ( i1 + m_dim.N1 * i2 );
             };
 
@@ -72,8 +101,7 @@ namespace Kokkos
             template <typename I0, typename I1, typename I2, typename I3, typename I4>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2, I3 const& i3, I4 const& i4 ) const {
-                return i0 +
-                    m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * i4 ) ) );
+                return i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * i4 ) ) );
             };
 
             // rank 6
@@ -254,12 +282,12 @@ namespace Kokkos
 
             template <class DimRHS>
             KOKKOS_INLINE_FUNCTION 
-            constexpr ViewOffset( const ViewOffset<DimRHS, Kokkos::LayoutLeft, void>&, const SubviewExtents<DimRHS::rank, dimension_type::rank>& sub )
+            constexpr ViewOffset( const ViewOffset<DimRHS, Kokkos::LayoutHilbert, void>&, const SubviewExtents<DimRHS::rank, dimension_type::rank>& sub )
             : m_dim( sub.range_extent(0), 0, 0, 0, 0, 0, 0, 0 ) {
                 static_assert( ( 0 == dimension_type::rank_dynamic ) || ( 1 == dimension_type::rank && 1 == dimension_type::rank_dynamic && 1 <= DimRHS::rank ), 
                 "ViewOffset subview construction requires compatible rank" );
-            }
-        }
+            };
+        };
     }
 }
 
