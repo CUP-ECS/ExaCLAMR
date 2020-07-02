@@ -52,7 +52,6 @@ void haloExchange( const ProblemManagerType& pm, const ExecutionSpace& exec_spac
     // Perform Halo Exchange on Height and Momentum State Views
     pm.gather( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
     pm.gather( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
-    MPI_Barrier( MPI_COMM_WORLD );
 }
 
 /**
@@ -65,8 +64,8 @@ void haloExchange( const ProblemManagerType& pm, const ExecutionSpace& exec_spac
 * @param sigma Factor to control CFL number, stability and size of time step
 * @param time_step Current time step
 **/
-template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
-state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const state_t gravity, const state_t sigma, const int time_step ) {
+template<class ProblemManagerType, class ExecutionSpace, typename state_t>
+state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const state_t gravity, const state_t sigma, const int time_step ) {
     // Get dx and dy of Regular Mesh Cell
     state_t dx = pm.mesh()->cellSize( 0 );
     state_t dy = pm.mesh()->cellSize( 1 );
@@ -82,7 +81,7 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
     state_t dt_min;
 
     // Kokkos Parallel Reduce of Domain Index Space to Calculate Time Step ( i, j, k )
-    Kokkos::parallel_reduce( Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k, state_t& lmin ) {
+    Kokkos::parallel_reduce( "Set_TimeStep", Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k, state_t& lmin ) {
         // Wave Speed Calculation
         state_t wavespeed = sqrt( gravity * h_current( i, j, k, 0 ) );
         state_t xspeed = ( fabs( u_current( i, j, k, 0 ) + wavespeed ) ) / dx;
@@ -112,7 +111,8 @@ state_t setTimeStep( const ProblemManagerType& pm, const ExecutionSpace& exec_sp
  * @param h Height
 **/
 template<typename state_t>
-inline state_t fluxUyVx( state_t u, state_t v, state_t h ) {
+KOKKOS_INLINE_FUNCTION
+state_t fluxUyVx( state_t u, state_t v, state_t h ) {
     return u * v / h;
 }
 
@@ -124,7 +124,8 @@ inline state_t fluxUyVx( state_t u, state_t v, state_t h ) {
  * @param ghalf Half of the gravitational constant
 **/
 template<typename state_t>
-inline state_t fluxUxVy( state_t u, state_t h, state_t ghalf ) {
+KOKKOS_INLINE_FUNCTION
+state_t fluxUxVy( state_t u, state_t h, state_t ghalf ) {
     return POW2( u ) / h + ghalf * POW2( h );
 }
 
@@ -139,7 +140,8 @@ inline state_t fluxUxVy( state_t u, state_t h, state_t ghalf ) {
  * @param grad_plus Gradient to the right/top 
 **/
 template<typename state_t>
-inline state_t wCorrector( state_t dt, state_t dr, state_t u_eigen, state_t grad_half, state_t grad_minus, state_t grad_plus ) {
+KOKKOS_INLINE_FUNCTION
+state_t wCorrector( state_t dt, state_t dr, state_t u_eigen, state_t grad_half, state_t grad_minus, state_t grad_plus ) {
     state_t nu = 0.5 * u_eigen * dt / dr;
     nu *= ( 1.0 - nu );
 
@@ -162,7 +164,8 @@ inline state_t wCorrector( state_t dt, state_t dr, state_t u_eigen, state_t grad
  * @param g_minus Negative flux in y-direction
 **/
 template<typename state_t>
-inline state_t uFullStep( state_t dt, state_t dr, state_t u, state_t f_plus, state_t f_minus, state_t g_plus, state_t g_minus ) {
+KOKKOS_INLINE_FUNCTION
+state_t uFullStep( state_t dt, state_t dr, state_t u, state_t f_plus, state_t f_minus, state_t g_plus, state_t g_minus ) {
     return ( u + ( - ( dt / dr) * ( ( f_plus - f_minus ) + ( g_plus - g_minus ) ) ) );
 }
 
@@ -178,11 +181,9 @@ inline state_t uFullStep( state_t dt, state_t dr, state_t u, state_t f_plus, sta
  * @param gravity Gravitational constant
  * @param time_step Current time step (count) 
 **/
-template<class ProblemManagerType, class ExecutionSpace, class MemorySpace, typename state_t>
-void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const MemorySpace& mem_space, const ExaCLAMR::BoundaryCondition& bc, const state_t dt, const state_t gravity, const int time_step ) {
+template<class ProblemManagerType, class ExecutionSpace, typename state_t>
+void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const ExaCLAMR::BoundaryCondition& bc, const state_t dt, const state_t gravity, const int time_step ) {
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Time Stepper\n";
-
-    using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
     // Get dx and dy
     state_t dx = pm.mesh()->cellSize( 0 );
@@ -204,13 +205,12 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     // DEBUG: Print Boundary Condition Trace
     if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << "Applying Boundary Conditions\n";
     // Loop Over All Owned Cells and Update Boundary Cells ( i, j, k )
-    Kokkos::parallel_for( Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+    Kokkos::parallel_for( "Boundary_Conditions", Cajita::createExecutionPolicy( owned_cells, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
         bc( pm, i, j, k, h_current, u_current, mesh );
     } );
 
     // Kokkos Fence
     Kokkos::fence();
-    MPI_Barrier( MPI_COMM_WORLD );
 
     // Get New State Views
     auto u_new = pm.get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
@@ -243,17 +243,7 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
     domain.max( 0 ) << domain.max( 1 ) << domain.max( 2 ) << "\n";
 
     // Kokkos Parallel Section over Domain Space Indices to Calculate New State Values ( i, j, k )
-    Kokkos::parallel_for( Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {            
-        /*
-        if ( DEBUG ) {
-            auto local_mesh = Cajita::createLocalMesh<device_type>( * pm.mesh()->localGrid() );
-            int coords[3] = { i, j, k };
-            state_t x[3];
-            local_mesh.coordinates( Cajita::Cell(), coords, x );
-            std::cout << "Rank: " << pm.mesh()->rank() << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\tx: " << x[0] << "\ty: " << x[1] << "\tz: " << x[2] << "\n";
-        }
-        */
-            
+    Kokkos::parallel_for( "Finite_Volume", Cajita::createExecutionPolicy( domain, exec_space ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {                        
         // Simple Diffusion Problem
         // h_new( i, j, k, 0 ) = ( h_current( i - 1, j, k, 0 ) + h_current( i + 1, j, k, 0 ) + h_current( i, j - 1, k, 0 ) + h_current( i, j + 1, k, 0 ) ) / 4;
 
@@ -421,11 +411,6 @@ void step( const ProblemManagerType& pm, const ExecutionSpace& exec_space, const
         "\tu_new: " << std::setw( 6 ) << u_new( i, j, k, 0 ) << "\tv_new: " << std::setw( 6 ) << u_new( i, j, k, 1 ) << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
     } );
-
-    // Kokkos Fence
-    Kokkos::fence();
-    MPI_Barrier( MPI_COMM_WORLD );
-
 }
 
 }

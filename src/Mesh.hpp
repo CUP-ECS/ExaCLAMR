@@ -35,19 +35,19 @@ namespace ExaCLAMR
  * to track the domain index spaces and track which cells are boundary cells.
  **/
 
-template <class MeshType, class MemorySpace, class ExecutionSpace>
+template <class MeshType, class MemorySpace>
 class Mesh;
 
-template <class state_t, class MemorySpace, class ExecutionSpace>
-class Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
+template <class state_t, class MemorySpace>
+class Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace> {
     public:
         Mesh() {
             std::cout << "AMR Mesh\n";
         }
 };
 
-template <class state_t, class MemorySpace, class ExecutionSpace>
-class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
+template <class state_t, class MemorySpace>
+class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace> {
     public:
         /**
          * Constructor
@@ -64,8 +64,6 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
                 : _global_bounding_box ( cl.global_bounding_box ), _ordering ( cl.ordering ) {
             std::cout << "Regular Mesh\n";
 
-            // Define device_type for Later Use
-            using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
 
             MPI_Comm_rank( comm, &_rank );
 
@@ -237,39 +235,6 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
         KOKKOS_INLINE_FUNCTION
         bool isLeftBoundary( const int i, const int j, const int k ) const {
             return ( i == _domainMin[0] - 1 && j >= _domainMin[1] && j <= _domainMax[1] - 1 );
-        };
-
-        // TODO: Correct for parallel case
-        // TODO: Actually re-order the data and place into 1-D array
-        template<class IndexType>
-        void hilbertCurveRegular2( const int nx, const int ny, Cajita::IndexSpace<3> ghost_cells, IndexType& index) {
-            Kokkos::parallel_for( Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) { 
-                int rx, ry, inx = 0;
-                int x = i;
-                int y = j;
-                int n = nx;
-
-                for ( int s = n / 2; s > 0; s /= 2 ) {
-                    rx = ( x & s ) > 0;
-                    ry = ( y & s ) > 0;
-                    inx += POW2( s ) * ( ( 3 * rx ) ^ ry );
-
-                    if ( ry == 0 ) {
-                        if ( rx == 1 ) {
-                            x = n - 1 - x;
-                            y = n - 1 - y;
-                        }
-
-                        int t = x;
-                        x = y;
-                        y = t;
-                    }
-                }
-
-                index( i * nx + j ) = inx;
-
-                if ( ( DEBUG ) && ( _rank == 0 ) ) std::cout << "( " << i << ", " << j << ") " << inx << "\n";
-            } );
         };
 
     private:

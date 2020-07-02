@@ -21,6 +21,7 @@
 #include <Cabana_Core.hpp>
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
+#include <Kokkos_UnorderedMap.hpp>
 
 #include <memory>
 
@@ -64,97 +65,167 @@ namespace Field
  * @struct Momentum
  * @brief Momentum Field
  **/
-struct Momentum {};
+struct Momentum {
+    static std::string getTagA() {
+        return std::string( "MomentumA" );
+    };
+    static std::string getTagB() {
+        return std::string( "MomentumB" );
+    };
+};
 
 /**
  * @struct Height
  * @brief Height Field
  **/
-struct Height {};
+struct Height {
+    static std::string getTagA() {
+        return std::string( "HeightA" );
+    };
+    static std::string getTagB() {
+        return std::string( "HeightB" );
+    };
+};
 
 /**
  * @struct HxFluxPlus
  * @brief Positive Height X-Direction Flux Field
  **/
-struct HxFluxPlus {};
+struct HxFluxPlus {
+    static std::string getTag() {
+        return std::string( "HxFluxPlus" );
+    };
+};
 
 /**
  * @struct HxFluxMinus
  * @brief Negative Height X-Direction Flux Field
  **/
-struct HxFluxMinus {};
+struct HxFluxMinus {
+    static std::string getTag() {
+        return std::string( "HxFluxMinus" );
+    };
+};
 
 /**
  * @struct UxFluxPlus
  * @brief Positive Momentum X-Direction Flux Field
  **/
-struct UxFluxPlus {};
+struct UxFluxPlus {
+    static std::string getTag() {
+        return std::string( "UxFluxPlus" );
+    };
+};
 
 /**
  * @struct UxFluxMinus
  * @brief Negative Momentum X-Direction Flux Field
  **/
-struct UxFluxMinus {};
+struct UxFluxMinus {
+    static std::string getTag() {
+        return std::string( "UxFluxMinus" );
+    };
+};
 
 /**
  * @struct HyFluxPlus
  * @brief Positive Height Y-Direction Flux Field
  **/
-struct HyFluxPlus {};
+struct HyFluxPlus {
+    static std::string getTag() {
+        return std::string( "HyFluxPlus" );
+    };
+};
 
 /**
  * @struct HyFluxMinus
  * @brief Negative Height Y-Direction Flux Field
  **/
-struct HyFluxMinus {};
+struct HyFluxMinus {
+    static std::string getTag() {
+        return std::string( "HyFluxMinus" );
+    };
+};
 
 /**
  * @struct UyFluxPlus
  * @brief Positive Momentum Y-Direction Flux Field
  **/
-struct UyFluxPlus {};
+struct UyFluxPlus {
+    static std::string getTag() {
+        return std::string( "UyFluxPlus" );
+    };
+};
 
 /**
  * @struct UyFluxMinus
  * @brief Negative Momentum Y-Direction Flux Field
  **/
-struct UyFluxMinus {};
+struct UyFluxMinus {
+    static std::string getTag() {
+        return std::string( "UyFluxMinus" );
+    };
+};
 
 /**
  * @struct HxWPlus
  * @brief Positive X-Direction Height Flux Corrector Field
  **/
-struct HxWPlus {};
+struct HxWPlus {
+    static std::string getTag() {
+        return std::string( "HxWPlus" );
+    };
+};
 
 /**
  * @struct HxWMinus
  * @brief Negative X-Direction Height Flux Corrector Field
  **/
-struct HxWMinus {};
+struct HxWMinus {
+    static std::string getTag() {
+        return std::string( "HxWMinus" );
+    };
+};
 
 /**
  * @struct HyWPlus
  * @brief Positive Y-Direction Height Flux Corrector Field
  **/
-struct HyWPlus {};
+struct HyWPlus {
+    static std::string getTag() {
+        return std::string( "HyWPlus" );
+    };
+};
 
 /**
  * @struct HyWMinus
  * @brief Negative Y-Direction Height Flux Corrector Field
  **/
-struct HyWMinus {};
+struct HyWMinus {
+    static std::string getTag() {
+        return std::string( "HyWMinus" );
+    };
+};
 
 /**
  * @struct UWPlus
  * @brief Positive Momentum Flux Corrector Field
  **/
-struct UWPlus {};
+struct UWPlus {
+    static std::string getTag() {
+        return std::string( "UWPlus" );
+    }
+};
 
 /**
  * @struct UWMinus
  * @brief Negative Momentum Flux Corrector Field
  **/
-struct UWMinus {};
+struct UWMinus {
+    static std::string getTag() {
+        return "UWMinus";
+    }
+};
 }
 
 /**
@@ -183,6 +254,7 @@ template <class state_t, class MemorySpace, class ExecutionSpace>
 class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
     using cell_array = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, MemorySpace>;
     using halo = Cajita::Halo<state_t, MemorySpace>;
+    using device_type = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
     public:
         /**
@@ -202,7 +274,7 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             std::cout << "Regular Problem Manager\n";
 
             // Create Mesh
-            _mesh = std::make_shared<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> ( cl, partitioner, comm );
+            _mesh = std::make_shared<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>> ( cl, partitioner, comm );
 
             // Create Vector and Scalar Layouts
             auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );   // 2-Dimensional ( Momentum )
@@ -216,6 +288,10 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             _momentum_b = Cajita::createArray<state_t, MemorySpace>( "momentum", cell_vector_layout );
             _height_b = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
 
+            //_states.insert( Field::Momentum().getTagA(), _momentum_a );
+            //_states.insert( Field::Momentum().getTagA(), _height_a );
+            //_states.insert( Field::Momentum().getTagA(), _momentum_b );
+            //_states.insert( Field::Momentum().getTagA(), _height_b );
 
             // Initialize Flux Arrays
             _hx_flux_plus = Cajita::createArray<state_t, MemorySpace>( "HxFluxPlus", cell_scalar_layout );
@@ -223,10 +299,20 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             _ux_flux_plus = Cajita::createArray<state_t, MemorySpace>( "UxFluxPlus", cell_vector_layout );
             _ux_flux_minus = Cajita::createArray<state_t, MemorySpace>( "UxFluxMinus", cell_vector_layout );
 
+            //_states.insert( Field::HxFluxPlus().getTag(), _hx_flux_plus );
+            //_states.insert( Field::HxFluxMinus().getTag(), _hx_flux_minus );
+            //_states.insert( Field::UxFluxPlus().getTag(), _ux_flux_plus );
+            //_states.insert( Field::UxFluxMinus().getTag(), _ux_flux_minus );
+
             _hy_flux_plus = Cajita::createArray<state_t, MemorySpace>( "HyFluxPlus", cell_scalar_layout );
             _hy_flux_minus = Cajita::createArray<state_t, MemorySpace>( "HyFluxMinus", cell_scalar_layout );
             _uy_flux_plus = Cajita::createArray<state_t, MemorySpace>( "UyFluxPlus", cell_vector_layout );
             _uy_flux_minus = Cajita::createArray<state_t, MemorySpace>( "UyFluxMinus", cell_vector_layout );
+
+            //_states.insert( Field::HyFluxPlus().getTag(), _hy_flux_plus );
+            //_states.insert( Field::HyFluxMinus().getTag(), _hy_flux_minus );
+            //_states.insert( Field::UyFluxPlus().getTag(), _uy_flux_plus );
+            //_states.insert( Field::UyFluxMinus().getTag(), _uy_flux_minus );
 
             // Initialize Flux Corrector Arrays
             _hx_w_plus = Cajita::createArray<state_t, MemorySpace>( "HxWPlus", cell_scalar_layout );
@@ -234,8 +320,16 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             _hy_w_plus = Cajita::createArray<state_t, MemorySpace>( "HyWPlus", cell_scalar_layout );
             _hy_w_minus = Cajita::createArray<state_t, MemorySpace>( "HyWMinus", cell_scalar_layout );
 
+            //_states.insert( Field::HxWPlus().getTag(), _hx_w_plus );
+            //_states.insert( Field::HxWMinus().getTag(), _hx_w_minus );
+            //_states.insert( Field::HyWPlus().getTag(), _hy_w_plus );
+            //_states.insert( Field::HyWMinus().getTag(), _hy_w_minus );
+
             _u_w_plus = Cajita::createArray<state_t, MemorySpace>( "UWPlus", cell_vector_layout );
             _u_w_minus = Cajita::createArray<state_t, MemorySpace>( "UWMinus", cell_vector_layout );
+
+            //_states.insert( Field::UWPlus().getTag(), _u_w_plus );
+            //_states.insert( Field::UWMinus().getTag(), _u_w_minus );
 
             // Create Halo Pattern
             auto halo_pattern = Cajita::HaloPattern();
@@ -258,7 +352,6 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
 
             // Initialize State Values ( Height, Momentum )
             initialize( create_functor );
-            reorder( 0 );
         };
 
         /**
@@ -287,7 +380,8 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             auto ghost_cells = local_grid.indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
 
             // Get State Arrays
-            auto u_a = get(Location::Cell(), Field::Momentum(), 0 );
+            get( "Momentum", 0 );
+            auto u_a = get(Location::Cell(), Field::Height(), 0);
             auto h_a = get(Location::Cell(), Field::Height(), 0 );
             auto u_b = get(Location::Cell(), Field::Momentum(), 1 );
             auto h_b = get(Location::Cell(), Field::Height(), 1 );
@@ -321,46 +415,31 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
                 h_a( i, j, k, 0 ) = height;
 
                 u_b( i, j, k, 0 ) = momentum[0];
-		        u_b( i, j, k, 1 ) = momentum[1];
+                u_b( i, j, k, 1 ) = momentum[1];
                 h_b( i, j, k, 0 ) = height;
 
             } );
 
         };
 
-        void reorder( const int time_step ) const {
-            // Get Ghost Cells
-            auto ghost_cells = _mesh->localGrid()->indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
-
-            int nx = ghost_cells.max( 0 );
-            int ny = ghost_cells.max( 1 );
-
-            Kokkos::View<int *, Kokkos::Device<ExecutionSpace, MemorySpace>> index( "Index", nx * ny );
-
-            if ( !_mesh->ordering().compare( "hilbert" ) ) {
-                _mesh->hilbertCurveRegular2( nx, ny, ghost_cells, index );
-
-                Kokkos::View<state_t*, Kokkos::Device<ExecutionSpace, MemorySpace>> height_hilbert( "Height Hilbert", nx * ny );
-                Kokkos::View<state_t**, Kokkos::Device<ExecutionSpace, MemorySpace>> momentum_hilbert( "Momentum Hilbert", nx * ny, 2 );
-
-                auto uNew = get(Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
-                auto hNew = get(Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
-
-                Kokkos::parallel_for( Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-                    height_hilbert( index( i * nx + j ) ) = hNew( i, j, k, 0 );
-                    momentum_hilbert( index( i * nx + j), 0 ) = uNew( i, j, k, 0 );
-                    momentum_hilbert( index( i * nx + j ), 1 ) = uNew( i, j, k, 1 );
-                } );
-            }
-        };
-
         /**
          * Return mesh
          * @return Returns Mesh object
          **/
-        const std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>>& mesh() const {
+        const std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>>& mesh() const {
             return _mesh;
         };
+
+        
+        void get( std::string tag, int t ) const {
+
+            std::cout << tag << "\n";
+            if ( t == 0 ) tag.append( "A" );
+            else tag.append( "B" );
+            std::cout << tag << "\n";
+
+        };
+        
 
         /**
          * Return Momentum Field
@@ -571,7 +650,10 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
         };
 
     private:
-        std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _mesh;       /**< Mesh object */
+        Kokkos::UnorderedMap<std::string, std::shared_ptr<cell_array>, device_type> _states;            /**< State unordered map */
+
+        std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>> _mesh;                       /**< Mesh object */
+
         std::shared_ptr<cell_array> _momentum_a;                                                        /**< Momentum state array 1 */
         std::shared_ptr<cell_array> _height_a;                                                          /**< Height state array 1 */
         std::shared_ptr<cell_array> _momentum_b;                                                        /**< Momentum state array 2 */
