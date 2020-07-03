@@ -9,6 +9,7 @@ set(HEADERS
   SiloWriter.hpp
   Timer.hpp
   ExaClamrTypes.hpp
+  Hilbert.hpp
   )
 
 set(SOURCES

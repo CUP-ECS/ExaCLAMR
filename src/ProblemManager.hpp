@@ -17,6 +17,7 @@
 // Include Statements
 #include <Mesh.hpp>
 #include <ExaClamrTypes.hpp>
+#include <Hilbert.hpp>
 
 #include <Cabana_Core.hpp>
 #include <Cajita.hpp>
@@ -269,9 +270,6 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             // DEBUG: Trace State Initialization
             if ( _mesh->rank() == 0 && DEBUG ) std::cout << "Initializing Cell Fields\n";
 
-            // Define device_type for Later Use
-            using device_type = typename cell_array::device_type;
-
             // Get Local Grid and Local Mesh
             auto local_grid = *( _mesh->localGrid() );
             auto local_mesh = Cajita::createLocalMesh<device_type>( local_grid );
@@ -286,10 +284,10 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             auto ghost_cells = local_grid.indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
 
             // Get State Arrays
-            auto u_a = get(Location::Cell(), Field::Momentum(),  0);
-            auto h_a = get(Location::Cell(), Field::Height(), 0 );
-            auto u_b = get(Location::Cell(), Field::Momentum(), 1 );
-            auto h_b = get(Location::Cell(), Field::Height(), 1 );
+            auto u_a = get( Location::Cell(), Field::Momentum(),  0 );
+            auto h_a = get( Location::Cell(), Field::Height(), 0 );
+            auto u_b = get( Location::Cell(), Field::Momentum(), 1 );
+            auto h_b = get( Location::Cell(), Field::Height(), 1 );
 
             // Loop Over All Ghost Cells ( i, j, k )
             Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
