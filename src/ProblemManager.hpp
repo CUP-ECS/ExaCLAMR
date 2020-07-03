@@ -289,7 +289,7 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             auto u_a = get(Location::Cell(), Field::Momentum(),  0);
             auto h_a = get(Location::Cell(), Field::Height(), 0 );
             auto u_b = get(Location::Cell(), Field::Momentum(), 1 );
-            auto h_b = get(Location::Cell(), Field::Momentum(), 1 );
+            auto h_b = get(Location::Cell(), Field::Height(), 1 );
 
             // Loop Over All Ghost Cells ( i, j, k )
             Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
