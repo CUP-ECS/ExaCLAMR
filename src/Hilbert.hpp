@@ -99,7 +99,7 @@ namespace Kokkos
                         ay2 += day;
                     }
 
-                    gilbert2d( x, y, ax2, ay2, bx2, by2, nx, ny );
+                    gilbert2d( x, y, ax2, ay2, bx, by, nx, ny );
                     gilbert2d( x + ax2, y + ay2, ax - ax2, ay - ay2, bx, by, nx, ny );
                 }
                 else {
