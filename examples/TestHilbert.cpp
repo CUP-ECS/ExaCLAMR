@@ -7,10 +7,10 @@ int main( int argc, char* argv[] ) {
     std::cout << "Testing Hilbert Layout\n"; 
 
     std::cout << "HilbertArray\n";
-    Kokkos::View<double**, Kokkos::LayoutHilbert, Kokkos::HostSpace> HilbertArray( "Hilbert", 4, 4 );
+    Kokkos::View<double**, Kokkos::LayoutHilbert, Kokkos::HostSpace> HilbertArray( "Hilbert", 100, 100 );
 
-    for ( int i = 0; i < 4; i++ ) {
-        for ( int j = 0; j < 4; j++ ) {
+    for ( int i = 0; i < 18; i++ ) {
+        for ( int j = 0; j < 18; j++ ) {
             std::cout << "i: " << i << "\tj: " << j << "\tFlat Index: " << HilbertArray( i, j ) << "\n";
         }
     }

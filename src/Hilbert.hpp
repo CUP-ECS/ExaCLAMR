@@ -1,6 +1,10 @@
 #ifndef HILBERT_HPP
 #define HILBERT_HPP
 
+#ifndef DEBUG
+    #define DEBUG 0 
+#endif 
+
 #include <Kokkos_Core.hpp>
 
 namespace Kokkos
@@ -61,7 +65,7 @@ namespace Kokkos
 
                 if ( h == 1 ) {
                     for ( int i = 0; i < w; i++ ) {
-                        std::cout << "( " << x << ", " << y << " )\t" << x + nx * y << "\t" << hilbert_step << "\n";
+                        if ( DEBUG ) std::cout << "( " << x << ", " << y << " )\t" << x + nx * y << "\t" << hilbert_step << "\n";
                         map[ x + nx * y ] = hilbert_step;
                         hilbert_step ++;
                         x += dax;
@@ -72,7 +76,7 @@ namespace Kokkos
 
                 if ( w == 1 ) {
                     for ( int i = 0; i < h; i++ ) {
-                        std::cout << "( " << x << ", " << y << " )\t" << x + nx * y << "\t" << hilbert_step << "\n";
+                        if ( DEBUG ) std::cout << "( " << x << ", " << y << " )\t" << x + nx * y << "\t" << hilbert_step << "\n";
                         map[ x + nx * y ] = hilbert_step;
                         hilbert_step ++;
                         x += dbx;
@@ -123,37 +127,7 @@ namespace Kokkos
 
             dimension_type m_dim;
 
-            HilbertMap2D map{ m_dim.N0, m_dim.N1 };
-
-            template <typename I0, typename I1>
-            KOKKOS_INLINE_FUNCTION
-            constexpr int hilbert2D( I0 const& i0, I1 const& i1 ) const {
-                int rotx, roty, s, temp, hilbert=0;
-                I0 x = i0;
-                I1 y = i1;
-
-                size_type nx = dimension_0();
-                size_type ny = dimension_1();
-
-                for ( s = nx / 2; s > 0; s /= 2 ) {
-                    rotx = ( x & s ) > 0;
-                    roty = ( y & s ) > 0;
-                    hilbert += s * s * ( ( 3 * rotx ) ^ roty );
-
-                    if ( roty == 0 ) {
-                        if ( rotx == 1 ) {
-                            x = nx - 1 - y;
-                            y = ny - 1 - x;
-                        }
-                    }
-
-                    temp = x;
-                    x = y;
-                    y = temp;
-                }
-
-                return hilbert;
-            }
+            HilbertMap2D hilbert_map{ m_dim.N0, m_dim.N1 };
 
             // rank 1
             template <typename I0>
@@ -168,7 +142,7 @@ namespace Kokkos
             constexpr size_type operator()( I0 const& i0, I1 const& i1 ) const {
                 std::cout << i0 + m_dim.N0 * i1 << "\t";
 
-                int hilbert = hilbert2D( i0, i1 );
+                int hilbert = hilbert_map.map[i0 + m_dim.N0 * i1];
 
                 std::cout << "Hilbert Index: " << hilbert << "\t";
 
@@ -181,7 +155,7 @@ namespace Kokkos
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2 ) const {
                 std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * i2 ) << "\t";
                 
-                int hilbert = hilbert2D( i0, i1 );
+                int hilbert = hilbert_map.map[i0 + m_dim.N0 * i1];
 
                 std::cout << "Hilbert Index: " << m_dim.N0 * m_dim.N1 * i2 + hilbert << "\t";
 
@@ -194,7 +168,7 @@ namespace Kokkos
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2, I3 const& i3 ) const {
                 std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
 
-                int hilbert = hilbert2D( i0, i1 );
+                int hilbert = hilbert_map.map[i0 + m_dim.N0 * i1];
 
                 std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert << "\t";
 
