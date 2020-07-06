@@ -58,19 +58,19 @@ struct SiloTraits<double> {
  * @class SiloWriter
  * @brief SiloWriter class to write results to Silo file using PMPIO
  **/
-template <class MeshType, class MemorySpace, class ExecutionSpace>
+template <class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
 class SiloWriter;
 
-template <class state_t, class MemorySpace, class ExecutionSpace>
-class SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
+template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+class SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
     public:
         SiloWriter() {
             std::cout << "AMR Silo\n";
         }
 };
 
-template <class state_t, class MemorySpace, class ExecutionSpace>
-class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
+template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
     public:
         /**
          * Constructor
@@ -386,7 +386,7 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
             }
 
     private:
-        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _pm;      /**< Problem Manager Shared Pointer */
+        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;      /**< Problem Manager Shared Pointer */
 
 };
 

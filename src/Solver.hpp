@@ -22,6 +22,7 @@
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
 #include <BoundaryConditions.hpp>
+#include <Hilbert.hpp>
 #include <Timer.hpp>
 
 #ifdef HAVE_SILO
@@ -70,12 +71,12 @@ class SolverBase {
  * @brief Solver class to store problem manager and silo writer and to iterate over specified time steps and write results to file
  **/
 
-template<class MeshType, class MemorySpace, class ExecutionSpace>
+template<class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
 class Solver : public SolverBase<MeshType> {};
 
 
-template<typename state_t, class MemorySpace, class ExecutionSpace>
-class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> : public SolverBase<ExaCLAMR::AMRMesh<state_t>> {
+template<typename state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> : public SolverBase<ExaCLAMR::AMRMesh<state_t>> {
     public:
 
         template <class InitFunc>
@@ -87,7 +88,7 @@ class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> : public S
             ExaCLAMR::Timer& timer ) {
 
             std::cout << "Created AMR Solver\n";
-            _pm = std::make_shared<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace>>();
+            _pm = std::make_shared<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>();
         };
 
         void solve( const int write_freq, ExaCLAMR::Timer& timer ) override {
@@ -96,12 +97,12 @@ class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> : public S
         
 
     private:
-        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace>> _pm;
+        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;
         
 };
 
-template<typename state_t, class MemorySpace, class ExecutionSpace>
-class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> : public SolverBase<ExaCLAMR::RegularMesh<state_t>> {
+template<typename state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> : public SolverBase<ExaCLAMR::RegularMesh<state_t>> {
     public:
         /**
          * Constructor
@@ -132,12 +133,12 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> : publ
             // DEBUG: Trace Created Solver
             if ( _rank == 0 && DEBUG ) std::cout << "Created Regular Solver\n";
 
-            _pm = std::make_shared<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>>( cl, partitioner, comm, create_functor );
+            _pm = std::make_shared<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( cl, partitioner, comm, create_functor );
 
             // Create Silo Writer
             #ifdef HAVE_SILO
             // TODO: Silo for Cuda case
-                _silo = std::make_shared<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>>( _pm );
+                _silo = std::make_shared<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( _pm );
             #endif
 
             MPI_Barrier( MPI_COMM_WORLD );
@@ -297,9 +298,9 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> : publ
         state_t _initial_mass;                                                                              /**< Initial mass of the system */
         state_t _current_mass;                                                                              /**< Current mass of the system */
 
-        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _pm;   /**< Problem Manager object */
+        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;   /**< Problem Manager object */
         #ifdef HAVE_SILO
-            std::shared_ptr<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace>> _silo; /**< Silo writer object */
+            std::shared_ptr<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _silo; /**< Silo writer object */
         #endif
 
         ExaCLAMR::BoundaryCondition _bc;                                                                    /**< Boundary conditions */
@@ -328,13 +329,24 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     // Serial
     if ( 0 == cl.device.compare( "serial" ) ) {
         #ifdef KOKKOS_ENABLE_SERIAL
-            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial>>(
-                cl,
-                bc,
-                comm,
-                create_functor,
-                partitioner,
-                timer );
+            if ( !cl.ordering.compare( "hilbert" ) ) {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbert>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
+            else {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutRight>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
         #else
             throw std::runtime_error( "Serial Backend Not Enabled" );
         #endif
@@ -342,13 +354,24 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     // OpenMP
     else if ( 0 == cl.device.compare( "openmp" ) ) {
         #ifdef KOKKOS_ENABLE_OPENMP
-            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP>>(
-                cl,
-                bc,
-                comm, 
-                create_functor,
-                partitioner,
-                timer );
+            if ( !cl.ordering.compare( "hilbert" ) ) {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbert>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
+            else {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutRight>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
         #else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
         #endif
@@ -356,13 +379,24 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     // Cuda
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
-            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda>>(
-                cl,
-                bc,
-                comm,
-                create_functor,
-                partitioner,
-                timer );
+            if ( !cl.ordering.compare( "hilbert" ) ) {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutHilbert>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
+            else {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
         #else
             throw std::runtime_error( "Cuda Backend Not Enabled" );
         #endif
@@ -391,16 +425,28 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
                                             const Cajita::Partitioner& partitioner,
                                             ExaCLAMR::Timer& timer 
                                             ) {
+
     // Serial
     if ( 0 == cl.device.compare( "serial" ) ) {
         #ifdef KOKKOS_ENABLE_SERIAL
-            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial>>(
-                cl,
-                bc,
-                comm,
-                create_functor,
-                partitioner,
-                timer );
+            if ( !cl.ordering.compare( "hilbert" ) ) {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbert>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
+            else {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutRight>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
         #else
             throw std::runtime_error( "Serial Backend Not Enabled" );
         #endif
@@ -408,13 +454,24 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
     // OpenMP
     else if ( 0 == cl.device.compare( "openmp" ) ) {
         #ifdef KOKKOS_ENABLE_OPENMP
-            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP>>(
-                cl,
-                bc,
-                comm, 
-                create_functor,
-                partitioner,
-                timer );
+            if ( !cl.ordering.compare( "hilbert" ) ) {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbert>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
+            else {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutRight>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
         #else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
         #endif
@@ -422,13 +479,24 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
     // Cuda
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
-            return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda>>(
-                cl,
-                bc,
-                comm,
-                create_functor,
-                partitioner,
-                timer );
+            if ( !cl.ordering.compare( "hilbert" ) ) {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutHilbert>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
+            else {
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
+                    cl,
+                    bc,
+                    comm,
+                    create_functor,
+                    partitioner,
+                    timer );
+            }
         #else
             throw std::runtime_error( "Cuda Backend Not Enabled" );
         #endif

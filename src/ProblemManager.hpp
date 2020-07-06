@@ -163,11 +163,11 @@ struct UWMinus {};
  * @class ProblemManager
  * @brief ProblemManager class to store the mesh and state values, and to perform gathers and scatters.
  **/
-template <class MeshType, class MemorySpace, class ExecutionSpace>
+template <class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
 class ProblemManager;
 
-template <class state_t, class MemorySpace, class ExecutionSpace>
-class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
+template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
     using cell_members = Cabana::MemberTypes<state_t[3], state_t[3], state_t[3][3]>;
     
     public:
@@ -180,9 +180,9 @@ class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace> {
 
 };
 
-template <class state_t, class MemorySpace, class ExecutionSpace>
-class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace> {
-    using cell_array = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, MemorySpace>;
+template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
+    using cell_array = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, OrderingView, MemorySpace>;
     using halo = Cajita::Halo<state_t, MemorySpace>;
     using device_type = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
@@ -212,31 +212,31 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
 
             // Initialize State Arrays
             // A and B Arrays used to Update State Data without Overwriting
-            _momentum_a = Cajita::createArray<state_t, MemorySpace>( "momentum", cell_vector_layout );
-            _height_a = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
+            _momentum_a = Cajita::createArray<state_t, OrderingView, MemorySpace>( "momentum", cell_vector_layout );
+            _height_a = Cajita::createArray<state_t, OrderingView, MemorySpace>( "height", cell_scalar_layout );
 
-            _momentum_b = Cajita::createArray<state_t, MemorySpace>( "momentum", cell_vector_layout );
-            _height_b = Cajita::createArray<state_t, MemorySpace>( "height", cell_scalar_layout );
+            _momentum_b = Cajita::createArray<state_t, OrderingView, MemorySpace>( "momentum", cell_vector_layout );
+            _height_b = Cajita::createArray<state_t, OrderingView, MemorySpace>( "height", cell_scalar_layout );
 
             // Initialize Flux Arrays
-            _hx_flux_plus = Cajita::createArray<state_t, MemorySpace>( "HxFluxPlus", cell_scalar_layout );
-            _hx_flux_minus = Cajita::createArray<state_t, MemorySpace>( "HxFluxMinus", cell_scalar_layout );
-            _ux_flux_plus = Cajita::createArray<state_t, MemorySpace>( "UxFluxPlus", cell_vector_layout );
-            _ux_flux_minus = Cajita::createArray<state_t, MemorySpace>( "UxFluxMinus", cell_vector_layout );
+            _hx_flux_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxFluxPlus", cell_scalar_layout );
+            _hx_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxFluxMinus", cell_scalar_layout );
+            _ux_flux_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UxFluxPlus", cell_vector_layout );
+            _ux_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UxFluxMinus", cell_vector_layout );
 
-            _hy_flux_plus = Cajita::createArray<state_t, MemorySpace>( "HyFluxPlus", cell_scalar_layout );
-            _hy_flux_minus = Cajita::createArray<state_t, MemorySpace>( "HyFluxMinus", cell_scalar_layout );
-            _uy_flux_plus = Cajita::createArray<state_t, MemorySpace>( "UyFluxPlus", cell_vector_layout );
-            _uy_flux_minus = Cajita::createArray<state_t, MemorySpace>( "UyFluxMinus", cell_vector_layout );
+            _hy_flux_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyFluxPlus", cell_scalar_layout );
+            _hy_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyFluxMinus", cell_scalar_layout );
+            _uy_flux_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UyFluxPlus", cell_vector_layout );
+            _uy_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UyFluxMinus", cell_vector_layout );
 
             // Initialize Flux Corrector Arrays
-            _hx_w_plus = Cajita::createArray<state_t, MemorySpace>( "HxWPlus", cell_scalar_layout );
-            _hx_w_minus = Cajita::createArray<state_t, MemorySpace>( "HxWMinus", cell_scalar_layout );
-            _hy_w_plus = Cajita::createArray<state_t, MemorySpace>( "HyWPlus", cell_scalar_layout );
-            _hy_w_minus = Cajita::createArray<state_t, MemorySpace>( "HyWMinus", cell_scalar_layout );
+            _hx_w_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxWPlus", cell_scalar_layout );
+            _hx_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxWMinus", cell_scalar_layout );
+            _hy_w_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyWPlus", cell_scalar_layout );
+            _hy_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyWMinus", cell_scalar_layout );
 
-            _u_w_plus = Cajita::createArray<state_t, MemorySpace>( "UWPlus", cell_vector_layout );
-            _u_w_minus = Cajita::createArray<state_t, MemorySpace>( "UWMinus", cell_vector_layout );
+            _u_w_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UWPlus", cell_vector_layout );
+            _u_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UWMinus", cell_vector_layout );
 
             // Create Halo Pattern
             auto halo_pattern = Cajita::HaloPattern();

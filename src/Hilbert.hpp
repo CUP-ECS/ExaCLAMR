@@ -40,7 +40,7 @@ namespace Kokkos
             HilbertMap2D() {};
 
             HilbertMap2D( long unsigned int width, long unsigned int height ) {
-                std::cout << "HilbertMap2D: " << width << " " << height << "\n";
+                // std::cout << "HilbertMap2D: " << width << " " << height << "\n";
                 if ( width > 0 && height > 0 ) {
                     hilbert_step = 0;
                     Kokkos::resize( map, width * height );
@@ -140,11 +140,11 @@ namespace Kokkos
             template <typename I0, typename I1>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1 ) const {
-                std::cout << i0 + m_dim.N0 * i1 << "\t";
+                // std::cout << i0 + m_dim.N0 * i1 << "\t";
 
                 int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                std::cout << "Hilbert Index: " << hilbert << "\t";
+                // std::cout << "Hilbert Index: " << hilbert << "\t";
 
                 return hilbert;
             };
@@ -153,11 +153,11 @@ namespace Kokkos
             template <typename I0, typename I1, typename I2>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2 ) const {
-                std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * i2 ) << "\t";
+                // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * i2 ) << "\t";
                 
                 int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                std::cout << "Hilbert Index: " << m_dim.N0 * m_dim.N1 * i2 + hilbert << "\t";
+                // std::cout << "Hilbert Index: " << m_dim.N0 * m_dim.N1 * i2 + hilbert << "\t";
 
                 return m_dim.N0 * m_dim.N1 * i2 + hilbert;
             };
@@ -166,11 +166,11 @@ namespace Kokkos
             template <typename I0, typename I1, typename I2, typename I3>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2, I3 const& i3 ) const {
-                std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
+                // td::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
 
                 int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert << "\t";
+                // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert << "\t";
 
                 return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert;
             };
