@@ -1,16 +1,92 @@
-#ifndef HILBERT_HPP
-#define HILBERT_HPP
+#ifndef HILBERTVIEW_HPP
+#define HILBERTVIEW_HPP
 
 #ifndef DEBUG
     #define DEBUG 0 
 #endif 
 
 #include <Kokkos_Core.hpp>
-#include <Kokkos_UnorderedMap.hpp>
+#include <Cajita_IndexSpace.hpp>
 
+namespace Cajita
+{
+    template <long N>
+    class IndexSpace;
+
+    template<class HilbertViewType, class ViewType>
+    void hilbertCopy( HilbertViewType& dest, const ViewType& src, const IndexSpace<4>& index_space ) {
+    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
+        for ( int jj = index_space.min( 1 ); jj < index_space.max( 1 ); jj++ ) {
+            for ( int kk = index_space.min( 2 ); kk < index_space.max( 2 ); kk++ ) {
+                for ( int ll = index_space.min( 3 ); ll < index_space.max( 3 ); ll++ ) {
+                    int ii_own = ii - index_space.min( 0 );
+                    int jj_own = jj - index_space.min( 1 );
+                    int kk_own = kk - index_space.min( 2 );
+                    int ll_own = ll - index_space.min( 3 );
+
+                    dest( ii, jj, kk, ll ) = src( ii_own, jj_own, kk_own, ll_own );
+                }
+            }
+        }
+        }
+    }
+
+    template<class HilbertViewType, class ViewType>
+    void hilbertSubview( const HilbertViewType& src, ViewType& dest, const IndexSpace<1>& index_space ) {
+    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
+        int ii_own = ii - index_space.min( 0 );
+
+        dest( ii_own ) = src( ii );
+    }
+    }
+
+    template<class HilbertViewType, class ViewType>
+    void hilbertSubview( const HilbertViewType& src, ViewType& dest, const IndexSpace<2>& index_space ) {
+    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
+        for ( int jj = index_space.min( 1 ); jj < index_space.max( 1 ); jj++ ) {
+            int ii_own = ii - index_space.min( 0 );
+            int jj_own = jj - index_space.min( 1 );
+
+            dest( ii_own, jj_own ) = src( ii, jj );
+        }
+    }
+    }
+
+    template<class HilbertViewType, class ViewType>
+    void hilbertSubview( const HilbertViewType& src, ViewType& dest, const IndexSpace<3>& index_space ) {
+    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
+        for ( int jj = index_space.min( 1 ); jj < index_space.max( 1 ); jj++ ) {
+        for ( int kk = index_space.min( 2 ); kk < index_space.max( 2 ); kk++ ) {
+            int ii_own = ii - index_space.min( 0 );
+            int jj_own = jj - index_space.min( 1 );
+            int kk_own = kk - index_space.min( 2 );
+
+            dest( ii_own, jj_own, kk_own ) = src( ii, jj, kk );
+        }
+        }
+    }
+    }
+
+    template<class HilbertViewType, class ViewType>
+    void hilbertSubview( const HilbertViewType& src, ViewType& dest, const IndexSpace<4>& index_space ) {
+    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
+        for ( int jj = index_space.min( 1 ); jj < index_space.max( 1 ); jj++ ) {
+        for ( int kk = index_space.min( 2 ); kk < index_space.max( 2 ); kk++ ) {
+            for ( int ll = index_space.min( 3 ); ll < index_space.max( 3 ); ll++ ) {
+                int ii_own = ii - index_space.min( 0 );
+                int jj_own = jj - index_space.min( 1 );
+                int kk_own = kk - index_space.min( 2 );
+                int ll_own = ll - index_space.min( 3 );
+
+                dest( ii_own, jj_own, kk_own, ll_own ) = src( ii, jj, kk, ll );
+            }
+        }
+        }
+    }
+    }
+}
 namespace Kokkos
 {
-
     struct LayoutHilbert {
         typedef LayoutHilbert array_layout;
 
@@ -127,6 +203,7 @@ namespace Kokkos
             typedef Kokkos::LayoutHilbert array_layout;
 
             dimension_type m_dim;
+
             int sub_flag = 0;
 
             HilbertMap2D hilbert_map{ m_dim.N0, m_dim.N1 };
@@ -394,7 +471,7 @@ namespace Kokkos
             template <class DimRHS, class LayoutRHS>
             KOKKOS_INLINE_FUNCTION 
             constexpr ViewOffset( const ViewOffset<DimRHS, LayoutRHS, void>& rhs, const SubviewExtents<DimRHS::rank, dimension_type::rank>& sub )
-            : m_dim( sub.range_extent(0), sub.range_extent( 1 ), sub.range_extent( 2 ), sub.range_extent( 3 ), sub.range_extent( 4 ), sub.range_extent( 5 ), sub.range_extent( 6 ), sub.range_extent( 7 ) ), sub_flag( 1 )
+            : m_dim( rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3, rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7 ), sub_flag( 0 )
             {
                 // std::cout << "Trace\n";
             };
@@ -405,28 +482,29 @@ namespace Kokkos
         struct SubviewLegalArgsCompileTime<Kokkos::LayoutHilbert, Kokkos::LayoutHilbert,
                                         RankDest, RankSrc, CurrentArg, Arg,
                                         SubViewArgs...> {
-        enum {
-            value = (((CurrentArg == RankDest - 1) &&
-                    (Kokkos::Impl::is_integral_extent_type<Arg>::value)) ||
-                    ((CurrentArg >= RankDest) && (std::is_integral<Arg>::value)) ||
-                    ((CurrentArg < RankDest) &&
-                    (std::is_same<Arg, Kokkos::Impl::ALL_t>::value)) ||
-                    ((CurrentArg == 0) &&
-                    (Kokkos::Impl::is_integral_extent_type<Arg>::value))) &&
-                    (SubviewLegalArgsCompileTime<Kokkos::LayoutLeft, Kokkos::LayoutLeft,
-                                                RankDest, RankSrc, CurrentArg + 1,
-                                                SubViewArgs...>::value)
-        };
+            enum {
+                value = (((CurrentArg == RankDest - 1) &&
+                        (Kokkos::Impl::is_integral_extent_type<Arg>::value)) ||
+                        ((CurrentArg >= RankDest) && (std::is_integral<Arg>::value)) ||
+                        ((CurrentArg < RankDest) &&
+                        (std::is_same<Arg, Kokkos::Impl::ALL_t>::value)) ||
+                        ((CurrentArg == 0) &&
+                        (Kokkos::Impl::is_integral_extent_type<Arg>::value))) &&
+                        (SubviewLegalArgsCompileTime<Kokkos::LayoutLeft, Kokkos::LayoutLeft,
+                                                    RankDest, RankSrc, CurrentArg + 1,
+                                                    SubViewArgs...>::value)
+            };
         };
 
         template <int RankDest, int RankSrc, int CurrentArg, class Arg>
         struct SubviewLegalArgsCompileTime<Kokkos::LayoutHilbert, Kokkos::LayoutHilbert,
-                                        RankDest, RankSrc, CurrentArg, Arg> {
-        enum {
-            value = ((CurrentArg == RankDest - 1) || (std::is_integral<Arg>::value)) &&
-                    (CurrentArg == RankSrc - 1)
+                                            RankDest, RankSrc, CurrentArg, Arg> {
+            enum {
+                value = ((CurrentArg == RankDest - 1) || (std::is_integral<Arg>::value)) &&
+                        (CurrentArg == RankSrc - 1)
+            };
         };
-        };
+
         template <class SrcTraits, class... Args>
         struct ViewMapping<
             typename std::enable_if<( std::is_same<typename SrcTraits::specialize, void>::value && ( std::is_same<typename SrcTraits::array_layout, Kokkos::LayoutHilbert>::value ) )>::type, SrcTraits, Args...> {
@@ -495,9 +573,6 @@ namespace Kokkos
 
                     dst.m_impl_offset = dst_offset_type(src.m_impl_offset, extents);
 
-                    //  << "Offsets: " << extents.domain_offset( 0 ) << " " << extents.domain_offset( 1 ) << " " <<  extents.domain_offset( 2 ) << " " <<  extents.domain_offset( 3 ) << " " << 
-                    extents.domain_offset( 4 ) << " " <<  extents.domain_offset( 5 ) << " " <<  extents.domain_offset( 6 ) << " " <<  extents.domain_offset( 7 ) << " " << "\n";
-
                     dst.m_impl_handle = ViewDataHandle<DstTraits>::assign(
                         src.m_impl_handle,
                         src.m_impl_offset(extents.domain_offset(0), extents.domain_offset(1),
@@ -506,13 +581,6 @@ namespace Kokkos
                                         extents.domain_offset(6), extents.domain_offset(7)));
                 }
         };
-    }
-}
-namespace ExaCLAMR
-{
-    namespace Impl
-    {
-
     }
 }
 
