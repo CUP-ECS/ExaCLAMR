@@ -22,7 +22,6 @@
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
 #include <BoundaryConditions.hpp>
-#include <Hilbert.hpp>
 #include <Timer.hpp>
 
 #ifdef HAVE_SILO
