@@ -1,5 +1,5 @@
-#ifndef HILBERTVIEW_HPP
-#define HILBERTVIEW_HPP
+#ifndef HILBERT_HPP
+#define HILBERT_HPP
 
 #ifndef DEBUG
     #define DEBUG 0 
@@ -204,8 +204,6 @@ namespace Kokkos
 
             dimension_type m_dim;
 
-            int sub_flag = 0;
-
             HilbertMap2D hilbert_map{ m_dim.N0, m_dim.N1 };
 
             // rank 1
@@ -219,112 +217,91 @@ namespace Kokkos
             template <typename I0, typename I1>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1 ) const {
-                if ( sub_flag ) return i1 + m_dim.N1 * i0;
-                else {
-                    // std::cout << i0 + m_dim.N0 * i1 << "\t";
+                // std::cout << i0 + m_dim.N0 * i1 << "\t";
 
-                    int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
+                int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                    // std::cout << "Hilbert Index: " << hilbert << "\t";
+                // std::cout << "Hilbert Index: " << hilbert << "\t";
 
-                    return hilbert;
-                }
+                return hilbert;
             };
 
             // rank 3
             template <typename I0, typename I1, typename I2>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2 ) const {
-                if ( sub_flag ) return i2 + m_dim.N2 * ( i1 + m_dim.N1 * ( i0 ) );
-                else {
-                    // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * i2 ) << "\t";
-                    
-                    int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
+                // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * i2 ) << "\t";
+                
+                int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                    // std::cout << "Hilbert Index: " << m_dim.N0 * m_dim.N1 * i2 + hilbert << "\t";
+                // std::cout << "Hilbert Index: " << m_dim.N0 * m_dim.N1 * i2 + hilbert << "\t";
 
-                    return m_dim.N0 * m_dim.N1 * i2 + hilbert;
-                }
+                return m_dim.N0 * m_dim.N1 * i2 + hilbert;
             };
 
             // rank 4
             template <typename I0, typename I1, typename I2, typename I3>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2, I3 const& i3 ) const {
-                if ( sub_flag ) return i3 + m_dim.N3 * ( i2 + m_dim.N2 * ( i1 + m_dim.N1 * ( i0 ) ) );
-                else {
-                    // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
+                // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
 
-                    int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
+                int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                    // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert << "\t" << "Subflag: " << sub_flag << "\t";
+                // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert << "\t" << "Subflag: " << sub_flag << "\t";
 
-                    return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert;
-                }
+                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert;
             };
 
             // rank 5
             template <typename I0, typename I1, typename I2, typename I3, typename I4>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2, I3 const& i3, I4 const& i4 ) const {
-                if ( sub_flag ) return i4 + m_dim.N4 * ( i3 + m_dim.N3 * ( i2 + m_dim.N2 * ( i1 + m_dim.N1 * ( i0 ) ) ) );
-                else {
-                    // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
+                // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
 
-                    int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
+                int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                    // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * i4 ) ) + hilbert << "\t";
+                // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * i4 ) ) + hilbert << "\t";
 
-                    return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * i4 ) ) + hilbert;
-                }
+                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * i4 ) ) + hilbert;
             };
 
             // rank 6
             template <typename I0, typename I1, typename I2, typename I3, typename I4, typename I5>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2, I3 const& i3, I4 const& i4, I5 const& i5 ) const {
-                if ( sub_flag ) return i5 + m_dim.N5 * ( i4 + m_dim.N4 * ( i3 + m_dim.N3 * ( i2 + m_dim.N2 * ( i1 + m_dim.N1 * ( i0 ) ) ) ) );
-                else {
-                    // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
+                // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
 
-                    int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
+                int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                    // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * i5 ) ) ) + hilbert << "\t";
+                // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * i5 ) ) ) + hilbert << "\t";
 
-                    return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * i5 ) ) ) + hilbert;
-                }
+                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * i5 ) ) ) + hilbert;
             };
 
             // rank 7
             template <typename I0, typename I1, typename I2, typename I3, typename I4, typename I5, typename I6>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2, I3 const& i3, I4 const& i4, I5 const& i5, I6 const& i6 ) const {
-                if ( sub_flag ) return i6 + m_dim.N6 * ( i5 + m_dim.N5 * ( i4 + m_dim.N4 * ( i3 + m_dim.N3 * ( i2 + m_dim.N2 * ( i1 + m_dim.N1 * ( i0 ) ) ) ) ) );
-                else {
-                    // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
+                // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
 
-                    int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
+                int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                    // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * i6 ) ) ) ) + hilbert << "\t";
+                // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * i6 ) ) ) ) + hilbert << "\t";
 
-                    return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * i6 ) ) ) ) + hilbert;
-                }
+                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * i6 ) ) ) ) + hilbert;
             };
 
             // rank 8
             template <typename I0, typename I1, typename I2, typename I3, typename I4, typename I5, typename I6, typename I7>
             KOKKOS_INLINE_FUNCTION 
             constexpr size_type operator()( I0 const& i0, I1 const& i1, I2 const& i2, I3 const& i3, I4 const& i4, I5 const& i5, I6 const& i6, I7 const& i7 ) const {
-                if ( sub_flag ) return i7 + m_dim.N7 * ( i6 + m_dim.N6 * ( i5 + m_dim.N5 * ( i4 + m_dim.N4 * ( i3 + m_dim.N3 * ( i2 + m_dim.N2 * ( i1 + m_dim.N1 * ( i0 ) ) ) ) ) ) );
-                else {
-                    // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
+                // std::cout << i0 + m_dim.N0 * ( i1 + m_dim.N1 * ( i2 + m_dim.N2 * i3 ) ) << "\t";
 
-                    int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
+                int hilbert = hilbert_map.map( i0 + m_dim.N0 * i1 );
 
-                    // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * ( i6 + m_dim.N6 * i7 ) ) ) ) ) + hilbert << "\t";
+                // std::cout << "Hilbert Index: " << ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * ( i6 + m_dim.N6 * i7 ) ) ) ) ) + hilbert << "\t";
 
-                    return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * ( i6 + m_dim.N6 * i7 ) ) ) ) ) + hilbert;
-                }
+                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * ( i6 + m_dim.N6 * i7 ) ) ) ) ) + hilbert;
             };
 
             KOKKOS_INLINE_FUNCTION
@@ -471,10 +448,8 @@ namespace Kokkos
             template <class DimRHS, class LayoutRHS>
             KOKKOS_INLINE_FUNCTION 
             constexpr ViewOffset( const ViewOffset<DimRHS, LayoutRHS, void>& rhs, const SubviewExtents<DimRHS::rank, dimension_type::rank>& sub )
-            : m_dim( rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3, rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7 ), sub_flag( 0 )
-            {
-                // std::cout << "Trace\n";
-            };
+            : m_dim( rhs.m_dim.N0, rhs.m_dim.N1, rhs.m_dim.N2, rhs.m_dim.N3, rhs.m_dim.N4, rhs.m_dim.N5, rhs.m_dim.N6, rhs.m_dim.N7 )
+            {};
         };
 
         template <int RankDest, int RankSrc, int CurrentArg, class Arg,
