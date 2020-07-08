@@ -29,14 +29,20 @@ Re-Implementation of the Shallow Water Solver LANL/CLAMR using Kokkos, Cabana, a
 git clone https://github.com/CUP-ECS/ExaCLAMR.git
 cd ExaCLAMR
 bash scripts/build_wheeler.sh
+mkdir -p data
+mkdir -p data/raw
 ```
 
 ### Building on UNM CARC Xena
+
+- Note: You have to build on a compute node
 
 ```bash
 git clone https://github.com/CUP-ECS/ExaCLAMR.git
 cd ExaCLAMR
 bash scripts/build_xena.sh
+mkdir -p data
+mkdir -p data/raw
 ```
 
 ### Performance
