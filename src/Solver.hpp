@@ -329,7 +329,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     if ( 0 == cl.device.compare( "serial" ) ) {
         #ifdef KOKKOS_ENABLE_SERIAL
             if ( !cl.ordering.compare( "hilbert" ) ) {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbert>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbertRight>>(
                     cl,
                     bc,
                     comm,
@@ -354,7 +354,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     else if ( 0 == cl.device.compare( "openmp" ) ) {
         #ifdef KOKKOS_ENABLE_OPENMP
             if ( !cl.ordering.compare( "hilbert" ) ) {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbert>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbertRight>>(
                     cl,
                     bc,
                     comm,
@@ -379,7 +379,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
             if ( !cl.ordering.compare( "hilbert" ) ) {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutHilbert>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutHilbertRight>>(
                     cl,
                     bc,
                     comm,
@@ -429,7 +429,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
     if ( 0 == cl.device.compare( "serial" ) ) {
         #ifdef KOKKOS_ENABLE_SERIAL
             if ( !cl.ordering.compare( "hilbert" ) ) {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbert>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbertRight>>(
                     cl,
                     bc,
                     comm,
@@ -454,7 +454,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
     else if ( 0 == cl.device.compare( "openmp" ) ) {
         #ifdef KOKKOS_ENABLE_OPENMP
             if ( !cl.ordering.compare( "hilbert" ) ) {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbert>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbertRight>>(
                     cl,
                     bc,
                     comm,
@@ -479,7 +479,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
             if ( !cl.ordering.compare( "hilbert" ) ) {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutHilbert>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutHilbertRight>>(
                     cl,
                     bc,
                     comm,

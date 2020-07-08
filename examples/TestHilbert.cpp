@@ -11,7 +11,7 @@ int main( int argc, char* argv[] ) {
     std::cout << "Testing Hilbert Layout\n"; 
 
     std::cout << "HilbertArray\n";
-    Kokkos::View<double****, Kokkos::LayoutHilbert, Kokkos::HostSpace> HilbertArray( "Hilbert", 6, 4, 1, 1 );
+    Kokkos::View<double****, Kokkos::LayoutHilbertRight, Kokkos::HostSpace> HilbertArray( "Hilbert", 6, 4, 1, 1 );
     Kokkos::View<double****> RegularArray( "Regular", 6, 4, 1, 1 );
 
     for ( int i = 0; i < 6; i++ ) {
@@ -60,6 +60,8 @@ int main( int argc, char* argv[] ) {
     }
 
     }
+
+    // Cajita::Hilbert<double, Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>, Cabana::DefaultAccessMemory, 2> HilbertTest();
 
     Kokkos::finalize();
     MPI_Finalize();
