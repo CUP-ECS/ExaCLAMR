@@ -15,76 +15,74 @@ namespace Cajita
 
     template<class HilbertViewType, class ViewType>
     void hilbertCopy( HilbertViewType& dest, const ViewType& src, const IndexSpace<4>& index_space ) {
-    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
-        for ( int jj = index_space.min( 1 ); jj < index_space.max( 1 ); jj++ ) {
-            for ( int kk = index_space.min( 2 ); kk < index_space.max( 2 ); kk++ ) {
-                for ( int ll = index_space.min( 3 ); ll < index_space.max( 3 ); ll++ ) {
-                    int ii_own = ii - index_space.min( 0 );
-                    int jj_own = jj - index_space.min( 1 );
-                    int kk_own = kk - index_space.min( 2 );
-                    int ll_own = ll - index_space.min( 3 );
+        using device_type = typename HilbertViewType::device_type;
+        using exec_space = typename device_type::execution_space;
 
-                    dest( ii, jj, kk, ll ) = src( ii_own, jj_own, kk_own, ll_own );
-                }
-            }
-        }
-        }
+        Kokkos::parallel_for( "Hilbert_Copy", Cajita::createExecutionPolicy( index_space, exec_space() ), KOKKOS_LAMBDA( const int ii, const int jj, const int kk, const int ll ) {
+            int ii_own = ii - index_space.min( 0 );
+            int jj_own = jj - index_space.min( 1 );
+            int kk_own = kk - index_space.min( 2 );
+            int ll_own = ll - index_space.min( 3 );
+
+            dest( ii, jj, kk, ll ) = src( ii_own, jj_own, kk_own, ll_own );
+        } );
     }
 
     template<class HilbertViewType, class ViewType>
     void hilbertSubview( const HilbertViewType& src, ViewType& dest, const IndexSpace<1>& index_space ) {
-    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
-        int ii_own = ii - index_space.min( 0 );
+        using device_type = typename HilbertViewType::device_type;
+        using exec_space = typename device_type::execution_space;
 
-        dest( ii_own ) = src( ii );
-    }
+        Kokkos::parallel_for( "Hilbert_Subview1", Cajita::createExecutionPolicy( index_space, exec_space() ), KOKKOS_LAMBDA( const int ii ) {
+            int ii_own = ii - index_space.min( 0 );
+
+            dest( ii_own ) = src( ii );
+        } );
     }
 
     template<class HilbertViewType, class ViewType>
     void hilbertSubview( const HilbertViewType& src, ViewType& dest, const IndexSpace<2>& index_space ) {
-    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
-        for ( int jj = index_space.min( 1 ); jj < index_space.max( 1 ); jj++ ) {
+        using device_type = typename HilbertViewType::device_type;
+        using exec_space = typename device_type::execution_space;
+
+        Kokkos::parallel_for( "Hilbert_Subview1", Cajita::createExecutionPolicy( index_space, exec_space() ), KOKKOS_LAMBDA( const int ii, const int jj ) {
             int ii_own = ii - index_space.min( 0 );
             int jj_own = jj - index_space.min( 1 );
 
             dest( ii_own, jj_own ) = src( ii, jj );
-        }
-    }
+        } );
     }
 
     template<class HilbertViewType, class ViewType>
     void hilbertSubview( const HilbertViewType& src, ViewType& dest, const IndexSpace<3>& index_space ) {
-    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
-        for ( int jj = index_space.min( 1 ); jj < index_space.max( 1 ); jj++ ) {
-        for ( int kk = index_space.min( 2 ); kk < index_space.max( 2 ); kk++ ) {
+        using device_type = typename HilbertViewType::device_type;
+        using exec_space = typename device_type::execution_space;
+
+        Kokkos::parallel_for( "Hilbert_Subview1", Cajita::createExecutionPolicy( index_space, exec_space() ), KOKKOS_LAMBDA( const int ii, const int jj, const int kk ) {
             int ii_own = ii - index_space.min( 0 );
             int jj_own = jj - index_space.min( 1 );
             int kk_own = kk - index_space.min( 2 );
 
             dest( ii_own, jj_own, kk_own ) = src( ii, jj, kk );
-        }
-        }
-    }
+        } );
     }
 
     template<class HilbertViewType, class ViewType>
     void hilbertSubview( const HilbertViewType& src, ViewType& dest, const IndexSpace<4>& index_space ) {
-    for ( int ii = index_space.min( 0 ); ii < index_space.max( 0 ); ii++ ) {
-        for ( int jj = index_space.min( 1 ); jj < index_space.max( 1 ); jj++ ) {
-        for ( int kk = index_space.min( 2 ); kk < index_space.max( 2 ); kk++ ) {
-            for ( int ll = index_space.min( 3 ); ll < index_space.max( 3 ); ll++ ) {
-                int ii_own = ii - index_space.min( 0 );
-                int jj_own = jj - index_space.min( 1 );
-                int kk_own = kk - index_space.min( 2 );
-                int ll_own = ll - index_space.min( 3 );
+        using device_type = typename HilbertViewType::device_type;
+        using exec_space = typename device_type::execution_space;
 
-                dest( ii_own, jj_own, kk_own, ll_own ) = src( ii, jj, kk, ll );
-            }
-        }
-        }
-    }
+        Kokkos::parallel_for( "Hilbert_Subview1", Cajita::createExecutionPolicy( index_space, exec_space() ), KOKKOS_LAMBDA( const int ii, const int jj, const int kk, const int ll ) {
+            int ii_own = ii - index_space.min( 0 );
+            int jj_own = jj - index_space.min( 1 );
+            int kk_own = kk - index_space.min( 2 );
+            int ll_own = ll - index_space.min( 3 );
+
+            dest( ii_own, jj_own, kk_own, ll_own ) = src( ii, jj, kk, ll );
+        } );
     }
 }
+
 namespace Kokkos
 {
     struct LayoutHilbert {
