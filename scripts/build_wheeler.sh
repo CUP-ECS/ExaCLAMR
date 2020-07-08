@@ -4,7 +4,8 @@
 MYDIR=`pwd`
 INSTALL_DIR=~/wheeler-scratch/tmp
 KOKKOS_GIT=https://github.com/kokkos/kokkos.git
-CABANA_GIT=https://github.com/ECP-copa/Cabana.git
+#CABANA_GIT=https://github.com/ECP-copa/Cabana.git
+CABANA_GIT=https://github.com/JDTruj2018/Cabana.git
 
 # Load Modules
 module load cmake-3.15.4-gcc-8.3.0-rmxifnl
