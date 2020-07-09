@@ -379,7 +379,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
             if ( !cl.ordering.compare( "hilbert" ) ) {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutHilbertRight>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutHilbertRight>>(
                     cl,
                     bc,
                     comm,
@@ -388,7 +388,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
                     timer );
             }
             else {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
                     cl,
                     bc,
                     comm,
@@ -479,7 +479,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
     else if ( 0 == cl.device.compare( "cuda" ) ) {
         #ifdef KOKKOS_ENABLE_CUDA
             if ( !cl.ordering.compare( "hilbert" ) ) {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutHilbertLeft>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutHilbertLeft>>(
                     cl,
                     bc,
                     comm,
@@ -488,7 +488,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
                     timer );
             }
             else {
-                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
+                return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
                     cl,
                     bc,
                     comm,
