@@ -57,13 +57,14 @@ namespace Kokkos
         struct HilbertMap3D {
             int hilbert_step;
             Scalar offset;
-            Kokkos::View<Scalar***> map;
+            Kokkos::View<Scalar***, Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>> map;
 
             HilbertMap3D() {};
 
             template <typename Dimension>
             HilbertMap3D( Scalar width, Scalar height, Scalar depth, Dimension m_off ) {
                 // std::cout << "HilbertMap3D: " << width << " " << height << " " << depth << "\n";
+
                 offset = 0;
 
                 if ( width > 0 && height > 0 && depth > 0 ) {
