@@ -6,8 +6,8 @@
 
 int main( int argc, char* argv[] ) {
 
-    int dim1 = 6;
-    int dim2 = 4;
+    int dim1 = 10;
+    int dim2 = 10;
     int dim3 = 1;
     int dim4 = 2;
 
@@ -67,15 +67,15 @@ int main( int argc, char* argv[] ) {
     }
 
     Cajita::IndexSpace<4> space;
-    space = Cajita::IndexSpace<4>( { 0, 0, 0, 0 }, { dim1, 2, dim3, dim4 } );
+    space = Cajita::IndexSpace<4>( { 0, 0, 0, 0 }, { 2, dim2, dim3, dim4 } );
 
     auto HilbertSub = Kokkos::subview( HilbertArray, space.range( 0 ), space.range( 1 ), space.range( 2 ), space.range( 3 ) );
     auto RegularSub = Kokkos::subview( RegularArray, space.range( 0 ), space.range( 1 ), space.range( 2 ), space.range( 3 )  );
 
     std::cout << "Hilbert SubView Var 1\n";
 
-    for ( int i = 0; i < dim1; i++ ) {
-        for ( int j = 0; j < 2; j++ ) {
+    for ( int i = 0; i < 2; i++ ) {
+        for ( int j = 0; j < dim2; j++ ) {
             std::cout << HilbertSub( i, j, 0, 0 ) << " ";
         }
         std::cout << "\n";
@@ -83,8 +83,8 @@ int main( int argc, char* argv[] ) {
 
     std::cout << "Hilbert SubView Var 2\n";
 
-    for ( int i = 0; i < dim1; i++ ) {
-        for ( int j = 0; j < 2; j++ ) {
+    for ( int i = 0; i < 2; i++ ) {
+        for ( int j = 0; j < dim2; j++ ) {
             std::cout << HilbertSub( i, j, 0, 1 ) << " ";
         }
         std::cout << "\n";
@@ -92,8 +92,8 @@ int main( int argc, char* argv[] ) {
 
     std::cout << "Regular SubView Var 1\n";
 
-    for ( int i = 0; i < dim1; i++ ) {
-        for ( int j = 0; j < 2; j++ ) {
+    for ( int i = 0; i < 2; i++ ) {
+        for ( int j = 0; j < dim2; j++ ) {
             std::cout << RegularSub( i, j, 0, 0 ) << " ";
         }
         std::cout << "\n";
@@ -101,16 +101,16 @@ int main( int argc, char* argv[] ) {
 
     std::cout << "Regular SubView Var 2\n";
 
-    for ( int i = 0; i < dim1; i++ ) {
-        for ( int j = 0; j < 2; j++ ) {
+    for ( int i = 0; i < 2; i++ ) {
+        for ( int j = 0; j < dim2; j++ ) {
             std::cout << RegularSub( i, j, 0, 1 ) << " ";
         }
         std::cout << "\n";
     }
 
-    Kokkos::View<double****> RegularSmall( "Regular", dim1, 2, dim3, dim4 );
-    for ( int i = 0; i < dim1; i++ ) {
-        for ( int j = 0; j < 2; j++ ) {
+    Kokkos::View<double****> RegularSmall( "Regular", 2, dim2, dim3, dim4 );
+    for ( int i = 0; i < 2; i++ ) {
+        for ( int j = 0; j < dim2; j++ ) {
             for ( int k = 0; k < dim3; k++ ) {
                 for ( int l = 0; l < dim4; l++ ) {
                     RegularSmall( i, j, k, l ) = 7012;
