@@ -512,7 +512,7 @@ namespace Kokkos
                 
                 size_t hilbert_index = hilbert2d( i0 + m_off.N0, i1 + m_off.N1 ) - offset;
 
-                return m_dim.N0 * m_dim.N1 * i2 + hilbert_index;
+                return orig_dim.N0 * orig_dim.N1 * i2 + hilbert_index;
             };
 
             // rank 4
@@ -522,7 +522,7 @@ namespace Kokkos
 
                 size_t hilbert_index = hilbert2d( i0 + m_off.N0, i1 + m_off.N1 ) - offset;
 
-                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * i3 ) + hilbert_index;
+                return ( orig_dim.N0 * orig_dim.N1 ) * ( i2 + orig_dim.N2 * i3 ) + hilbert_index;
             };
 
             // rank 5
@@ -532,7 +532,7 @@ namespace Kokkos
 
                 size_t hilbert_index = hilbert2d( i0 + m_off.N0, i1 + m_off.N1 ) - offset;
 
-                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * i4 ) ) + hilbert_index;
+                return ( orig_dim.N0 * orig_dim.N1 ) * ( i2 + orig_dim.N2 * ( i3 + orig_dim.N3 * i4 ) ) + hilbert_index;
             };
 
             // rank 6
@@ -542,7 +542,7 @@ namespace Kokkos
 
                 size_t hilbert_index = hilbert2d( i0 + m_off.N0, i1 + m_off.N1 ) - offset;
 
-                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * i5 ) ) ) + hilbert_index;
+                return ( orig_dim.N0 * orig_dim.N1 ) * ( i2 + orig_dim.N2 * ( i3 + orig_dim.N3 * ( i4 + orig_dim.N4 * i5 ) ) ) + hilbert_index;
             };
 
             // rank 7
@@ -552,7 +552,7 @@ namespace Kokkos
 
                 size_t hilbert_index = hilbert2d( i0 + m_off.N0, i1 + m_off.N1 ) - offset;
 
-                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * i6 ) ) ) ) + hilbert_index;
+                return ( orig_dim.N0 * orig_dim.N1 ) * ( i2 + orig_dim.N2 * ( i3 + orig_dim.N3 * ( i4 + orig_dim.N4 * ( i5 + orig_dim.N5 * i6 ) ) ) ) + hilbert_index;
             };
 
             // rank 8
@@ -562,7 +562,7 @@ namespace Kokkos
 
                 size_t hilbert_index = hilbert2d( i0 + m_off.N0, i1 + m_off.N1 ) - offset;
 
-                return ( m_dim.N0 * m_dim.N1 ) * ( i2 + m_dim.N2 * ( i3 + m_dim.N3 * ( i4 + m_dim.N4 * ( i5 + m_dim.N5 * ( i6 + m_dim.N6 * i7 ) ) ) ) ) + hilbert_index;
+                return ( orig_dim.N0 * orig_dim.N1 ) * ( i2 + orig_dim.N2 * ( i3 + orig_dim.N3 * ( i4 + orig_dim.N4 * ( i5 + orig_dim.N5 * ( i6 + orig_dim.N6 * i7 ) ) ) ) ) + hilbert_index;
             };
 
             KOKKOS_INLINE_FUNCTION
