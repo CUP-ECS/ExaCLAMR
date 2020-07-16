@@ -41,9 +41,24 @@ class Mesh;
 template <class state_t, class MemorySpace>
 class Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace> {
     public:
-        Mesh() {
-            std::cout << "AMR Mesh\n";
-        }
+        Mesh( const ExaCLAMR::ClArgs<state_t>& cl,
+                const Cajita::Partitioner& partitioner,
+                MPI_Comm comm ) {
+            MPI_Comm_rank( comm, &_rank );
+            // DEBUG: Trace Created Mesh
+            if ( _rank == 0 && DEBUG ) std::cout << "Created AMR Mesh\n";
+        };
+
+        /**
+         * Returns the rank of the mesh
+         * @return The rank of the mesh
+         **/
+        int rank() const {
+            return _rank;
+        };
+    
+    private:
+        int _rank;                                                                      /**< Rank of the mesh */
 };
 
 template <class state_t, class MemorySpace>
@@ -62,7 +77,9 @@ class Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace> {
                 const Cajita::Partitioner& partitioner,
                 MPI_Comm comm ) 
                 : _global_bounding_box ( cl.global_bounding_box ), _ordering ( cl.ordering ) {
-            std::cout << "Regular Mesh\n";
+            MPI_Comm_rank( comm, &_rank );
+            // DEBUG: Trace Created Mesh
+            if ( _rank == 0 && DEBUG ) std::cout << "Created Regular Mesh\n";
 
 
             MPI_Comm_rank( comm, &_rank );

@@ -85,18 +85,33 @@ class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingVi
             const InitFunc& create_functor, 
             const Cajita::Partitioner& partitioner, 
             ExaCLAMR::Timer& timer ) {
+            
+            MPI_Comm_rank( comm, &_rank );
+            // DEBUG: Trace Created Solver
+            if ( _rank == 0 && DEBUG ) std::cout << "Created AMR Solver\n";
 
-            std::cout << "Created AMR Solver\n";
-            _pm = std::make_shared<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>();
+            _pm = std::make_shared<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( cl, partitioner, comm, create_functor );
+
+            // Create Silo Writer
+            #ifdef HAVE_SILO
+                _silo = std::make_shared<SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( _pm );
+            #endif
+
+            MPI_Barrier( MPI_COMM_WORLD );
         };
 
         void solve( const int write_freq, ExaCLAMR::Timer& timer ) override {
-            std::cout << "AMR Solve\n";
+            // DEBUG: Trace Solving
+            if ( _rank == 0 && DEBUG ) std::cout << "Regular Solve\n";
         }
         
 
     private:
-        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;
+        int _rank;                                                                                                      /**< Rank of solver */
+        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;     /**< Problem Manager object */
+        #ifdef HAVE_SILO
+            std::shared_ptr<SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _silo;   /**< Silo writer object */
+        #endif
         
 };
 
@@ -136,7 +151,6 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
 
             // Create Silo Writer
             #ifdef HAVE_SILO
-            // TODO: Silo for Cuda case
                 _silo = std::make_shared<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( _pm );
             #endif
 
@@ -214,7 +228,7 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
          **/
         void solve( const int write_freq, ExaCLAMR::Timer& timer ) override {
             // DEBUG: Trace Solving
-            if ( _rank == 0 && DEBUG ) std::cout << "Solving!\n";
+            if ( _rank == 0 && DEBUG ) std::cout << "Regular Solve\n";
 
             int time_step = 0;
             int nt = _time_steps;

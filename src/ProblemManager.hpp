@@ -170,12 +170,50 @@ class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, Or
     using cell_members = Cabana::MemberTypes<state_t[3], state_t[3], state_t[3][3]>;
     
     public:
-        ProblemManager() {
-            std::cout << "AMR Problem Manager\n";
+        /**
+         * Constructor
+         * Creates a new mesh
+         * Creates state cell layouts, halo layouts, and Cajita arrays to store state data
+         * Initializes state data
+         * 
+         * @param cl Command line arguments
+         * @param partitioner Cajita MPI partitioner
+         * @param comm MPI communicator
+         * @param create_functor Initialization function
+         */
+
+        template <class InitFunc>
+        ProblemManager( const ExaCLAMR::ClArgs<state_t>& cl, const Cajita::Partitioner& partitioner, MPI_Comm comm, const InitFunc& create_functor ) {
+            // Create Mesh
+            _mesh = std::make_shared<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>> ( cl, partitioner, comm );
+
+            // trace Create Problem Manager
+            if ( DEBUG && _mesh->rank() == 0 ) std::cout << "Created AMR ProblemManager\n";
+
+            initialize( create_functor );
         }
+
+        /**
+         * Initializes state values in the cells
+         * @param create_functor Initialization function
+         **/
+        template<class InitFunctor>
+        void initialize( const InitFunctor& create_functor ) {
+
+        };
+
+        /**
+         * Return mesh
+         * @return Returns Mesh object
+         **/
+        const std::shared_ptr<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>>& mesh() const {
+            return _mesh;
+        };
     
     private:
         Cabana::AoSoA<cell_members, MemorySpace> _cells;
+
+        std::shared_ptr<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>> _mesh;                       /**< Mesh object */
 
 };
 
@@ -200,10 +238,11 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
 
         template <class InitFunc>
         ProblemManager( const ExaCLAMR::ClArgs<state_t>& cl, const Cajita::Partitioner& partitioner, MPI_Comm comm, const InitFunc& create_functor ) {
-            std::cout << "Regular Problem Manager\n";
-
             // Create Mesh
             _mesh = std::make_shared<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>> ( cl, partitioner, comm );
+
+            // Trace Create Problem Manager
+            if ( DEBUG && _mesh->rank() == 0 ) std::cout << "Created Regular ProblemManager\n";
 
             // Create Vector and Scalar Layouts
             auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );   // 2-Dimensional ( Momentum )

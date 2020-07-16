@@ -115,7 +115,7 @@ int main( int argc, char* argv[] ) {
         for ( int j = space.min( 1 ); j < space.max( 1 ); j++ ) {
             for ( int k = space.min( 2 ); k < space.max( 2 ); k++ ) {
                 for ( int l = space.min( 3 ); l < space.max( 3 ); l++ ) {
-                    RegularSmall( i, j, k, l ) = 7012;
+                    RegularSmall( i, j, k, l ) = replaceVal;
                 }
             }
         }

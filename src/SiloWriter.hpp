@@ -64,9 +64,20 @@ class SiloWriter;
 template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
 class SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
     public:
-        SiloWriter() {
-            std::cout << "AMR Silo\n";
-        }
+        /**
+         * Constructor
+         * Create new SiloWriter
+         * 
+         * @param pm Problem manager object
+         */
+        template<class ProblemManagerType>
+        SiloWriter( ProblemManagerType& pm ) 
+        : _pm ( pm ) {
+            if ( DEBUG && _pm->mesh()->rank() == 0 ) std::cout << "Created AMR SiloWriter\n";
+        };
+    
+    private:
+        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;     /**< Problem Manager Shared Pointer */
 };
 
 template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
@@ -80,7 +91,9 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
          */
         template<class ProblemManagerType>
         SiloWriter( ProblemManagerType& pm ) 
-        : _pm ( pm ) {};
+        : _pm ( pm ) {
+            if ( DEBUG && _pm->mesh()->rank() == 0 ) std::cout << "Created Regular SiloWriter\n";
+        };
 
 
 
