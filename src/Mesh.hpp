@@ -16,6 +16,7 @@
 
 // Include Statements
 #include <ExaClamrTypes.hpp>
+#include <Input.hpp>
 
 #include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
