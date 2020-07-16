@@ -11,12 +11,12 @@
 #define EXACLAMR_PROBLEMMANAGER_HPP
 
 #ifndef DEBUG
-    #define DEBUG 0 
-#endif 
+#define DEBUG 0
+#endif
 
 // Include Statements
-#include <Mesh.hpp>
 #include <ExaClamrTypes.hpp>
+#include <Mesh.hpp>
 
 #include <Cabana_Core.hpp>
 #include <Cajita.hpp>
@@ -24,152 +24,147 @@
 
 #include <memory>
 
+namespace ExaCLAMR {
 
-namespace ExaCLAMR
-{
-
-/**
+    /**
  * @namespace Location
  * @brief Location namespace to track mesh entities
  **/
-namespace Location
-{
-/**
+    namespace Location {
+        /**
  * @struct Cell
  * @brief Cell Location Type 
  **/
-struct Cell {};  
+        struct Cell {};
 
-/**
+        /**
  * @struct Face
  * @brief Face Location Type 
  **/
-struct Face {};
+        struct Face {};
 
-/**
+        /**
  * @struct Node
  * @brief Node Location Type 
  **/
-struct Node {};
-}
+        struct Node {};
+    } // namespace Location
 
-
-/**
+    /**
  * @namespace Field
  * @brief Field namespace to track state array entities
  **/
-namespace Field
-{
-/**
+    namespace Field {
+        /**
  * @struct Momentum
  * @brief Momentum Field
  **/
-struct Momentum {};
+        struct Momentum {};
 
-/**
+        /**
  * @struct Height
  * @brief Height Field
  **/
-struct Height {};
+        struct Height {};
 
-/**
+        /**
  * @struct HxFluxPlus
  * @brief Positive Height X-Direction Flux Field
  **/
-struct HxFluxPlus {};
+        struct HxFluxPlus {};
 
-/**
+        /**
  * @struct HxFluxMinus
  * @brief Negative Height X-Direction Flux Field
  **/
-struct HxFluxMinus {};
+        struct HxFluxMinus {};
 
-/**
+        /**
  * @struct UxFluxPlus
  * @brief Positive Momentum X-Direction Flux Field
  **/
-struct UxFluxPlus {};
+        struct UxFluxPlus {};
 
-/**
+        /**
  * @struct UxFluxMinus
  * @brief Negative Momentum X-Direction Flux Field
  **/
-struct UxFluxMinus {};
+        struct UxFluxMinus {};
 
-/**
+        /**
  * @struct HyFluxPlus
  * @brief Positive Height Y-Direction Flux Field
  **/
-struct HyFluxPlus {};
+        struct HyFluxPlus {};
 
-/**
+        /**
  * @struct HyFluxMinus
  * @brief Negative Height Y-Direction Flux Field
  **/
-struct HyFluxMinus {};
+        struct HyFluxMinus {};
 
-/**
+        /**
  * @struct UyFluxPlus
  * @brief Positive Momentum Y-Direction Flux Field
  **/
-struct UyFluxPlus {};
+        struct UyFluxPlus {};
 
-/**
+        /**
  * @struct UyFluxMinus
  * @brief Negative Momentum Y-Direction Flux Field
  **/
-struct UyFluxMinus {};
+        struct UyFluxMinus {};
 
-/**
+        /**
  * @struct HxWPlus
  * @brief Positive X-Direction Height Flux Corrector Field
  **/
-struct HxWPlus {};
+        struct HxWPlus {};
 
-/**
+        /**
  * @struct HxWMinus
  * @brief Negative X-Direction Height Flux Corrector Field
  **/
-struct HxWMinus {};
+        struct HxWMinus {};
 
-/**
+        /**
  * @struct HyWPlus
  * @brief Positive Y-Direction Height Flux Corrector Field
  **/
-struct HyWPlus {};
+        struct HyWPlus {};
 
-/**
+        /**
  * @struct HyWMinus
  * @brief Negative Y-Direction Height Flux Corrector Field
  **/
-struct HyWMinus {};
+        struct HyWMinus {};
 
-/**
+        /**
  * @struct UWPlus
  * @brief Positive Momentum Flux Corrector Field
  **/
-struct UWPlus {};
+        struct UWPlus {};
 
-/**
+        /**
  * @struct UWMinus
  * @brief Negative Momentum Flux Corrector Field
  **/
-struct UWMinus {};
-}
+        struct UWMinus {};
+    } // namespace Field
 
-/**
+    /**
  * The ProblemManager Class
  * @class ProblemManager
  * @brief ProblemManager class to store the mesh and state values, and to perform gathers and scatters.
  **/
-template <class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
-class ProblemManager;
+    template <class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class ProblemManager;
 
-template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
-class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
-    using cell_members = Cabana::MemberTypes<state_t[3], state_t[3], state_t[3][3]>;
-    
-    public:
+    template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
+        using cell_members = Cabana::MemberTypes<state_t[3], state_t[3], state_t[3][3]>;
+
+      public:
         /**
          * Constructor
          * Creates a new mesh
@@ -183,9 +178,9 @@ class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, Or
          */
 
         template <class InitFunc>
-        ProblemManager( const ExaCLAMR::ClArgs<state_t>& cl, const Cajita::Partitioner& partitioner, MPI_Comm comm, const InitFunc& create_functor ) {
+        ProblemManager( const ExaCLAMR::ClArgs<state_t> &cl, const Cajita::Partitioner &partitioner, MPI_Comm comm, const InitFunc &create_functor ) {
             // Create Mesh
-            _mesh = std::make_shared<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>> ( cl, partitioner, comm );
+            _mesh = std::make_shared<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>>( cl, partitioner, comm );
 
             // trace Create Problem Manager
             if ( DEBUG && _mesh->rank() == 0 ) std::cout << "Created AMR ProblemManager\n";
@@ -197,8 +192,8 @@ class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, Or
          * Initializes state values in the cells
          * @param create_functor Initialization function
          **/
-        template<class InitFunctor>
-        void initialize( const InitFunctor& create_functor ) {
+        template <class InitFunctor>
+        void initialize( const InitFunctor &create_functor ){
 
         };
 
@@ -206,24 +201,23 @@ class ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, Or
          * Return mesh
          * @return Returns Mesh object
          **/
-        const std::shared_ptr<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>>& mesh() const {
+        const std::shared_ptr<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>> &mesh() const {
             return _mesh;
         };
-    
-    private:
+
+      private:
         Cabana::AoSoA<cell_members, MemorySpace> _cells;
 
-        std::shared_ptr<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>> _mesh;                       /**< Mesh object */
+        std::shared_ptr<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>> _mesh; /**< Mesh object */
+    };
 
-};
+    template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
+        using cell_array  = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, OrderingView, MemorySpace>;
+        using halo        = Cajita::Halo<state_t, MemorySpace>;
+        using device_type = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
-template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
-class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
-    using cell_array = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, OrderingView, MemorySpace>;
-    using halo = Cajita::Halo<state_t, MemorySpace>;
-    using device_type = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
-    public:
+      public:
         /**
          * Constructor
          * Creates a new mesh
@@ -237,52 +231,52 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
          */
 
         template <class InitFunc>
-        ProblemManager( const ExaCLAMR::ClArgs<state_t>& cl, const Cajita::Partitioner& partitioner, MPI_Comm comm, const InitFunc& create_functor ) {
+        ProblemManager( const ExaCLAMR::ClArgs<state_t> &cl, const Cajita::Partitioner &partitioner, MPI_Comm comm, const InitFunc &create_functor ) {
             // Create Mesh
-            _mesh = std::make_shared<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>> ( cl, partitioner, comm );
+            _mesh = std::make_shared<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>>( cl, partitioner, comm );
 
             // Trace Create Problem Manager
             if ( DEBUG && _mesh->rank() == 0 ) std::cout << "Created Regular ProblemManager\n";
 
             // Create Vector and Scalar Layouts
-            auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() );   // 2-Dimensional ( Momentum )
+            auto cell_vector_layout = Cajita::createArrayLayout( _mesh->localGrid(), 2, Cajita::Cell() ); // 2-Dimensional ( Momentum )
             auto cell_scalar_layout = Cajita::createArrayLayout( _mesh->localGrid(), 1, Cajita::Cell() );
 
             // Initialize State Arrays
             // A and B Arrays used to Update State Data without Overwriting
             _momentum_a = Cajita::createArray<state_t, OrderingView, MemorySpace>( "momentum", cell_vector_layout );
-            _height_a = Cajita::createArray<state_t, OrderingView, MemorySpace>( "height", cell_scalar_layout );
+            _height_a   = Cajita::createArray<state_t, OrderingView, MemorySpace>( "height", cell_scalar_layout );
 
             _momentum_b = Cajita::createArray<state_t, OrderingView, MemorySpace>( "momentum", cell_vector_layout );
-            _height_b = Cajita::createArray<state_t, OrderingView, MemorySpace>( "height", cell_scalar_layout );
+            _height_b   = Cajita::createArray<state_t, OrderingView, MemorySpace>( "height", cell_scalar_layout );
 
             // Initialize Flux Arrays
-            _hx_flux_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxFluxPlus", cell_scalar_layout );
+            _hx_flux_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxFluxPlus", cell_scalar_layout );
             _hx_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxFluxMinus", cell_scalar_layout );
-            _ux_flux_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UxFluxPlus", cell_vector_layout );
+            _ux_flux_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UxFluxPlus", cell_vector_layout );
             _ux_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UxFluxMinus", cell_vector_layout );
 
-            _hy_flux_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyFluxPlus", cell_scalar_layout );
+            _hy_flux_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyFluxPlus", cell_scalar_layout );
             _hy_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyFluxMinus", cell_scalar_layout );
-            _uy_flux_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UyFluxPlus", cell_vector_layout );
+            _uy_flux_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UyFluxPlus", cell_vector_layout );
             _uy_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UyFluxMinus", cell_vector_layout );
 
             // Initialize Flux Corrector Arrays
-            _hx_w_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxWPlus", cell_scalar_layout );
+            _hx_w_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxWPlus", cell_scalar_layout );
             _hx_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxWMinus", cell_scalar_layout );
-            _hy_w_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyWPlus", cell_scalar_layout );
+            _hy_w_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyWPlus", cell_scalar_layout );
             _hy_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyWMinus", cell_scalar_layout );
 
-            _u_w_plus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UWPlus", cell_vector_layout );
+            _u_w_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UWPlus", cell_vector_layout );
             _u_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UWMinus", cell_vector_layout );
 
             // Create Halo Pattern
-            auto halo_pattern = Cajita::HaloPattern();
+            auto                            halo_pattern = Cajita::HaloPattern();
             std::vector<std::array<int, 3>> neighbors;
 
             // Setting up Stencil ( Left, Right, Top, Bottom )
             for ( int i = -1; i < 2; i++ ) {
-                for (int j = -1; j < 2; j++) {
+                for ( int j = -1; j < 2; j++ ) {
                     if ( ( i == 0 || j == 0 ) && !( i == 0 && j == 0 ) ) {
                         neighbors.push_back( { i, j, 0 } );
                     }
@@ -303,8 +297,8 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
          * Initializes state values in the cells
          * @param create_functor Initialization function
          **/
-        template<class InitFunctor>
-        void initialize( const InitFunctor& create_functor ) {
+        template <class InitFunctor>
+        void initialize( const InitFunctor &create_functor ) {
             // DEBUG: Trace State Initialization
             if ( _mesh->rank() == 0 && DEBUG ) std::cout << "Initializing Cell Fields\n";
 
@@ -313,61 +307,58 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
             auto local_mesh = Cajita::createLocalMesh<device_type>( local_grid );
 
             // DEBUG: Print Low Corner and High Corner of Local Mesh
-            if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tLow Corner: " << \
-            local_mesh.lowCorner( Cajita::Own(), 0 ) << local_mesh.lowCorner( Cajita::Own(), 1 ) << local_mesh.lowCorner( Cajita::Own(), 2 ) << "\n";
-            if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tHigh Corner: " << \
-            local_mesh.highCorner( Cajita::Own(), 0 ) << local_mesh.highCorner( Cajita::Own(), 1 ) << local_mesh.highCorner( Cajita::Own(), 2 ) << "\n";
+            if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tLow Corner: " << local_mesh.lowCorner( Cajita::Own(), 0 ) << local_mesh.lowCorner( Cajita::Own(), 1 ) << local_mesh.lowCorner( Cajita::Own(), 2 ) << "\n";
+            if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tHigh Corner: " << local_mesh.highCorner( Cajita::Own(), 0 ) << local_mesh.highCorner( Cajita::Own(), 1 ) << local_mesh.highCorner( Cajita::Own(), 2 ) << "\n";
 
             // Get Ghost Cell Index Space
             auto ghost_cells = local_grid.indexSpace( Cajita::Ghost(), Cajita::Cell(), Cajita::Local() );
 
             // Get State Arrays
-            auto u_a = get( Location::Cell(), Field::Momentum(),  0 );
+            auto u_a = get( Location::Cell(), Field::Momentum(), 0 );
             auto h_a = get( Location::Cell(), Field::Height(), 0 );
             auto u_b = get( Location::Cell(), Field::Momentum(), 1 );
             auto h_b = get( Location::Cell(), Field::Height(), 1 );
 
             // Loop Over All Ghost Cells ( i, j, k )
-            Kokkos::parallel_for( "Initializing", Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
-                // DEBUG: Print Rank and Owned / Ghost Extents
-                // if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tOwned Extent: " << owned_cells.extent( 0 ) << owned_cells.extent( 1 ) << owned_cells.extent( 2 ) << "\n";
-                // if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tGhost Extent: " << ghost_cells.extent( 0 ) << ghost_cells.extent( 1 ) << ghost_cells.extent( 2 ) << "\n";
-                
-                // Initialize State Vectors
-                state_t momentum[2];
-                state_t height;
+            Kokkos::parallel_for(
+                "Initializing", Cajita::createExecutionPolicy( ghost_cells, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k ) {
+                    // DEBUG: Print Rank and Owned / Ghost Extents
+                    // if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tOwned Extent: " << owned_cells.extent( 0 ) << owned_cells.extent( 1 ) << owned_cells.extent( 2 ) << "\n";
+                    // if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\tGhost Extent: " << ghost_cells.extent( 0 ) << ghost_cells.extent( 1 ) << ghost_cells.extent( 2 ) << "\n";
 
-                // Get Coordinates Associated with Indices ( i, j, k )
-                int coords[3] = { i, j, k };
-                state_t x[3];
+                    // Initialize State Vectors
+                    state_t momentum[2];
+                    state_t height;
 
-                local_mesh.coordinates( Cajita::Cell(), coords, x );
+                    // Get Coordinates Associated with Indices ( i, j, k )
+                    int     coords[3] = { i, j, k };
+                    state_t x[3];
 
-                // Initialization Function
-                create_functor(coords, x, momentum, height);
+                    local_mesh.coordinates( Cajita::Cell(), coords, x );
 
-                // DEBUG: Print Rank, Indices, Coordinates, and Initialized Momentums and Height
-                // if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\tx: " << x[0] << "\ty: " << x[1] << "\tz: " \
+                    // Initialization Function
+                    create_functor( coords, x, momentum, height );
+
+                    // DEBUG: Print Rank, Indices, Coordinates, and Initialized Momentums and Height
+                    // if ( DEBUG ) std::cout << "Rank: " << _mesh->rank() << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\tx: " << x[0] << "\ty: " << x[1] << "\tz: " \
                 << x[2] << "\tu: " << momentum[0] << "\tv: " << momentum[1] << "\th: " << height << "\n";
 
-                // Assign Values to State Views
-                u_a( i, j, k, 0 ) = momentum[0];
-                u_a( i, j, k, 1 ) = momentum[1];
-                h_a( i, j, k, 0 ) = height;
+                    // Assign Values to State Views
+                    u_a( i, j, k, 0 ) = momentum[0];
+                    u_a( i, j, k, 1 ) = momentum[1];
+                    h_a( i, j, k, 0 ) = height;
 
-                u_b( i, j, k, 0 ) = momentum[0];
-                u_b( i, j, k, 1 ) = momentum[1];
-                h_b( i, j, k, 0 ) = height;
-
-            } );
-
+                    u_b( i, j, k, 0 ) = momentum[0];
+                    u_b( i, j, k, 1 ) = momentum[1];
+                    h_b( i, j, k, 0 ) = height;
+                } );
         };
 
         /**
          * Return mesh
          * @return Returns Mesh object
          **/
-        const std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>>& mesh() const {
+        const std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>> &mesh() const {
             return _mesh;
         };
 
@@ -379,8 +370,10 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
          * @return Returns Momentum state array at cell centers
          **/
         typename cell_array::view_type get( Location::Cell, Field::Momentum, int t ) const {
-            if ( t == 0 ) return _momentum_a->view();
-            else return _momentum_b->view();
+            if ( t == 0 )
+                return _momentum_a->view();
+            else
+                return _momentum_b->view();
         };
 
         /**
@@ -391,8 +384,10 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
          * @return Returns Height state array at cell centers
          **/
         typename cell_array::view_type get( Location::Cell, Field::Height, int t ) const {
-            if (t == 0 ) return _height_a->view();
-            else return _height_b->view();
+            if ( t == 0 )
+                return _height_a->view();
+            else
+                return _height_b->view();
         };
 
         /**
@@ -542,8 +537,10 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
          * @param t Toggle between momentum arrays
          **/
         void scatter( Location::Cell, Field::Momentum, int t ) const {
-            if ( t == 0 ) _cell_vector_halo->scatter( *_momentum_a );
-            else _cell_vector_halo->scatter( *_momentum_b );
+            if ( t == 0 )
+                _cell_vector_halo->scatter( *_momentum_a );
+            else
+                _cell_vector_halo->scatter( *_momentum_b );
         };
 
         /**
@@ -553,8 +550,10 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
          * @param t Toggle between height arrays
          **/
         void scatter( Location::Cell, Field::Height, int t ) const {
-            if ( t == 0 ) _cell_scalar_halo->scatter( *_height_a );
-            else _cell_scalar_halo->scatter( *_height_b );
+            if ( t == 0 )
+                _cell_scalar_halo->scatter( *_height_a );
+            else
+                _cell_scalar_halo->scatter( *_height_b );
         };
 
         /**
@@ -564,8 +563,10 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
          * @param t Toggle between momentum arrays
          **/
         void gather( Location::Cell, Field::Momentum, int t ) const {
-            if ( t == 0 ) _cell_vector_halo->gather( *_momentum_a );
-            else _cell_vector_halo->gather( *_momentum_b );
+            if ( t == 0 )
+                _cell_vector_halo->gather( *_momentum_a );
+            else
+                _cell_vector_halo->gather( *_momentum_b );
         };
 
         /**
@@ -575,41 +576,42 @@ class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace
          * @param t Toggle between height arrays
          **/
         void gather( Location::Cell, Field::Height, int t ) const {
-            if ( t == 0 ) _cell_scalar_halo->gather( *_height_a );
-            else _cell_scalar_halo->gather( *_height_b );
+            if ( t == 0 )
+                _cell_scalar_halo->gather( *_height_a );
+            else
+                _cell_scalar_halo->gather( *_height_b );
         };
 
-    private:
-        std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>> _mesh;                       /**< Mesh object */
+      private:
+        std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>> _mesh; /**< Mesh object */
 
-        std::shared_ptr<cell_array> _momentum_a;                                                        /**< Momentum state array 1 */
-        std::shared_ptr<cell_array> _height_a;                                                          /**< Height state array 1 */
-        std::shared_ptr<cell_array> _momentum_b;                                                        /**< Momentum state array 2 */
-        std::shared_ptr<cell_array> _height_b;                                                          /**< Height state array 2 */
+        std::shared_ptr<cell_array> _momentum_a; /**< Momentum state array 1 */
+        std::shared_ptr<cell_array> _height_a;   /**< Height state array 1 */
+        std::shared_ptr<cell_array> _momentum_b; /**< Momentum state array 2 */
+        std::shared_ptr<cell_array> _height_b;   /**< Height state array 2 */
 
-        std::shared_ptr<cell_array> _hx_flux_plus;                                                      /**< Height x-direction positive flux array */
-        std::shared_ptr<cell_array> _hx_flux_minus;                                                     /**< Height x-direction negative flux array */
-        std::shared_ptr<cell_array> _ux_flux_plus;                                                      /**< X-Momentum positive flux array */
-        std::shared_ptr<cell_array> _ux_flux_minus;                                                     /**< X-Momentum negative flux array */
+        std::shared_ptr<cell_array> _hx_flux_plus;  /**< Height x-direction positive flux array */
+        std::shared_ptr<cell_array> _hx_flux_minus; /**< Height x-direction negative flux array */
+        std::shared_ptr<cell_array> _ux_flux_plus;  /**< X-Momentum positive flux array */
+        std::shared_ptr<cell_array> _ux_flux_minus; /**< X-Momentum negative flux array */
 
-        std::shared_ptr<cell_array> _hy_flux_plus;                                                      /**< Height y-direction positive flux array */
-        std::shared_ptr<cell_array> _hy_flux_minus;                                                     /**< Height y-direction negative flux array */
-        std::shared_ptr<cell_array> _uy_flux_plus;                                                      /**< Y-Momentum positive flux array */
-        std::shared_ptr<cell_array> _uy_flux_minus;                                                     /**< Y-Momentum negative flux array */
+        std::shared_ptr<cell_array> _hy_flux_plus;  /**< Height y-direction positive flux array */
+        std::shared_ptr<cell_array> _hy_flux_minus; /**< Height y-direction negative flux array */
+        std::shared_ptr<cell_array> _uy_flux_plus;  /**< Y-Momentum positive flux array */
+        std::shared_ptr<cell_array> _uy_flux_minus; /**< Y-Momentum negative flux array */
 
-        std::shared_ptr<cell_array> _hx_w_plus;                                                         /**< Height x-direction positive flux corrector array */
-        std::shared_ptr<cell_array> _hx_w_minus;                                                        /**< Height x-direction negative flux corrector array */
-        std::shared_ptr<cell_array> _hy_w_plus;                                                         /**< Height y-direction positive flux corrector array */
-        std::shared_ptr<cell_array> _hy_w_minus;                                                        /**< Height y-direction negative flux corrector array */
+        std::shared_ptr<cell_array> _hx_w_plus;  /**< Height x-direction positive flux corrector array */
+        std::shared_ptr<cell_array> _hx_w_minus; /**< Height x-direction negative flux corrector array */
+        std::shared_ptr<cell_array> _hy_w_plus;  /**< Height y-direction positive flux corrector array */
+        std::shared_ptr<cell_array> _hy_w_minus; /**< Height y-direction negative flux corrector array */
 
-        std::shared_ptr<cell_array> _u_w_plus;                                                          /**< Momentum positive flux corrector array */
-        std::shared_ptr<cell_array> _u_w_minus;                                                         /**< Momentum negative flux corrector array */
+        std::shared_ptr<cell_array> _u_w_plus;  /**< Momentum positive flux corrector array */
+        std::shared_ptr<cell_array> _u_w_minus; /**< Momentum negative flux corrector array */
 
-        std::shared_ptr<halo> _cell_vector_halo;                                                        /**< Halo for vector arrays */
-        std::shared_ptr<halo> _cell_scalar_halo;                                                        /**< Halo for scalar arrays */
+        std::shared_ptr<halo> _cell_vector_halo; /**< Halo for vector arrays */
+        std::shared_ptr<halo> _cell_scalar_halo; /**< Halo for scalar arrays */
+    };
 
-};
-
-}
+} // namespace ExaCLAMR
 
 #endif

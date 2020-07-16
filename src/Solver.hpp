@@ -8,24 +8,24 @@
  * Iterates over timesteps and calls the Time Integrator to solve and update state arrays
  * Writes output to Silo files on specified time steps
  */
- 
+
 #ifndef EXACLAMR_SOLVER_HPP
 #define EXACLAMR_SOLVER_HPP
 
 #ifndef DEBUG
-    #define DEBUG 0 
+#define DEBUG 0
 #endif
 
 // Include Statements
+#include <BoundaryConditions.hpp>
 #include <ExaCLAMR.hpp>
 #include <Mesh.hpp>
 #include <ProblemManager.hpp>
 #include <TimeIntegration.hpp>
-#include <BoundaryConditions.hpp>
 #include <Timer.hpp>
 
 #ifdef HAVE_SILO
-    #include <SiloWriter.hpp>
+#include <SiloWriter.hpp>
 #endif
 
 #include <Cajita.hpp>
@@ -38,19 +38,16 @@
 // Seconds to Microseconds
 #define MICROSECONDS 1.0e-6
 
+namespace ExaCLAMR {
 
-namespace ExaCLAMR
-{
-
-/**
+    /**
  * The SolverBase Class
  * @class SolverBase
  * @brief SolverBase class to provide virutal functions for actual Solver class
  **/
-template <typename MeshType>
-class SolverBase {
-    public:
-
+    template <typename MeshType>
+    class SolverBase {
+      public:
         /**
          * Destructor
          **/
@@ -61,63 +58,59 @@ class SolverBase {
          * @param write_freq Frequency of writing output and results
          * @param timer Timer used to profile performance
          **/
-        virtual void solve( const int write_freq, ExaCLAMR::Timer& timer ) = 0;
-};
+        virtual void solve( const int write_freq, ExaCLAMR::Timer &timer ) = 0;
+    };
 
-/**
+    /**
  * The Solver Class
  * @class Solver
  * @brief Solver class to store problem manager and silo writer and to iterate over specified time steps and write results to file
  **/
 
-template<class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
-class Solver : public SolverBase<MeshType> {};
+    template <class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class Solver : public SolverBase<MeshType> {};
 
-
-template<typename state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
-class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> : public SolverBase<ExaCLAMR::AMRMesh<state_t>> {
-    public:
-
+    template <typename state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class Solver<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> : public SolverBase<ExaCLAMR::AMRMesh<state_t>> {
+      public:
         template <class InitFunc>
-        Solver( const ExaCLAMR::ClArgs<state_t>& cl, 
-            const ExaCLAMR::BoundaryCondition& bc, 
-            MPI_Comm comm, 
-            const InitFunc& create_functor, 
-            const Cajita::Partitioner& partitioner, 
-            ExaCLAMR::Timer& timer ) {
-            
+        Solver( const ExaCLAMR::ClArgs<state_t> &  cl,
+                const ExaCLAMR::BoundaryCondition &bc,
+                MPI_Comm                           comm,
+                const InitFunc &                   create_functor,
+                const Cajita::Partitioner &        partitioner,
+                ExaCLAMR::Timer &                  timer ) {
+
             MPI_Comm_rank( comm, &_rank );
             // DEBUG: Trace Created Solver
             if ( _rank == 0 && DEBUG ) std::cout << "Created AMR Solver\n";
 
             _pm = std::make_shared<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( cl, partitioner, comm, create_functor );
 
-            // Create Silo Writer
-            #ifdef HAVE_SILO
-                _silo = std::make_shared<SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( _pm );
-            #endif
+// Create Silo Writer
+#ifdef HAVE_SILO
+            _silo = std::make_shared<SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( _pm );
+#endif
 
             MPI_Barrier( MPI_COMM_WORLD );
         };
 
-        void solve( const int write_freq, ExaCLAMR::Timer& timer ) override {
+        void solve( const int write_freq, ExaCLAMR::Timer &timer ) override {
             // DEBUG: Trace Solving
             if ( _rank == 0 && DEBUG ) std::cout << "Regular Solve\n";
         }
-        
 
-    private:
-        int _rank;                                                                                                      /**< Rank of solver */
-        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;     /**< Problem Manager object */
-        #ifdef HAVE_SILO
-            std::shared_ptr<SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _silo;   /**< Silo writer object */
-        #endif
-        
-};
+      private:
+        int                                                                                                    _rank; /**< Rank of solver */
+        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;   /**< Problem Manager object */
+#ifdef HAVE_SILO
+        std::shared_ptr<SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _silo; /**< Silo writer object */
+#endif
+    };
 
-template<typename state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
-class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> : public SolverBase<ExaCLAMR::RegularMesh<state_t>> {
-    public:
+    template <typename state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> : public SolverBase<ExaCLAMR::RegularMesh<state_t>> {
+      public:
         /**
          * Constructor
          * Determine rank
@@ -134,14 +127,18 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
          * @param timer ExaCLAMR timer to profile performance
          */
         template <class InitFunc>
-        Solver( 
-            const ExaCLAMR::ClArgs<state_t>& cl, 
-            const ExaCLAMR::BoundaryCondition& bc, 
-            MPI_Comm comm, 
-            const InitFunc& create_functor, 
-            const Cajita::Partitioner& partitioner, 
-            ExaCLAMR::Timer& timer ) 
-            : _bc ( bc ), _halo_size ( cl.halo_size ), _time_steps ( cl.time_steps ), _gravity ( cl.gravity ), _sigma ( cl.sigma ) {
+        Solver(
+            const ExaCLAMR::ClArgs<state_t> &  cl,
+            const ExaCLAMR::BoundaryCondition &bc,
+            MPI_Comm                           comm,
+            const InitFunc &                   create_functor,
+            const Cajita::Partitioner &        partitioner,
+            ExaCLAMR::Timer &                  timer )
+            : _bc( bc )
+            , _halo_size( cl.halo_size )
+            , _time_steps( cl.time_steps )
+            , _gravity( cl.gravity )
+            , _sigma( cl.sigma ) {
 
             MPI_Comm_rank( comm, &_rank );
             // DEBUG: Trace Created Solver
@@ -149,10 +146,10 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
 
             _pm = std::make_shared<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( cl, partitioner, comm, create_functor );
 
-            // Create Silo Writer
-            #ifdef HAVE_SILO
-                _silo = std::make_shared<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( _pm );
-            #endif
+// Create Silo Writer
+#ifdef HAVE_SILO
+            _silo = std::make_shared<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>>( _pm );
+#endif
 
             MPI_Barrier( MPI_COMM_WORLD );
 
@@ -174,15 +171,19 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
             state_t summed_height = 0, total_height = 0;
 
             // Only Loop if Rank is the Specified Rank
-            Kokkos::parallel_reduce( Cajita::createExecutionPolicy( domain, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k, state_t& l_height ) {
-                l_height += hNew( i, j, k, 0 );
-            }, Kokkos::Sum<state_t>( summed_height ) );
+            Kokkos::parallel_reduce(
+                Cajita::createExecutionPolicy( domain, ExecutionSpace() ), KOKKOS_LAMBDA( const int i, const int j, const int k, state_t &l_height ) {
+                    l_height += hNew( i, j, k, 0 );
+                },
+                Kokkos::Sum<state_t>( summed_height ) );
 
             // Get Total Height
             MPI_Allreduce( &summed_height, &total_height, 1, Cajita::MpiTraits<state_t>::type(), MPI_SUM, MPI_COMM_WORLD );
 
-            if ( time_step == 0 ) _initial_mass = total_height;
-            else _current_mass = total_height;
+            if ( time_step == 0 )
+                _initial_mass = total_height;
+            else
+                _current_mass = total_height;
         };
 
         /**
@@ -216,7 +217,7 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
                         }
                     }
                     // DEBUG: New Line
-                    if( DEBUG ) std::cout << "\n";
+                    if ( DEBUG ) std::cout << "\n";
                 }
             }
         };
@@ -226,32 +227,30 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
          * @param write_freq Frequency of writing output and results
          * @param timer Timer used to profile performance
          **/
-        void solve( const int write_freq, ExaCLAMR::Timer& timer ) override {
+        void solve( const int write_freq, ExaCLAMR::Timer &timer ) override {
             // DEBUG: Trace Solving
             if ( _rank == 0 && DEBUG ) std::cout << "Regular Solve\n";
 
-            int time_step = 0;
-            int nt = _time_steps;
+            int     time_step    = 0;
+            int     nt           = _time_steps;
             state_t current_time = 0.0, mindt = 0.0;
 
             // Rank 0 Prints Initial Iteration and Time
-            if (_rank == 0 ) {
+            if ( _rank == 0 ) {
                 // Print Iteration and Current Time
-                std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::left << std::setw( 12 ) << 0 <<
-                std::left << std::setw( 15 ) << "Current Time: " << std::left << std::setw( 12 ) << current_time << 
-                std::left << std::setw( 15 ) << "Total Mass: " << std::left << std::setw( 12 ) << _initial_mass << "\n"; 
+                std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::left << std::setw( 12 ) << 0 << std::left << std::setw( 15 ) << "Current Time: " << std::left << std::setw( 12 ) << current_time << std::left << std::setw( 15 ) << "Total Mass: " << std::left << std::setw( 12 ) << _initial_mass << "\n";
 
-                // DEBUG: Call Output Routine                  
-                if ( DEBUG ) output( 0, time_step, current_time, mindt );                                   
+                // DEBUG: Call Output Routine
+                if ( DEBUG ) output( 0, time_step, current_time, mindt );
             }
 
-            // Write Initial Data to File with Silo
-            #ifdef HAVE_SILO
-                _silo->siloWrite( strdup( "Mesh" ), 0, current_time, mindt );
-            #endif
+// Write Initial Data to File with Silo
+#ifdef HAVE_SILO
+            _silo->siloWrite( strdup( "Mesh" ), 0, current_time, mindt );
+#endif
 
             // Loop Over Time
-            for (time_step = 1; time_step <= nt; time_step++) {
+            for ( time_step = 1; time_step <= nt; time_step++ ) {
                 timer.computeStart();
                 // Calculate Time Step
                 state_t dt = TimeIntegrator::setTimeStep( *_pm, ExecutionSpace(), _gravity, _sigma, time_step );
@@ -283,45 +282,39 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
                 // Output and Write File every Write Frequency Time Steps
                 timer.writeStart();
                 if ( 0 == time_step % write_freq ) {
-                    if ( 0 == _rank ) std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::left << std::setw( 12 ) << time_step <<
-                    std::left << std::setw( 15 ) << "Current Time: " << std::left << std::setw( 12 ) << current_time << 
-                    std::left << std::setw( 15 ) << "Mass Change: " << std::left << std::setw( 12 ) << mass_change << "\n";
+                    if ( 0 == _rank ) std::cout << std::left << std::setw( 12 ) << "Iteration: " << std::left << std::setw( 12 ) << time_step << std::left << std::setw( 15 ) << "Current Time: " << std::left << std::setw( 12 ) << current_time << std::left << std::setw( 15 ) << "Mass Change: " << std::left << std::setw( 12 ) << mass_change << "\n";
 
                     // DEBUG: Call Output Routine
                     if ( DEBUG ) output( 0, time_step, current_time, mindt );
 
-                    // Write Current State Data to File with Silo
-                    #ifdef HAVE_SILO
-                        _silo->siloWrite( strdup( "Mesh" ), time_step, current_time, mindt );
-                    #endif
+// Write Current State Data to File with Silo
+#ifdef HAVE_SILO
+                    _silo->siloWrite( strdup( "Mesh" ), time_step, current_time, mindt );
+#endif
                 }
                 timer.writeStop();
             }
         };
 
-        
+      private:
+        int _rank;       /**< Rank of solver */
+        int _time_steps; /**< Number of time steps to solve for */
+        int _halo_size;  /**< Halo size of the mesh */
 
-    private:
-        int _rank;                                                                                          /**< Rank of solver */
-        int _time_steps;                                                                                    /**< Number of time steps to solve for */
-        int _halo_size;                                                                                     /**< Halo size of the mesh */
+        state_t _gravity;      /**< Gravitational constant */
+        state_t _sigma;        /**< Sigma used to control CFL number and calculate time step */
+        state_t _initial_mass; /**< Initial mass of the system */
+        state_t _current_mass; /**< Current mass of the system */
 
-        state_t _gravity;                                                                                   /**< Gravitational constant */
-        state_t _sigma;                                                                                     /**< Sigma used to control CFL number and calculate time step */
-        state_t _initial_mass;                                                                              /**< Initial mass of the system */
-        state_t _current_mass;                                                                              /**< Current mass of the system */
+        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm; /**< Problem Manager object */
+#ifdef HAVE_SILO
+        std::shared_ptr<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _silo; /**< Silo writer object */
+#endif
 
-        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;   /**< Problem Manager object */
-        #ifdef HAVE_SILO
-            std::shared_ptr<SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _silo; /**< Silo writer object */
-        #endif
+        ExaCLAMR::BoundaryCondition _bc; /**< Boundary conditions */
+    };
 
-        ExaCLAMR::BoundaryCondition _bc;                                                                    /**< Boundary conditions */
-
-
-};
-
-/**
+    /**
  * Create Solver Pointer with Templates based on specified ExecutionSpace and MemorySpace
  * @param cl Command line arguments
  * @param bc Boundary condition
@@ -330,18 +323,17 @@ class Solver<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Orderi
  * @param partitioner Cajita MPI Partitioner
  * @param timer ExaCLAMR timer to profile performance
 **/
-template<typename state_t, class InitFunc>
-std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolver( 
-                                            const ExaCLAMR::ClArgs<state_t>& cl,
-                                            const ExaCLAMR::BoundaryCondition& bc,
-                                            MPI_Comm comm, 
-                                            const InitFunc& create_functor,
-                                            const Cajita::Partitioner& partitioner,
-                                            ExaCLAMR::Timer& timer 
-                                            ) {
-    // Serial
-    if ( 0 == cl.device.compare( "serial" ) ) {
-        #ifdef KOKKOS_ENABLE_SERIAL
+    template <typename state_t, class InitFunc>
+    std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolver(
+        const ExaCLAMR::ClArgs<state_t> &  cl,
+        const ExaCLAMR::BoundaryCondition &bc,
+        MPI_Comm                           comm,
+        const InitFunc &                   create_functor,
+        const Cajita::Partitioner &        partitioner,
+        ExaCLAMR::Timer &                  timer ) {
+        // Serial
+        if ( 0 == cl.device.compare( "serial" ) ) {
+#ifdef KOKKOS_ENABLE_SERIAL
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -350,8 +342,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
                     create_functor,
                     partitioner,
                     timer );
-            }
-            else {
+            } else {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutRight>>(
                     cl,
                     bc,
@@ -360,13 +351,13 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
                     partitioner,
                     timer );
             }
-        #else
+#else
             throw std::runtime_error( "Serial Backend Not Enabled" );
-        #endif
-    }
-    // OpenMP
-    else if ( 0 == cl.device.compare( "openmp" ) ) {
-        #ifdef KOKKOS_ENABLE_OPENMP
+#endif
+        }
+        // OpenMP
+        else if ( 0 == cl.device.compare( "openmp" ) ) {
+#ifdef KOKKOS_ENABLE_OPENMP
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -375,8 +366,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
                     create_functor,
                     partitioner,
                     timer );
-            }
-            else {
+            } else {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutRight>>(
                     cl,
                     bc,
@@ -385,13 +375,13 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
                     partitioner,
                     timer );
             }
-        #else
+#else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
-        #endif
-    }
-    // Cuda
-    else if ( 0 == cl.device.compare( "cuda" ) ) {
-        #ifdef KOKKOS_ENABLE_CUDA
+#endif
+        }
+        // Cuda
+        else if ( 0 == cl.device.compare( "cuda" ) ) {
+#ifdef KOKKOS_ENABLE_CUDA
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -400,8 +390,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
                     create_functor,
                     partitioner,
                     timer );
-            }
-            else {
+            } else {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
                     cl,
                     bc,
@@ -410,17 +399,17 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
                     partitioner,
                     timer );
             }
-        #else
+#else
             throw std::runtime_error( "Cuda Backend Not Enabled" );
-        #endif
-    }
-    // Otherwise
-    else {
-        throw std::runtime_error( "Invalid Backend" );
-    }
-};
+#endif
+        }
+        // Otherwise
+        else {
+            throw std::runtime_error( "Invalid Backend" );
+        }
+    };
 
-/**
+    /**
  * Create Solver Pointer with Templates based on specified ExecutionSpace and MemorySpace
  * @param cl Command line arguments
  * @param bc Boundary condition
@@ -429,19 +418,18 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::AMRMesh<state_t>>> createAMRSolve
  * @param partitioner Cajita MPI Partitioner
  * @param timer ExaCLAMR timer to profile performance
 **/
-template<typename state_t, class InitFunc>
-std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegularSolver( 
-                                            const ExaCLAMR::ClArgs<state_t>& cl,
-                                            const ExaCLAMR::BoundaryCondition& bc,
-                                            MPI_Comm comm, 
-                                            const InitFunc& create_functor,
-                                            const Cajita::Partitioner& partitioner,
-                                            ExaCLAMR::Timer& timer 
-                                            ) {
+    template <typename state_t, class InitFunc>
+    std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegularSolver(
+        const ExaCLAMR::ClArgs<state_t> &  cl,
+        const ExaCLAMR::BoundaryCondition &bc,
+        MPI_Comm                           comm,
+        const InitFunc &                   create_functor,
+        const Cajita::Partitioner &        partitioner,
+        ExaCLAMR::Timer &                  timer ) {
 
-    // Serial
-    if ( 0 == cl.device.compare( "serial" ) ) {
-        #ifdef KOKKOS_ENABLE_SERIAL
+        // Serial
+        if ( 0 == cl.device.compare( "serial" ) ) {
+#ifdef KOKKOS_ENABLE_SERIAL
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -450,8 +438,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
                     create_functor,
                     partitioner,
                     timer );
-            }
-            else {
+            } else {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutRight>>(
                     cl,
                     bc,
@@ -460,13 +447,13 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
                     partitioner,
                     timer );
             }
-        #else
+#else
             throw std::runtime_error( "Serial Backend Not Enabled" );
-        #endif
-    }
-    // OpenMP
-    else if ( 0 == cl.device.compare( "openmp" ) ) {
-        #ifdef KOKKOS_ENABLE_OPENMP
+#endif
+        }
+        // OpenMP
+        else if ( 0 == cl.device.compare( "openmp" ) ) {
+#ifdef KOKKOS_ENABLE_OPENMP
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -475,8 +462,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
                     create_functor,
                     partitioner,
                     timer );
-            }
-            else {
+            } else {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutRight>>(
                     cl,
                     bc,
@@ -485,13 +471,13 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
                     partitioner,
                     timer );
             }
-        #else
+#else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
-        #endif
-    }
-    // Cuda
-    else if ( 0 == cl.device.compare( "cuda" ) ) {
-        #ifdef KOKKOS_ENABLE_CUDA
+#endif
+        }
+        // Cuda
+        else if ( 0 == cl.device.compare( "cuda" ) ) {
+#ifdef KOKKOS_ENABLE_CUDA
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -500,8 +486,7 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
                     create_functor,
                     partitioner,
                     timer );
-            }
-            else {
+            } else {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
                     cl,
                     bc,
@@ -510,16 +495,16 @@ std::shared_ptr<ExaCLAMR::SolverBase<ExaCLAMR::RegularMesh<state_t>>> createRegu
                     partitioner,
                     timer );
             }
-        #else
+#else
             throw std::runtime_error( "Cuda Backend Not Enabled" );
-        #endif
-    }
-    // Otherwise
-    else {
-        throw std::runtime_error( "Invalid Backend" );
-    }
-};
+#endif
+        }
+        // Otherwise
+        else {
+            throw std::runtime_error( "Invalid Backend" );
+        }
+    };
 
-}
+} // namespace ExaCLAMR
 
 #endif

@@ -9,7 +9,6 @@
 
 #include <ExaCLAMR.hpp>
 
-namespace ExaCLAMR
-{
+namespace ExaCLAMR {
 
-} 
+}

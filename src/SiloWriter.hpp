@@ -11,7 +11,7 @@
 #define EXACLAMR_SILOWRITER_HPP
 
 #ifndef DEBUG
-    #define DEBUG 0 
+#define DEBUG 0
 #endif
 
 // Include Statements
@@ -20,82 +20,78 @@
 #include <Cajita.hpp>
 
 #ifdef HAVE_SILO
-    #include <silo.h>
-    #include <pmpio.h>
+#include <pmpio.h>
+#include <silo.h>
 #endif
-
 
 namespace ExaCLAMR {
 
-/**
+    /**
  * @struct SiloTraits
  * @brief Parent SiloTraits Struct to template and allow writing floats or doubles to silo file
  **/
-template <typename SiloType>
-struct SiloTraits;
+    template <typename SiloType>
+    struct SiloTraits;
 
-/**
+    /**
  * @struct SiloTraits<float>
  * @brief Child SiloTraits Struct to write floats to silo file
  **/
-template <>
-struct SiloTraits<float> {
-    static DBdatatype type() { return DB_FLOAT; }
-};
+    template <>
+    struct SiloTraits<float> {
+        static DBdatatype type() { return DB_FLOAT; }
+    };
 
-/**
+    /**
  * @struct SiloTraits<double>
  * @brief Child SiloTraits Struct to write doubles to silo file
  **/
-template <>
-struct SiloTraits<double> {
-    static DBdatatype type() { return DB_DOUBLE; }
-};
+    template <>
+    struct SiloTraits<double> {
+        static DBdatatype type() { return DB_DOUBLE; }
+    };
 
-
-/**
+    /**
  * The SiloWriter Class
  * @class SiloWriter
  * @brief SiloWriter class to write results to Silo file using PMPIO
  **/
-template <class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
-class SiloWriter;
+    template <class MeshType, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class SiloWriter;
 
-template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
-class SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
-    public:
+    template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class SiloWriter<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
+      public:
         /**
          * Constructor
          * Create new SiloWriter
          * 
          * @param pm Problem manager object
          */
-        template<class ProblemManagerType>
-        SiloWriter( ProblemManagerType& pm ) 
-        : _pm ( pm ) {
+        template <class ProblemManagerType>
+        SiloWriter( ProblemManagerType &pm )
+            : _pm( pm ) {
             if ( DEBUG && _pm->mesh()->rank() == 0 ) std::cout << "Created AMR SiloWriter\n";
         };
-    
-    private:
-        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;     /**< Problem Manager Shared Pointer */
-};
 
-template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
-class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
-    public:
+      private:
+        std::shared_ptr<ProblemManager<ExaCLAMR::AMRMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm; /**< Problem Manager Shared Pointer */
+    };
+
+    template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
+    class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
+      public:
         /**
          * Constructor
          * Create new SiloWriter
          * 
          * @param pm Problem manager object
          */
-        template<class ProblemManagerType>
-        SiloWriter( ProblemManagerType& pm ) 
-        : _pm ( pm ) {
+        template <class ProblemManagerType>
+        SiloWriter( ProblemManagerType &pm )
+            : _pm( pm ) {
             if ( DEBUG && _pm->mesh()->rank() == 0 ) std::cout << "Created Regular SiloWriter\n";
         };
-
-
 
         /**
          * Write File
@@ -107,10 +103,10 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
          **/
         void writeFile( DBfile *dbfile, char *name, int time_step, state_t time, state_t dt ) {
             // Initialize Variables
-            int            dims[2], zdims[2], nx, ny, ndims;
-            state_t       *coords[2], *vars[2], dx, dy;
-            char          *coordnames[2], *varnames[2];
-            DBoptlist     *optlist;
+            int        dims[2], zdims[2], nx, ny, ndims;
+            state_t *  coords[2], *vars[2], dx, dy;
+            char *     coordnames[2], *varnames[2];
+            DBoptlist *optlist;
 
             // Define device_type for Later Use
             using device_type = typename Kokkos::Device<ExecutionSpace, MemorySpace>;
@@ -122,13 +118,13 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
             auto local_mesh = Cajita::createLocalMesh<device_type>( *local_grid );
 
             // DEBUG: Trace Writing File
-            if( DEBUG ) std::cout << "Writing File\n";
+            if ( DEBUG ) std::cout << "Writing File\n";
 
             // Set DB Options: Time Step, Time Stamp and Delta Time
-            optlist = DBMakeOptlist(10);
-            DBAddOption(optlist, DBOPT_CYCLE, &time_step);
-            DBAddOption(optlist, DBOPT_TIME, &time);
-            DBAddOption(optlist, DBOPT_DTIME, &dt);
+            optlist = DBMakeOptlist( 10 );
+            DBAddOption( optlist, DBOPT_CYCLE, &time_step );
+            DBAddOption( optlist, DBOPT_TIME, &time );
+            DBAddOption( optlist, DBOPT_DTIME, &dt );
 
             // Get Domain Space
             auto domain = _pm->mesh()->domainSpace();
@@ -146,8 +142,8 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
             dims[1] = ny + 1;
 
             // Correct Number of Cells/Zones
-            zdims[0] = dims[0] - 1;         // Equivalent to nx
-            zdims[1] = dims[1] - 1;         // Equivalent to ny
+            zdims[0] = dims[0] - 1; // Equivalent to nx
+            zdims[1] = dims[1] - 1; // Equivalent to ny
 
             // Coordinate Names: Cartesian X, Y Coordinate System
             coordnames[0] = strdup( "x" );
@@ -162,24 +158,24 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
             coords[1] = y;
 
             // Set X and Y Coordinates of Nodes
-            for (int i = domain.min( 0 ); i <= domain.max( 0 ); i++) {
-                int iown = i - domain.min( 0 );
-                int coords[3] = { i, 0, 0 };
+            for ( int i = domain.min( 0 ); i <= domain.max( 0 ); i++ ) {
+                int     iown      = i - domain.min( 0 );
+                int     coords[3] = { i, 0, 0 };
                 state_t x_coords[3];
                 local_mesh.coordinates( Cajita::Cell(), coords, x_coords );
                 x[iown] = x_coords[0] - 0.5 * dx;
             }
 
-            for (int j = domain.min( 1 ); j <= domain.max( 1 ); j++) {
-                int jown = j - domain.min( 1 );
-                int coords[3] = { 0, j, 0 };
+            for ( int j = domain.min( 1 ); j <= domain.max( 1 ); j++ ) {
+                int     jown      = j - domain.min( 1 );
+                int     coords[3] = { 0, j, 0 };
                 state_t x_coords[3];
                 local_mesh.coordinates( Cajita::Cell(), coords, x_coords );
                 y[jown] = x_coords[1] - 0.5 * dy;
             }
 
-            DBPutQuadmesh(dbfile, name, (DBCAS_t) coordnames,
-                        coords, dims, ndims, SiloTraits<state_t>::type(), DB_COLLINEAR, optlist);
+            DBPutQuadmesh( dbfile, name, (DBCAS_t)coordnames,
+                           coords, dims, ndims, SiloTraits<state_t>::type(), DB_COLLINEAR, optlist );
 
             // Get State Views
             auto uNew = _pm->get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
@@ -204,8 +200,8 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
 
                         // Set State Values to be Written
                         height[inx] = hHost( i, j, k, 0 );
-                        u[inx] = uHost( i, j, k, 0 );
-                        v[inx] = uHost( i, j, k, 1 );
+                        u[inx]      = uHost( i, j, k, 0 );
+                        v[inx]      = uHost( i, j, k, 1 );
                     }
                 }
             }
@@ -213,25 +209,25 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
             // Write Scalar Variables
             // Height
             DBPutQuadvar1( dbfile, "height", name, height, zdims, ndims,
-                                NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
-            
+                           NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
+
             // Vx
             DBPutQuadvar1( dbfile, "ucomp", name, u, zdims, ndims,
-                        NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
+                           NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
 
             // Vy
             DBPutQuadvar1( dbfile, "vcomp", name, v, zdims, ndims,
-                        NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
+                           NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
 
             // Setup and Write Momentum Variable
-            vars[0] = u;
-            vars[1] = v;
+            vars[0]     = u;
+            vars[1]     = v;
             varnames[0] = strdup( "u" );
             varnames[1] = strdup( "v" );
 
             // Momentum
-            DBPutQuadvar( dbfile, "momentum", name, 2, (DBCAS_t) varnames,
-                vars, zdims, ndims, NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
+            DBPutQuadvar( dbfile, "momentum", name, 2, (DBCAS_t)varnames,
+                          vars, zdims, ndims, NULL, 0, SiloTraits<state_t>::type(), DB_ZONECENT, optlist );
 
             // Free Option List
             DBFreeOptlist( optlist );
@@ -243,18 +239,18 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
          * @param nsname Name of directory inside of the file
          * @param user_data File Driver/Type (PDB, HDF5)
          **/
-        static void* createSiloFile( const char* filename, const char* nsname, void* user_data ) {
+        static void *createSiloFile( const char *filename, const char *nsname, void *user_data ) {
             if ( DEBUG ) std::cout << "Creating file: " << filename << "\n";
 
-            int driver = *( ( int* ) user_data );
-            DBfile* silo_file = DBCreate( filename, DB_CLOBBER, DB_LOCAL, "ExaCLAMRRaw", driver );
+            int     driver    = *( (int *)user_data );
+            DBfile *silo_file = DBCreate( filename, DB_CLOBBER, DB_LOCAL, "ExaCLAMRRaw", driver );
 
             if ( silo_file ) {
                 DBMkDir( silo_file, nsname );
                 DBSetDir( silo_file, nsname );
             }
 
-            return ( void * ) silo_file;
+            return (void *)silo_file;
         };
 
         /**
@@ -264,8 +260,8 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
          * @param ioMode Read/Write/Append Mode
          * @param user_data File Driver/Type (PDB, HDF5)
          **/
-        static void* openSiloFile( const char* filename, const char* nsname, PMPIO_iomode_t ioMode, void* user_data ) {
-            DBfile* silo_file = DBOpen( filename, DB_UNKNOWN, ioMode == PMPIO_WRITE ? DB_APPEND : DB_READ );
+        static void *openSiloFile( const char *filename, const char *nsname, PMPIO_iomode_t ioMode, void *user_data ) {
+            DBfile *silo_file = DBOpen( filename, DB_UNKNOWN, ioMode == PMPIO_WRITE ? DB_APPEND : DB_READ );
 
             if ( silo_file ) {
                 if ( ioMode == PMPIO_WRITE ) {
@@ -274,7 +270,7 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
                 DBSetDir( silo_file, nsname );
             }
 
-            return ( void * ) silo_file;
+            return (void *)silo_file;
         };
 
         /**
@@ -282,8 +278,8 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
          * @param file File pointer
          * @param user_data File Driver/Type (PDB, HDF5)
          **/
-        static void closeSiloFile( void* file, void* user_data ) {
-            DBfile* silo_file = ( DBfile * ) file;
+        static void closeSiloFile( void *file, void *user_data ) {
+            DBfile *silo_file = (DBfile *)file;
             if ( silo_file ) DBClose( silo_file );
         };
 
@@ -297,25 +293,25 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
          * @param time_step Current time step
          * @param file_ext File extension (PDB, HDF5)
          **/
-        void writeMultiObjects( DBfile* silo_file, PMPIO_baton_t* baton, int size, int time_step, const char* file_ext ) {
-            char** mesh_block_names = ( char ** ) malloc( size * sizeof( char * ) );
-            char** h_block_names = ( char ** ) malloc( size * sizeof( char * ) );
-            char** u_block_names = ( char ** ) malloc( size * sizeof( char * ) );
-            char** v_block_names = ( char ** ) malloc( size * sizeof( char * ) );
-            char** mom_block_names = ( char ** ) malloc( size * sizeof( char * ) );
+        void writeMultiObjects( DBfile *silo_file, PMPIO_baton_t *baton, int size, int time_step, const char *file_ext ) {
+            char **mesh_block_names = (char **)malloc( size * sizeof( char * ) );
+            char **h_block_names    = (char **)malloc( size * sizeof( char * ) );
+            char **u_block_names    = (char **)malloc( size * sizeof( char * ) );
+            char **v_block_names    = (char **)malloc( size * sizeof( char * ) );
+            char **mom_block_names  = (char **)malloc( size * sizeof( char * ) );
 
-            int* block_types = ( int * ) malloc( size * sizeof( int ) );
-            int* var_types = ( int * ) malloc( size * sizeof( int ) );
+            int *block_types = (int *)malloc( size * sizeof( int ) );
+            int *var_types   = (int *)malloc( size * sizeof( int ) );
 
             DBSetDir( silo_file, "/" );
 
             for ( int i = 0; i < size; i++ ) {
-                int group_rank = PMPIO_GroupRank( baton, i );
-                mesh_block_names[i] = ( char * ) malloc( 1024 );
-                h_block_names[i] = ( char * ) malloc( 1024 );
-                u_block_names[i] = ( char * ) malloc( 1024 );
-                v_block_names[i] = ( char * ) malloc( 1024 );
-                mom_block_names[i] = ( char * ) malloc( 1024 );
+                int group_rank      = PMPIO_GroupRank( baton, i );
+                mesh_block_names[i] = (char *)malloc( 1024 );
+                h_block_names[i]    = (char *)malloc( 1024 );
+                u_block_names[i]    = (char *)malloc( 1024 );
+                v_block_names[i]    = (char *)malloc( 1024 );
+                mom_block_names[i]  = (char *)malloc( 1024 );
 
                 sprintf( mesh_block_names[i], "raw/ExaCLAMROutput%05d%05d.pdb:/domain_%05d/Mesh", group_rank, time_step, i );
                 sprintf( h_block_names[i], "raw/ExaCLAMROutput%05d%05d.pdb:/domain_%05d/height", group_rank, time_step, i );
@@ -324,7 +320,7 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
                 sprintf( mom_block_names[i], "raw/ExaCLAMROutput%05d%05d.pdb:/domain_%05d/momentum", group_rank, time_step, i );
 
                 block_types[i] = DB_QUADMESH;
-                var_types[i] = DB_QUADVAR;
+                var_types[i]   = DB_QUADVAR;
             }
 
             DBPutMultimesh( silo_file, "multi_mesh", size, mesh_block_names, block_types, 0 );
@@ -360,16 +356,16 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
          **/
         void siloWrite( char *name, int time_step, state_t time, state_t dt ) {
             // Initalize Variables
-            DBfile* silo_file;
-            DBfile* master_file;
-            int size;
-            int driver = DB_PDB;
+            DBfile *silo_file;
+            DBfile *master_file;
+            int     size;
+            int     driver = DB_PDB;
             // TODO: Make the Number of Groups a Constant or a Runtime Parameter ( Between 8 and 64 )
-            int numGroups = 2;
-            char masterfilename[256], filename[256], nsname[256];
-            PMPIO_baton_t* baton;
+            int            numGroups = 2;
+            char           masterfilename[256], filename[256], nsname[256];
+            PMPIO_baton_t *baton;
 
-            MPI_Comm_size(MPI_COMM_WORLD, &size);
+            MPI_Comm_size( MPI_COMM_WORLD, &size );
             MPI_Bcast( &numGroups, 1, MPI_INT, 0, MPI_COMM_WORLD );
             MPI_Bcast( &driver, 1, MPI_INT, 0, MPI_COMM_WORLD );
 
@@ -383,7 +379,7 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
             // Show Errors and Force FLoating Point
             DBShowErrors( DB_ALL, NULL );
 
-            silo_file = ( DBfile * ) PMPIO_WaitForBaton( baton, filename, nsname );
+            silo_file = (DBfile *)PMPIO_WaitForBaton( baton, filename, nsname );
 
             writeFile( silo_file, name, time_step, time, dt );
 
@@ -396,13 +392,12 @@ class SiloWriter<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, Or
             PMPIO_HandOffBaton( baton, silo_file );
 
             PMPIO_Finish( baton );
-            }
+        }
 
-    private:
-        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm;      /**< Problem Manager Shared Pointer */
+      private:
+        std::shared_ptr<ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView>> _pm; /**< Problem Manager Shared Pointer */
+    };
 
-};
-
-};
+}; // namespace ExaCLAMR
 
 #endif

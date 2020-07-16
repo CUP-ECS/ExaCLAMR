@@ -10,3 +10,5 @@ Doxyfile
 html/
 latex/
 .vscode/
+scripts/format.sh
+.clang-format
