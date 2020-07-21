@@ -27,22 +27,20 @@ exit_abnormal() {
 
 # Get Silo
 get_silo() {
-        cd ${MYDIR}/libs
-            wget https://wci.llnl.gov/content/assets/docs/simulation/computer-codes/silo/silo-4.10.2/silo-4.10.2-bsd.tar.gz
-                tar -xvf silo-4.10.2-bsd.tar.gz
-                    mv silo-4.10.2-bsd silo
-                        rm silo-4.10.2-bsd.tar.gz
-                            cd ${MYDIR}
-
+    cd ${MYDIR}/libs
+    wget https://wci.llnl.gov/content/assets/docs/simulation/computer-codes/silo/silo-4.10.2/silo-4.10.2-bsd.tar.gz
+    tar -xvf silo-4.10.2-bsd.tar.gz
+    mv silo-4.10.2-bsd silo
+    rm silo-4.10.2-bsd.tar.gz
+    cd ${MYDIR}
 }
 
 # Build Silo
 build_silo() {
-        cd ${MYDIR}/libs/silo
-            ./configure --prefix=${INSTALL_DIR}
-                make -j8 install
-                    cd ${MYDIR}
-
+    cd ${MYDIR}/libs/silo
+    ./configure --prefix=${INSTALL_DIR}
+    make -j8 install
+    cd ${MYDIR}
 }
 
 # Build Kokkos on Xena (Tesla K40 GPU - KEPLER 35) with Cuda UVM
