@@ -2,7 +2,7 @@
 
 # Define Variables
 MYDIR=`pwd`
-INSTALL_DIR=~/wheeler-scratch/tmp
+INSTALL_DIR=~/wheeler-scratch/ExaCLAMR_Wheeler
 KOKKOS_GIT=https://github.com/kokkos/kokkos.git
 #CABANA_GIT=https://github.com/ECP-copa/Cabana.git
 CABANA_GIT=https://github.com/JDTruj2018/Cabana.git
@@ -11,6 +11,7 @@ CABANA_GIT=https://github.com/JDTruj2018/Cabana.git
 module load cmake-3.15.4-gcc-8.3.0-rmxifnl
 module load openmpi-3.1.4-gcc-8.3.0-w3pkrvv
 module load gcc-8.3.0-gcc-4.8.5-wwpinbr
+module load hypre-2.14.0-gcc-7.3.0-openmpi-mkl-zndhsgh
 
 # Abnormal Exit Message
 exit_abnormal() {
@@ -52,7 +53,7 @@ build_cabana() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_PREFIX_PATH=${INSTALL_DIR}/usr/local -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On ..
+    cmake -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;/opt/spack/opt/spack/linux-centos7-x86_64/gcc-7.3.0/hypre-2.14.0-zndhsgh6unz72fqbnz5aa6axkxzdtlw2" -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_HYPRE=On ..
     make DESTDIR=${INSTALL_DIR} install -j8
     cd ${MYDIR}
 }
