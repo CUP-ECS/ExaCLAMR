@@ -31,7 +31,7 @@
 namespace ExaCLAMR {
     namespace TimeIntegrator {
 
-        /**
+/**
 * Perform Halo Exchange
 *
 * @param pm Problem manager
@@ -47,11 +47,10 @@ namespace ExaCLAMR {
             if ( pm.mesh()->rank() == 0 && DEBUG ) std::cout << exec_space.name() << "\n";
 
             // Perform Halo Exchange on Height and Momentum State Views
-            pm.gather( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
-            pm.gather( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
+            pm.gather( Location::Cell(), NEWFIELD( time_step ) );
         }
 
-        /**
+/**
 * Calculate dynamic time step based off of wave speed and cell size
 *
 * @param pm Problem manager
@@ -102,7 +101,7 @@ namespace ExaCLAMR {
             return dt_min;
         }
 
-        /**
+/**
  * Flux for Uy and Vx directions
  * 
  * @param u X-Momentum ( u )
@@ -116,7 +115,7 @@ namespace ExaCLAMR {
             return u * v / h;
         }
 
-        /**
+/**
  * Flux for Ux and Vy directions
  * 
  * @param u Momentum (x or y i.e. u or v)
@@ -130,7 +129,7 @@ namespace ExaCLAMR {
             return POW2( u ) / h + ghalf * POW2( h );
         }
 
-        /**
+/**
  * Flux corrector
  * 
  * @param dt Time step
@@ -154,7 +153,7 @@ namespace ExaCLAMR {
             return 0.5 * nu * ( 1.0 - fmax( fmin( fmin( 1.0, rPlus ), rMinus ), 0.0 ) );
         }
 
-        /**
+/**
  * Full Step Shallow Water Calculation
  * 
  * @param dt Time step
@@ -172,7 +171,7 @@ namespace ExaCLAMR {
             return ( u + ( -( dt / dr ) * ( ( f_plus - f_minus ) + ( g_plus - g_minus ) ) ) );
         }
 
-        /**
+/**
  * Time Step Iteration of Shallow Water Equations
  * 
  * @param pm Problem manager
@@ -289,7 +288,7 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hx_minus, ux_minus, vx_minus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_minus: " << std::setw( 6 ) << hx_minus << \
-        "\tux_minus: " << std::setw( 6 ) << ux_minus << "\tvx_minus: " << std::setw( 6 ) << vx_minus << "\ti: " << i << "\tj: "<< j << "\tk: " << k << "\n";
+                    "\tux_minus: " << std::setw( 6 ) << ux_minus << "\tvx_minus: " << std::setw( 6 ) << vx_minus << "\ti: " << i << "\tj: "<< j << "\tk: " << k << "\n";
 
                     // X Plus Direction
                     state_t hx_plus = 0.5 * ( ( h_ic + h_right ) - ( dt ) / ( dx ) * ( ( u_right ) - ( u_ic ) ) );
@@ -298,7 +297,7 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hx_plus, ux_plus, vx_plus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_plus: " << std::setw( 6 ) << hx_plus << \
-        "\tux_plus: " << std::setw( 6 ) << ux_plus << "\tvx_plus: " << std::setw( 6 ) << vx_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tux_plus: " << std::setw( 6 ) << ux_plus << "\tvx_plus: " << std::setw( 6 ) << vx_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Y Minus Direction
                     state_t hy_minus = 0.5 * ( ( h_bot + h_ic ) - ( dt ) / ( dy ) * ( ( v_ic ) - ( v_bot ) ) );
@@ -307,7 +306,7 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hy_minus, uy_minus, vy_minus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_minus: " << std::setw( 6 ) << hy_minus << \
-        "\tuy_minus: " << std::setw( 6 ) << uy_minus << "\tvy_minus: " << std::setw( 6 ) << vy_minus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tuy_minus: " << std::setw( 6 ) << uy_minus << "\tvy_minus: " << std::setw( 6 ) << vy_minus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Y Plus Direction
                     state_t hy_plus = 0.5 * ( ( h_ic + h_top ) - ( dt ) / ( dy ) * ( ( v_top ) - ( v_ic ) ) );
@@ -316,7 +315,7 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hy_plus, uy_plus, vy_plus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_plus: " << std::setw( 6 ) << hy_plus << \
-        "\tuy_plus: " << std::setw( 6 ) << uy_plus << "\tvy_plus: " << std::setw( 6 ) << vy_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tuy_plus: " << std::setw( 6 ) << uy_plus << "\tvy_plus: " << std::setw( 6 ) << vy_plus << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Flux View Updates
                     // X Direction
@@ -326,8 +325,8 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hx_flux_minus, ux_flux_minus, ux_flux_minus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_flux_minus: " << std::setw( 6 ) << hx_flux_minus( i, j, k, 0 ) << \
-        "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus( i, j, k, 0 ) << "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus( i, j, k, 1 ) << \
-        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus( i, j, k, 0 ) << "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus( i, j, k, 1 ) << \
+                    "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     hx_flux_plus( i, j, k, 0 ) = ux_plus;
                     ux_flux_plus( i, j, k, 0 ) = ( POW2( ux_plus ) / hx_plus + ghalf * POW2( hx_plus ) );
@@ -335,8 +334,8 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hx_flux_plus, ux_flux_plus, ux_flux_plus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_flux_plus: " << std::setw( 6 ) << hx_flux_plus( i, j, k, 0 ) << \
-        "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus( i, j, k, 0 ) << "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus( i, j, k, 1 ) << \
-        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus( i, j, k, 0 ) << "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus( i, j, k, 1 ) << \
+                    "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Y Direction
                     hy_flux_minus( i, j, k, 0 ) = vy_minus;
@@ -345,8 +344,8 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hy_flux_minus, uy_flux_minus, uy_flux_minus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_flux_minus: " << std::setw( 6 ) << hy_flux_minus( i, j, k, 0 ) << \
-        "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus( i, j, k, 0 ) << "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus( i, j, k, 1 ) << \
-        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus( i, j, k, 0 ) << "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus( i, j, k, 1 ) << \
+                    "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     hy_flux_plus( i, j, k, 0 ) = vy_plus;
                     uy_flux_plus( i, j, k, 0 ) = ( vy_plus * uy_plus / hy_plus );
@@ -354,8 +353,8 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hy_flux_plus, uy_flux_plus, uy_flux_plus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_flux_plus: " << std::setw( 6 ) << hy_flux_plus( i, j, k, 0 ) << \
-        "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus( i, j, k, 0 ) << "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus( i, j, k, 1 ) << \
-        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus( i, j, k, 0 ) << "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus( i, j, k, 1 ) << \
+                    "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Flux Corrector Calculations
                     // X Direction
@@ -373,8 +372,8 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hx_w_minus, hx_w_plus, u_w_minus, u_w_plus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_w_minus: " << std::setw( 6 ) << hx_w_minus( i, j, k, 0 ( i, j, k, 0 ) << "\thx_w_plus: " << std::setw( 6 ) << hx_w_plus( i, j, k, 0 ) <<\
-        "\tu_w_minus: " << std::setw( 6 ) << u_w_minus( i, j, k, 0 ) << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus( i, j, k, 0 ) << \
-        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tu_w_minus: " << std::setw( 6 ) << u_w_minus( i, j, k, 0 ) << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus( i, j, k, 0 ) << \
+                    "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Y Direction
                     hy_w_minus( i, j, k, 0 ) = wCorrector( dt, dy, fabs( vy_minus / hy_minus ) + sqrt( gravity * hy_minus ), h_ic - h_bot, h_bot - h_bot2, h_top - h_ic );
@@ -391,8 +390,8 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print hy_w_minus, hy_w_plus, u_w_minus, u_w_plus, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_w_minus: " << std::setw( 6 ) << hy_w_minus( i, j, k, 0 ( i, j, k, 0 ) << "\thy_w_plus: " << std::setw( 6 ) << hy_w_plus( i, j, k, 0 ) <<\
-        "\tu_w_minus: " << std::setw( 6 ) << u_w_minus( i, j, k, 1 ) << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus( i, j, k, 1 ) << \
-        "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tu_w_minus: " << std::setw( 6 ) << u_w_minus( i, j, k, 1 ) << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus( i, j, k, 1 ) << \
+                    "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Full Step Update
                     h_new( i, j, k, 0 ) = uFullStep( dt, dx, h_ic, hx_flux_plus( i, j, k, 0 ), hx_flux_minus( i, j, k, 0 ), hy_flux_plus( i, j, k, 0 ), hy_flux_minus( i, j, k, 0 ) ) - hx_w_minus( i, j, k, 0 ) + hx_w_plus( i, j, k, 0 ) - hy_w_minus( i, j, k, 0 ) + hy_w_plus( i, j, k, 0 );
@@ -401,7 +400,7 @@ namespace ExaCLAMR {
 
                     // DEBUG: Print h_new, u_new, v_new, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "h_new: " << std::setw( 6 ) << h_new( i, j, k, 0 ) << \
-        "\tu_new: " << std::setw( 6 ) << u_new( i, j, k, 0 ) << "\tv_new: " << std::setw( 6 ) << u_new( i, j, k, 1 ) << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
+                    "\tu_new: " << std::setw( 6 ) << u_new( i, j, k, 0 ) << "\tv_new: " << std::setw( 6 ) << u_new( i, j, k, 1 ) << "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
                 } );
         }
 

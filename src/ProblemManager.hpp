@@ -214,7 +214,7 @@ namespace ExaCLAMR {
     template <class state_t, class MemorySpace, class ExecutionSpace, class OrderingView>
     class ProblemManager<ExaCLAMR::RegularMesh<state_t>, MemorySpace, ExecutionSpace, OrderingView> {
         using cell_array  = Cajita::Array<state_t, Cajita::Cell, Cajita::UniformMesh<state_t>, OrderingView, MemorySpace>;
-        using halo        = Cajita::Halo<state_t, MemorySpace>;
+        using halo        = Cajita::Halo<MemorySpace>;
         using device_type = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
       public:
@@ -286,8 +286,7 @@ namespace ExaCLAMR {
             halo_pattern.setNeighbors( neighbors );
 
             // Initialize Halo Array Layours
-            _cell_vector_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_vector_layout, halo_pattern );
-            _cell_scalar_halo = Cajita::createHalo<state_t, MemorySpace>( *cell_scalar_layout, halo_pattern );
+            _cell_state_halo = Cajita::createHalo( halo_pattern, cl.halo_size, *_momentum_a, *_height_a, *_momentum_b, *_height_b );
 
             // Initialize State Values ( Height, Momentum )
             initialize( create_functor );
@@ -531,56 +530,28 @@ namespace ExaCLAMR {
         }
 
         /**
-         * Scatter Momentum to Neighbors
+         * Scatter State Data to Neighbors
          * @param Location::Cell
-         * @param Field::Momentum
-         * @param t Toggle between momentum arrays
+         * @param t Toggle between state arrays
          **/
-        void scatter( Location::Cell, Field::Momentum, int t ) const {
+        void scatter( Location::Cell, int t ) const {
             if ( t == 0 )
-                _cell_vector_halo->scatter( *_momentum_a );
+                _cell_state_halo->scatter( ExecutionSpace(), *_momentum_a, *_height_a );
             else
-                _cell_vector_halo->scatter( *_momentum_b );
+                _cell_state_halo->scatter( ExecutionSpace(), *_momentum_b, *_height_b );
         };
 
         /**
-         * Scatter Height to Neighbors
+         * Gather State Data from Neighbors
          * @param Location::Cell
-         * @param Field::Height
-         * @param t Toggle between height arrays
+         * @param t Toggle between state arrays
          **/
-        void scatter( Location::Cell, Field::Height, int t ) const {
+        void gather( Location::Cell, int t ) const {
             if ( t == 0 )
-                _cell_scalar_halo->scatter( *_height_a );
+                _cell_state_halo->gather( ExecutionSpace(), *_momentum_a, *_height_a );
             else
-                _cell_scalar_halo->scatter( *_height_b );
-        };
-
-        /**
-         * Gather Momentum from Neighbors
-         * @param Location::Cell
-         * @param Field::Momentum
-         * @param t Toggle between momentum arrays
-         **/
-        void gather( Location::Cell, Field::Momentum, int t ) const {
-            if ( t == 0 )
-                _cell_vector_halo->gather( *_momentum_a );
-            else
-                _cell_vector_halo->gather( *_momentum_b );
-        };
-
-        /**
-         * Gather Height from Neighbors
-         * @param Location::Cell
-         * @param Field::Height
-         * @param t Toggle between height arrays
-         **/
-        void gather( Location::Cell, Field::Height, int t ) const {
-            if ( t == 0 )
-                _cell_scalar_halo->gather( *_height_a );
-            else
-                _cell_scalar_halo->gather( *_height_b );
-        };
+                _cell_state_halo->gather( ExecutionSpace(), *_momentum_b, *_height_b );
+        }
 
       private:
         std::shared_ptr<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>> _mesh; /**< Mesh object */
@@ -608,8 +579,7 @@ namespace ExaCLAMR {
         std::shared_ptr<cell_array> _u_w_plus;  /**< Momentum positive flux corrector array */
         std::shared_ptr<cell_array> _u_w_minus; /**< Momentum negative flux corrector array */
 
-        std::shared_ptr<halo> _cell_vector_halo; /**< Halo for vector arrays */
-        std::shared_ptr<halo> _cell_scalar_halo; /**< Halo for scalar arrays */
+        std::shared_ptr<halo> _cell_state_halo; /**< Halo for A state arrays */
     };
 
 } // namespace ExaCLAMR
