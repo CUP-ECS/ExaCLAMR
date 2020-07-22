@@ -60,7 +60,7 @@ build_cabana() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_PREFIX_PATH=${INSTALL_DIR}/usr/local -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On ..
+    cmake -D CMAKE_PREFIX_PATH=${INSTALL_DIR}/usr/local -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_CUDA=On ..
     make DESTDIR=${INSTALL_DIR} install -j8
     cd ${MYDIR}
 }

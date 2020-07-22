@@ -53,7 +53,7 @@ build_cabana() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;/opt/spack/opt/spack/linux-centos7-x86_64/gcc-7.3.0/hypre-2.14.0-zndhsgh6unz72fqbnz5aa6axkxzdtlw2" -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_HYPRE=On ..
+    cmake -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;/opt/spack/opt/spack/linux-centos7-x86_64/gcc-7.3.0/hypre-2.14.0-zndhsgh6unz72fqbnz5aa6axkxzdtlw2" -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_HYPRE=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_CUDA=On ..
     make DESTDIR=${INSTALL_DIR} install -j8
     cd ${MYDIR}
 }
