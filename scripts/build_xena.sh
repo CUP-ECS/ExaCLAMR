@@ -5,6 +5,7 @@ MYDIR=`pwd`
 INSTALL_DIR=~/xena-scratch/tmp
 NVCC_CXX=${MYDIR}/libs/kokkos/bin/nvcc_wrapper
 KOKKOS_GIT=https://github.com/kokkos/kokkos.git
+KOKKOS_HASH=785d19f
 #CABANA_GIT=https://github.com/ECP-copa/Cabana.git
 CABANA_GIT=https://github.com/JDTruj2018/Cabana.git
 
@@ -46,6 +47,7 @@ build_silo() {
 # Build Kokkos on Xena (Tesla K40 GPU - KEPLER 35) with Cuda UVM
 build_kokkos() {
     cd ${MYDIR}/libs/kokkos
+    git checkout ${KOKKOS_HASH}
     rm -rf build
     mkdir -p build
     cd build
@@ -93,6 +95,7 @@ update_repos() {
     else
         cd libs/kokkos
         git pull
+        git checkout ${KOKKOS_HASH}
         cd ${MYDIR}
         cd libs/Cabana
         git pull
