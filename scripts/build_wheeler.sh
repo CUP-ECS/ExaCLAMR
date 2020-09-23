@@ -4,9 +4,9 @@
 MYDIR=`pwd`
 INSTALL_DIR=~/wheeler-scratch/ExaCLAMR_Wheeler
 KOKKOS_GIT=https://github.com/kokkos/kokkos.git
-KOKKOS_HASH=785d19f
-#CABANA_GIT=https://github.com/ECP-copa/Cabana.git
-CABANA_GIT=https://github.com/JDTruj2018/Cabana.git
+#KOKKOS_HASH=785d19f
+CABANA_GIT=https://github.com/ECP-copa/Cabana.git
+#CABANA_GIT=https://github.com/JDTruj2018/Cabana.git
 
 # Load Modules
 module load cmake-3.15.4-gcc-8.3.0-rmxifnl
@@ -40,11 +40,11 @@ build_silo() {
 # Build Kokkos on Wheeler
 build_kokkos() {
     cd ${MYDIR}/libs/kokkos
-    git checkout ${KOKKOS_HASH}
+    #git checkout ${KOKKOS_HASH}
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On  ..
+    cmake -D Kokkos_CXX_STANDARD=14 -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On  ..
     make DESTDIR=${INSTALL_DIR} install -j8
     cd ${MYDIR}
 }
@@ -55,8 +55,8 @@ build_cabana() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;/opt/spack/opt/spack/linux-centos7-x86_64/gcc-7.3.0/hypre-2.14.0-zndhsgh6unz72fqbnz5aa6axkxzdtlw2" -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Cabana_ENABLE_CAJITA=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_HYPRE=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_CUDA=On ..
-    make DESTDIR=${INSTALL_DIR} install -j8
+    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH="${INSTALL_DIR};${INSTALL_DIR}/usr/local;/opt/spack/opt/spack/linux-centos7-x86_64/gcc-7.3.0/hypre-2.14.0-zndhsgh6unz72fqbnz5aa6axkxzdtlw2" -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_EXAMPLES=ON -D Cabana_ENABLE_TESTING=ON -D Cabana_ENABLE_PERFORMANCE_TESTING=ON -D Cabana_ENABLE_CAJITA=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_HYPRE=On ..
+    make install -j8
     cd ${MYDIR}
 }
 
@@ -160,7 +160,7 @@ cd ${MYDIR}
 rm -rf build
 mkdir -p build
 cd build
-cmake -D CMAKE_CXX_FLAGS=-I${INSTALL_DIR}/include -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;${INSTALL_DIR}/lib" -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On ..
+cmake -D CMAKE_CXX_FLAGS=-I${INSTALL_DIR}/include -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;${INSTALL_DIR}/lib;${INSTALL_DIR}/lib64/cmake/Cabana" -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On ..
 make -j8
 mkdir data
 mkdir data/raw

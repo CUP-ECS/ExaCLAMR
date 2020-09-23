@@ -28,9 +28,19 @@ Re-Implementation of the Shallow Water Solver LANL/CLAMR using Kokkos, Cabana, a
 ```bash
 git clone https://github.com/CUP-ECS/ExaCLAMR.git
 cd ExaCLAMR
-bash scripts/build_wheeler.sh
+bash scripts/build_wheeler.sh -a
 mkdir -p data
 mkdir -p data/raw
+```
+
+### Running on UNM CARC Wheeler - Example on 2 Ranks (Serial, MPI+OpenMP)
+```bash
+module load cmake-3.15.4-gcc-8.3.0-rmxifnl
+module load openmpi-3.1.4-gcc-8.3.0-w3pkrvv
+module load gcc-8.3.0-gcc-4.8.5-wwpinbr
+module load hypre-2.14.0-gcc-7.3.0-openmpi-mkl-zndhsgh
+mpirun -np 2 --display-map --map-by ppr:1:node --bind-to none -machinefile $PBS_NODEFILE -x PATH -x LD_LIBRARY_PATH ./build/examples/DamBreak
+mpirun -np 2 --display-map --map-by ppr:1:node --bind-to none -machinefile $PBS_NODEFILE -x PATH -x LD_LIBRARY_PATH ./build/examples/DamBreak -mopenmp
 ```
 
 ### Building on UNM CARC Xena
@@ -40,7 +50,7 @@ mkdir -p data/raw
 ```bash
 git clone https://github.com/CUP-ECS/ExaCLAMR.git
 cd ExaCLAMR
-bash scripts/build_xena.sh
+bash scripts/build_xena.sh -a
 mkdir -p data
 mkdir -p data/raw
 ```
