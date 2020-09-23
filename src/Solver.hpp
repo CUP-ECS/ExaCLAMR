@@ -334,6 +334,7 @@ namespace ExaCLAMR {
         // Serial
         if ( 0 == cl.device.compare( "serial" ) ) {
 #ifdef KOKKOS_ENABLE_SERIAL
+            /*
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -343,6 +344,7 @@ namespace ExaCLAMR {
                     partitioner,
                     timer );
             } else {
+            */
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutRight>>(
                     cl,
                     bc,
@@ -350,7 +352,7 @@ namespace ExaCLAMR {
                     create_functor,
                     partitioner,
                     timer );
-            }
+            // }
 #else
             throw std::runtime_error( "Serial Backend Not Enabled" );
 #endif
@@ -358,6 +360,7 @@ namespace ExaCLAMR {
         // OpenMP
         else if ( 0 == cl.device.compare( "openmp" ) ) {
 #ifdef KOKKOS_ENABLE_OPENMP
+            /*
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -367,6 +370,7 @@ namespace ExaCLAMR {
                     partitioner,
                     timer );
             } else {
+            */
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutRight>>(
                     cl,
                     bc,
@@ -374,7 +378,7 @@ namespace ExaCLAMR {
                     create_functor,
                     partitioner,
                     timer );
-            }
+            // }
 #else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
 #endif
@@ -382,6 +386,7 @@ namespace ExaCLAMR {
         // Cuda
         else if ( 0 == cl.device.compare( "cuda" ) ) {
 #ifdef KOKKOS_ENABLE_CUDA
+            /*
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -391,6 +396,7 @@ namespace ExaCLAMR {
                     partitioner,
                     timer );
             } else {
+            */
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::AMRMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
                     cl,
                     bc,
@@ -398,7 +404,7 @@ namespace ExaCLAMR {
                     create_functor,
                     partitioner,
                     timer );
-            }
+            // }
 #else
             throw std::runtime_error( "Cuda Backend Not Enabled" );
 #endif
@@ -430,6 +436,7 @@ namespace ExaCLAMR {
         // Serial
         if ( 0 == cl.device.compare( "serial" ) ) {
 #ifdef KOKKOS_ENABLE_SERIAL
+            /*
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -439,6 +446,7 @@ namespace ExaCLAMR {
                     partitioner,
                     timer );
             } else {
+            */
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::Serial, Kokkos::LayoutRight>>(
                     cl,
                     bc,
@@ -446,7 +454,7 @@ namespace ExaCLAMR {
                     create_functor,
                     partitioner,
                     timer );
-            }
+            // }
 #else
             throw std::runtime_error( "Serial Backend Not Enabled" );
 #endif
@@ -454,6 +462,7 @@ namespace ExaCLAMR {
         // OpenMP
         else if ( 0 == cl.device.compare( "openmp" ) ) {
 #ifdef KOKKOS_ENABLE_OPENMP
+            /*
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -463,6 +472,7 @@ namespace ExaCLAMR {
                     partitioner,
                     timer );
             } else {
+            */
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::HostSpace, Kokkos::OpenMP, Kokkos::LayoutRight>>(
                     cl,
                     bc,
@@ -470,7 +480,7 @@ namespace ExaCLAMR {
                     create_functor,
                     partitioner,
                     timer );
-            }
+            // }
 #else
             throw std::runtime_error( "OpenMP Backend Not Enabled" );
 #endif
@@ -478,6 +488,7 @@ namespace ExaCLAMR {
         // Cuda
         else if ( 0 == cl.device.compare( "cuda" ) ) {
 #ifdef KOKKOS_ENABLE_CUDA
+            /*
             if ( !cl.ordering.compare( "hilbert" ) ) {
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutHilbert2D>>(
                     cl,
@@ -487,6 +498,7 @@ namespace ExaCLAMR {
                     partitioner,
                     timer );
             } else {
+            */
                 return std::make_shared<ExaCLAMR::Solver<ExaCLAMR::RegularMesh<state_t>, Kokkos::CudaSpace, Kokkos::Cuda, Kokkos::LayoutLeft>>(
                     cl,
                     bc,
@@ -494,7 +506,7 @@ namespace ExaCLAMR {
                     create_functor,
                     partitioner,
                     timer );
-            }
+            // }
 #else
             throw std::runtime_error( "Cuda Backend Not Enabled" );
 #endif

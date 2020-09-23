@@ -25,8 +25,12 @@
 
 namespace ExaCLAMR {
     // Short Args: a - Halo Size, b - Mesh Type, d - Domain Size, h - Print Help, g - Gravitational Constant,
-    // m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, o - Ordering, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency,
-    static char *shortargs = (char *)"a::b::d::g::hm::n::o::p::s::t::w::";
+    // m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, o - Ordering, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency
+    // static char *shortargs = ( char * )"a::b::d::g::hm::n::o::p::s::t::w::";
+
+    // Short Args: a - Halo Size, b - Mesh Type, d - Domain Size, h - Print Help, g - Gravitational Constant,
+    // m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency
+    static char *shortargs = ( char * )"a::b::d::g::hm::n::pp::s::t::w::";
 
     /**
  * @struct ClArgs
@@ -43,7 +47,7 @@ namespace ExaCLAMR {
         state_t     sigma;      /**< Sigma */
         std::string device;     /**< Threading setting ( Serial, OpenMP, CUDA ) */
         std::string meshtype;   /**< Mesh Type ( Regular or AMR ) */
-        std::string ordering;   /**< Ordering Type ( Regular or Hilbert ) */
+        // std::string ordering;   /**< Ordering Type ( Regular or Hilbert ) */
 
         std::array<int, 3>     global_num_cells;    /**< Globar array of number of cells */
         std::array<state_t, 6> global_bounding_box; /**< Global bounding box of domain */
@@ -66,7 +70,7 @@ namespace ExaCLAMR {
             std::cout << std::left << std::setw( 10 ) << "-g" << std::setw( 40 ) << "Gravitational Constant (default 9.80)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-m" << std::setw( 40 ) << "Thread Setting (default serial)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-n" << std::setw( 40 ) << "Number of Cells (default 50 50 1)" << std::left << "\n";
-            std::cout << std::left << std::setw( 10 ) << "-o" << std::setw( 40 ) << "Ordering (default Regular)" << std::left << "\n";
+            // std::cout << std::left << std::setw( 10 ) << "-o" << std::setw( 40 ) << "Ordering (default Regular)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-p" << std::setw( 40 ) << "Periodicity (default: false false false)" << std::left << "\n";
             std::cout << std::left << std::setw( 20 ) << "  " << std::setw( 50 ) << "-p0 (false false false) -p1 (true false false) -p2(false true false) etc\n";
             std::cout << std::left << std::setw( 10 ) << "-s" << std::setw( 40 ) << "Timestep Sigma Value (default 0.95)" << std::left << "\n";
@@ -81,8 +85,12 @@ namespace ExaCLAMR {
  * @param progname The name of the program
  */
     void usage( const int rank, char *progname ) {
+        /*
         if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-b mesh-type] [-d size-of-domain] [-g gravity] [-h help]"
                                    << " [-m threading] [-n number-of-cells] [-o ordering] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
+        */
+        if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-b mesh-type] [-d size-of-domain] [-g gravity] [-h help]"
+                                   << " [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
     }
 
     /**
@@ -97,7 +105,7 @@ namespace ExaCLAMR {
     template <typename state_t>
     int parseInput( const int rank, const int argc, char **argv, ClArgs<state_t> &cl ) {
         cl.meshtype = "regular"; // Default Mesh Type
-        cl.ordering = "regular"; // Default Ordering
+        // cl.ordering = "regular"; // Default Ordering
 
         cl.device = "serial";              // Default Thread Setting
         cl.nx = 50, cl.ny = 50, cl.nz = 1; // Default Cell Count
@@ -174,6 +182,7 @@ namespace ExaCLAMR {
                     return -1;
                 }
                 break;
+            /*
             // Ordering
             case 'o':
                 cl.ordering = optarg;
@@ -182,6 +191,7 @@ namespace ExaCLAMR {
                     return -1;
                 }
                 break;
+            */
             // Periodicity
             case 'p':
                 periodicval = atoi( optarg );

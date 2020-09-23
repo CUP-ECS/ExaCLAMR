@@ -16,7 +16,7 @@ int main( int argc, char *argv[] ) {
     {
         std::cout << "Testing Hilbert Layout\n";
 
-        Kokkos::View<double ****, Kokkos::LayoutHilbert2D, Kokkos::HostSpace> HilbertArray( "Hilbert", dim1, dim2, dim3, dim4 );
+        Kokkos::View<double ****, Kokkos::LayoutHilbert3D, Kokkos::HostSpace> HilbertArray( "Hilbert", dim1, dim2, dim3, dim4 );
         Kokkos::View<double ****>                                             RegularArray( "Regular", dim1, dim2, dim3, dim4 );
 
         for ( int i = 0; i < dim1; i++ ) {

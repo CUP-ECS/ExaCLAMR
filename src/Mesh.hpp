@@ -76,7 +76,7 @@ namespace ExaCLAMR {
               const Cajita::Partitioner &      partitioner,
               MPI_Comm                         comm )
             : _global_bounding_box( cl.global_bounding_box )
-            , _ordering( cl.ordering ) {
+            /* , _ordering( cl.ordering ) */ {
             MPI_Comm_rank( comm, &_rank );
             // DEBUG: Trace Created Mesh
             if ( _rank == 0 && DEBUG ) std::cout << "Created Regular Mesh\n";
@@ -181,9 +181,15 @@ namespace ExaCLAMR {
             return _global_bounding_box;
         };
 
+        /**
+         * Returns the global ordering of cells
+         * @return String the defines the ordering
+         **/
+        /*
         const std::string ordering() const {
             return _ordering;
         }
+        */
 
         /**
          * Returns the rank of the mesh
@@ -255,7 +261,7 @@ namespace ExaCLAMR {
         std::array<long, 3>                                              _domainMin;           /**< Indices of lower corner of domain */
         std::array<long, 3>                                              _domainMax;           /**< Indices of upper corner of domain */
         const std::array<state_t, 6>                                     _global_bounding_box; /**< Array of global bounding box */
-        const std::string                                                _ordering;            /**< Mesh ordering */
+        // const std::string                                                _ordering;            /**< Mesh ordering */
     };
 
 } // namespace ExaCLAMR

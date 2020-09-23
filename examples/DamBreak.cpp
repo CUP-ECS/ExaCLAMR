@@ -155,8 +155,10 @@ int main( int argc, char *argv[] ) {
                   << ": " << std::setw( 8 ) << cl.device << "\n"; // Threading Setting
         std::cout << std::left << std::setw( 20 ) << "Mesh Type"
                   << ": " << std::setw( 8 ) << cl.meshtype << "\n"; // Mesh Type
+        /*
         std::cout << std::left << std::setw( 20 ) << "Ordering"
                   << ": " << std::setw( 8 ) << cl.ordering << "\n"; // Ordering
+        */
         std::cout << std::left << std::setw( 20 ) << "Cells"
                   << ": " << std::setw( 8 ) << cl.nx << std::setw( 8 ) << cl.ny << std::setw( 8 ) << cl.nz << "\n"; // Number of Cells
         std::cout << std::left << std::setw( 20 ) << "Domain"
