@@ -55,7 +55,7 @@ build_cabana() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH="${INSTALL_DIR};${INSTALL_DIR}/usr/local;/opt/spack/opt/spack/linux-centos7-x86_64/gcc-7.3.0/hypre-2.14.0-zndhsgh6unz72fqbnz5aa6axkxzdtlw2" -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_EXAMPLES=ON -D Cabana_ENABLE_TESTING=ON -D Cabana_ENABLE_PERFORMANCE_TESTING=ON -D Cabana_ENABLE_CAJITA=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_HYPRE=On ..
+    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH="${INSTALL_DIR};${INSTALL_DIR}/usr/local;/opt/spack/opt/spack/linux-centos7-x86_64/gcc-7.3.0/hypre-2.14.0-zndhsgh6unz72fqbnz5aa6axkxzdtlw2" -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_EXAMPLES=ON -D Cabana_ENABLE_TESTING=ON -D Cabana_ENABLE_PERFORMANCE_TESTING=ON -D Cabana_ENABLE_CAJITA=ON -D Cabana_ENABLE_MPI=ON -D Cabana_REQUIRE_HYPRE=ON ..
     make install -j8
     cd ${MYDIR}
 }
@@ -160,7 +160,7 @@ cd ${MYDIR}
 rm -rf build
 mkdir -p build
 cd build
-cmake -D CMAKE_CXX_FLAGS=-I${INSTALL_DIR}/include -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;${INSTALL_DIR}/lib;${INSTALL_DIR}/lib64/cmake/Cabana" -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On ..
+cmake -D CMAKE_CXX_FLAGS=-I${INSTALL_DIR}/include -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;${INSTALL_DIR}/lib;${INSTALL_DIR}/lib64/cmake/Cabana" -D Kokkos_ENABLE_OPENMP=ON -D Kokkos_ENABLE_SERIAL=ON ..
 make -j8
 mkdir data
 mkdir data/raw

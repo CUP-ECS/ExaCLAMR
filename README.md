@@ -45,7 +45,7 @@ mpirun -np 2 --display-map --map-by ppr:1:node --bind-to none -machinefile $PBS_
 
 ### Building on UNM CARC Xena
 
-- Note: You have to build on a compute node
+- Note: You have to build on a compute node with a GPU
 
 ```bash
 git clone https://github.com/CUP-ECS/ExaCLAMR.git
@@ -53,6 +53,12 @@ cd ExaCLAMR
 bash scripts/build_xena.sh -a
 mkdir -p data
 mkdir -p data/raw
+```
+
+### Running on UNM CARC Xena
+
+```bash
+sbatch scripts/xena_run.sh
 ```
 
 ### Performance

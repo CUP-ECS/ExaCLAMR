@@ -10,7 +10,7 @@ CABANA_GIT=https://github.com/ECP-copa/Cabana.git
 #CABANA_GIT=https://github.com/JDTruj2018/Cabana.git
 
 # Load Modules
-# module purge
+module purge
 module load gcc/9
 module load cuda/11.0.2-lqua
 module load cmake
@@ -51,7 +51,7 @@ build_kokkos() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_CXX_FLAGS="--expt-relaxed-constexpr" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_CUDA_LAMBDA=On -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On -D Kokkos_CXX_STANDARD=14 ..
+    cmake -D CMAKE_CXX_FLAGS="--expt-relaxed-constexpr" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_CUDA_LAMBDA=ON -D Kokkos_ENABLE_OPENMP=ON -D Kokkos_ENABLE_SERIAL=ON -D Kokkos_ENABLE_CUDA=ON -D Kokkos_CXX_STANDARD=14 ..
     make DESTDIR=${INSTALL_DIR} install -j8
     cd ${MYDIR}
 }
@@ -62,7 +62,7 @@ build_cabana() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH=${INSTALL_DIR}/usr/local -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_EXAMPLES=ON -D Cabana_ENABLE_TESTING=ON -D Cabana_ENABLE_PERFORMANCE_TESTING=ON -D Cabana_ENABLE_CAJITA=On -D Cabana_ENABLE_MPI=On -D Cabana_REQUIRE_CUDA=On ..
+    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH=${INSTALL_DIR}/usr/local -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_EXAMPLES=ON -D Cabana_ENABLE_TESTING=ON -D Cabana_ENABLE_PERFORMANCE_TESTING=ON -D Cabana_ENABLE_CAJITA=ON -D Cabana_ENABLE_MPI=ON -D Cabana_REQUIRE_CUDA=ON ..
     make install -j8
     cd ${MYDIR}
 }
@@ -167,7 +167,7 @@ cd ${MYDIR}
 rm -rf build
 mkdir -p build
 cd build
-cmake -D CMAKE_CXX_FLAGS=-I"${INSTALL_DIR}/include --expt-relaxed-constexpr"  -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;${INSTALL_DIR}/lib;${INSTALL_DIR}/lib64/cmake/Cabana" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_OPENMP=On -D Kokkos_ENABLE_SERIAL=On -D Kokkos_ENABLE_CUDA=On ..
+cmake -D CMAKE_CXX_FLAGS=-I"${INSTALL_DIR}/include --expt-relaxed-constexpr"  -D CMAKE_PREFIX_PATH="${INSTALL_DIR}/usr/local;${INSTALL_DIR}/lib;${INSTALL_DIR}/lib64/cmake/Cabana" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_OPENMP=ON -D Kokkos_ENABLE_SERIAL=ON -D Kokkos_ENABLE_CUDA=ON ..
 make -j8
 mkdir data
 mkdir data/raw
