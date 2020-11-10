@@ -121,12 +121,11 @@ namespace ExaCLAMR {
         cl.write_freq = 100;  // Default Write Frequency = 10
 
         // Initialize
-        char c;
         int  periodicval;
 
         // Loop through Command-Line Args
-        while ( ( c = getopt( argc, argv, shortargs ) ) != -1 ) {
-            switch ( c ) {
+        for ( ;; ) {
+            switch ( getopt( argc, argv, shortargs ) ) {
             // Halo Size
             case 'a':
                 cl.halo_size = atoi( optarg );
@@ -224,7 +223,14 @@ namespace ExaCLAMR {
             case '?':
                 usage( rank, argv[0] );
                 return -1;
-            }
+	    // Error -> Break
+	    case -1:
+		break;
+	    // Default Case -> Break
+	    default:
+		break;
+	    }
+	    break;
         }
 
         // Set Cell Count and Bounding Box Arrays
