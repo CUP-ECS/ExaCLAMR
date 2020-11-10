@@ -15,12 +15,11 @@ rm -rf data
 mkdir -p data
 mkdir -p data/raw
 
-#lrun -N 1 -T 1 -x OMP_PROC_BIND=spread ./build/examples/DamBreak -n100 -d100
-#lrun -N 1 -T 1 -x OMP_PROC_BIND=spread -x OMP_NUM_THREADS=10 ./build/examples/DamBreak -n100 -d100 -mopenmp
-#lrun -N 1 -T 1 ./build/examples/DamBreak -n1000 -d1000 -mcuda
+lrun -N 1 -T 1 -x OMP_PROC_BIND=spread ./build/examples/DamBreak -n100 -d100
+lrun -N 1 -T 1 -x OMP_PROC_BIND=spread -x OMP_NUM_THREADS=10 ./build/examples/DamBreak -n100 -d100 -mopenmp
+lrun -N 1 -T 1 ./build/examples/DamBreak -n1000 -d1000 -mcuda
 
-#lrun -N 4 -T 1 -x OMP_PROC_BIND=spread ./build/examples/DamBreak -n1000 -d1000 -mserial
-#lrun -N 4 -T 1 -x OMP_PROC_BIND=spread -x OMP_NUM_THREADS=10 ./build/examples/DamBreak -n1000 -d1000 -mopenmp
-#lrun -N 4 -T 1 ./build/examples/DamBreak -n1000 -d1000 -mcuda
+lrun -N 4 -T 1 -x OMP_PROC_BIND=spread ./build/examples/DamBreak -n1000 -d1000 -mserial
+lrun -N 4 -T 1 -x OMP_PROC_BIND=spread -x OMP_NUM_THREADS=10 ./build/examples/DamBreak -n1000 -d1000 -mopenmp
+lrun -N 4 -T 1 ./build/examples/DamBreak -n1000 -d1000 -mcuda
 
-lrun -N 2 -T 1 hostname
