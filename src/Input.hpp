@@ -26,7 +26,7 @@
 namespace ExaCLAMR {
     // Short Args: a - Halo Size, b - Mesh Type, d - Domain Size, h - Print Help, g - Gravitational Constant,
     // m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, o - Ordering, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency
-    // static char *shortargs = ( char * )"a::b::d::g::hm::n::o::p::s::t::w::";
+    // static char *shortargs = ( char * )"a:b:d:g:hm:n:o:p:s:t:w:";
 
     // Short Args: a - Halo Size, b - Mesh Type, d - Domain Size, h - Print Help, g - Gravitational Constant,
     // m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency
@@ -224,12 +224,6 @@ namespace ExaCLAMR {
             case '?':
                 usage( rank, argv[0] );
                 return -1;
-	    // Error case -> Break
-	    case -1:
-		break;
-	    // Default Case -> Break
-	    default:
-		break;
 	    }
         }
 
