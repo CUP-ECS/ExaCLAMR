@@ -30,7 +30,7 @@ namespace ExaCLAMR {
 
     // Short Args: a - Halo Size, b - Mesh Type, d - Domain Size, h - Print Help, g - Gravitational Constant,
     // m - Threading ( Serial or OpenMP or CUDA ), n - Cell Count, p - Periodicity, s - Sigma, t - Time Steps, w - Write Frequency
-    static char *shortargs = ( char * )"a::b::d::g::hm::n::pp::s::t::w::";
+    static char *shortargs = ( char * )"a:b:d:g:h:m:n:p:s:t:w:";
 
     /**
  * @struct ClArgs
@@ -121,12 +121,13 @@ namespace ExaCLAMR {
         cl.write_freq = 100;  // Default Write Frequency = 10
 
         // Initialize
-        int  periodicval;
+        int c;
+	int  periodicval;
 
         // Loop through Command-Line Args
-        for ( ;; ) {
-            switch ( getopt( argc, argv, shortargs ) ) {
-            // Halo Size
+        while ( ( c = getopt( argc, argv, shortargs ) ) != -1 ) {
+            switch ( c ) {
+	    // Halo Size
             case 'a':
                 cl.halo_size = atoi( optarg );
                 if ( cl.halo_size < 2 ) {
@@ -223,14 +224,13 @@ namespace ExaCLAMR {
             case '?':
                 usage( rank, argv[0] );
                 return -1;
-	    // Error -> Break
+	    // Error case -> Break
 	    case -1:
 		break;
 	    // Default Case -> Break
 	    default:
 		break;
 	    }
-	    break;
         }
 
         // Set Cell Count and Bounding Box Arrays
