@@ -12,7 +12,8 @@ CABANA_GIT=https://github.com/ECP-copa/Cabana.git
 # Load Modules
 module purge
 module load gcc/9
-module load cuda/11.0.2-lqua
+#module load cuda/11.0.2-lqua
+module load cuda-11.1.0-gcc-9.3.0-w23eqmj
 module load cmake
 module load openmpi
 
@@ -51,7 +52,7 @@ build_kokkos() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_CXX_FLAGS="--expt-relaxed-constexpr" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_CUDA_LAMBDA=ON -D Kokkos_ENABLE_OPENMP=ON -D Kokkos_ENABLE_SERIAL=ON -D Kokkos_ENABLE_CUDA=ON -D Kokkos_CXX_STANDARD=14 ..
+    cmake -D CMAKE_CXX_FLAGS="--expt-relaxed-constexpr" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_CUDA_LAMBDA=ON -D Kokkos_ENABLE_OPENMP=ON -D Kokkos_ENABLE_SERIAL=ON -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ARCH_KEPLER35=ON -D Kokkos_CXX_STANDARD=14 ..
     make DESTDIR=${INSTALL_DIR} install -j8
     cd ${MYDIR}
 }
