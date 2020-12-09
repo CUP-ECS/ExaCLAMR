@@ -122,7 +122,7 @@ namespace ExaCLAMR {
 
         // Initialize
         int c;
-	int  periodicval;
+	    int  periodicval;
 
         // Loop through Command-Line Args
         while ( ( c = getopt( argc, argv, shortargs ) ) != -1 ) {
