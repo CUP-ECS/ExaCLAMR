@@ -23,6 +23,44 @@ Re-Implementation of the Shallow Water Solver LANL/CLAMR using Kokkos, Cabana, a
 - [ ] Investigate using Cabana AoSoA
 - [ ] Add particle physics
 
+## Building ExaCLAMR
+ExaCLAKMR is built and installed using cmake, and relies on variety of packages and
+libraries:
+  * Kokkos - Programming system for accelerated and threaded architectures
+  * Cabana/Cajita - Framework for regular mesh and particle oprogramming in Kokkos
+  * Silo - Parallel I/O library for reading in restarts and writing output for
+    visualization using VisIt or Paraview
+  * HeFFTE - GPU-accelerated high-speed fast fourier transform library (Note: not
+    needed by ExaCLAMR but we'll want it for the z-model implementation)
+
+### Building with a Spack environment
+
+Generally, the easiest way to build ExaCLAMR is to use [Spack](http://spack.io) to
+either install and load the prerequisites or to create a dedicated environment
+for building and running AppName. The spack specification (etc/spack.yaml) is
+included to create a spack environment in which the build and run AppName. Note, however
+//that there are important caveats at the top of this file you'll ened to pay attention to
+to use it//. In particular, to use it to build a CUDA environment you'll need to patch your
+cabana/packages.py spec and set teh cuda architecture kokkos uses. Alternatively, you
+can just remove the cuda specifiers from the spack.yaml file.
+
+To create a spack environment for compiling and running ExaCLAMR in a build directory:
+
+```
+prompt> mkdir build; cd build
+prompt> spack env create -d . /path/to/ExaCLAMR/etc/spack.yaml
+prompt> spack env activate .
+prompt> spack concretize
+prompt> spack install
+```
+
+Once all ExaCLAMR dependencies are installed either manually or via a
+Spack environment, use cmake to build it from the chosen build
+directory:
+```
+cmake /path/to/ExaCLAMR
+```
+
 ### Building on UNM CARC Wheeler
 
 ```bash
@@ -61,4 +99,4 @@ mkdir -p data/raw
 sbatch scripts/xena_run.sh
 ```
 
-### Performance
+## Performance

@@ -1,0 +1,33 @@
+diff --git a/var/spack/repos/builtin/packages/cabana/package.py b/var/spack/repos/builtin/packages/cabana/package.py
+index b84bfa6..28100ac 100644
+--- a/var/spack/repos/builtin/packages/cabana/package.py
++++ b/var/spack/repos/builtin/packages/cabana/package.py
+@@ -34,6 +34,15 @@ class Cabana(CMakePackage):
+     depends_on("kokkos@3.1:+cuda", when="@0.3.0:+cuda")
+     depends_on('mpi', when='+mpi')
+ 
++    # use the kokkos nvcc wrapper when we're using Cuda
++    depends_on("kokkos-nvcc-wrapper", when="+wrapper")
++
++    def setup_dependent_package(self, module, dependent_spec):
++        try:
++            self.spec.kokkos_cxx = self.spec["kokkos-nvcc-wrapper"].kokkos_cxx
++        except Exception:
++            self.spec.kokkos_cxx = spack_cxx
++
+     def cmake_args(self):
+         options = [
+             '-DCabana_ENABLE_TESTING=ON',
+@@ -49,4 +58,12 @@ def cmake_args(self):
+                 'On' if '+shared'  in self.spec else 'Off')
+         ]
+ 
++        # we do not need the compiler wrapper from Spack
++        # set the compiler explicitly (may be Spack wrapper or nvcc-wrapper)
++        try:
++            options.append("-DCMAKE_CXX_COMPILER=%s" %
++                           self.spec["kokkos-nvcc-wrapper"].kokkos_cxx)
++        except Exception:
++            options.append("-DCMAKE_CXX_COMPILER=%s" % spack_cxx)
++
+         return options
