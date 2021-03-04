@@ -11,14 +11,13 @@ CABANA_GIT=https://github.com/ECP-copa/Cabana.git
 
 # Load Modules
 module purge
-module load gcc/9
-#module load cuda/11.0.2-lqua
-module load cuda-11.1.0-gcc-9.3.0-w23eqmj
+module load gcc/8.3.0-wbma
+module load openmpi/4.0.5-cuda-rla7
 module load cmake
-module load openmpi
+module load cuda/11.2.0-qj6z
 
 # Environment Variables for NVCC
-export NVCC_WRAPPER_DEFAULT_COMPILER=/opt/spack/opt/spack/linux-centos7-haswell/gcc-4.8.5/gcc-9.3.0-oxjixak2sy5mudydbjatzvj4bpveh5jl/bin/gcc
+export NVCC_WRAPPER_DEFAULT_COMPILER=`which gcc`
 export OMPI_CXX=${NVCC_CXX}
 
 # Abnormal Exit Message
@@ -30,10 +29,10 @@ exit_abnormal() {
 # Get Silo
 get_silo() {
     cd ${MYDIR}/libs
-    wget https://wci.llnl.gov/content/assets/docs/simulation/computer-codes/silo/silo-4.10.2/silo-4.10.2-bsd.tar.gz
-    tar -xvf silo-4.10.2-bsd.tar.gz
-    mv silo-4.10.2-bsd silo
-    rm silo-4.10.2-bsd.tar.gz
+    wget https://wci.llnl.gov/sites/wci/files/2021-01/silo-4.10.2.tgz
+    tar -xvf silo-4.10.2.tgz
+    mv silo-4.10.2 silo
+    rm silo-4.10.2.tgz
     cd ${MYDIR}
 }
 
@@ -52,7 +51,7 @@ build_kokkos() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_CXX_FLAGS="--expt-relaxed-constexpr" -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_CUDA_LAMBDA=ON -D Kokkos_ENABLE_OPENMP=ON -D Kokkos_ENABLE_SERIAL=ON -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ARCH_KEPLER35=ON -D Kokkos_CXX_STANDARD=14 ..
+    cmake -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Kokkos_ENABLE_CUDA_LAMBDA=ON -D Kokkos_ENABLE_OPENMP=ON -D Kokkos_ENABLE_SERIAL=ON -D Kokkos_ENABLE_CUDA=ON -D Kokkos_ARCH_KEPLER35=ON -D Kokkos_CXX_STANDARD=14 ..
     make DESTDIR=${INSTALL_DIR} install -j8
     cd ${MYDIR}
 }
@@ -63,7 +62,7 @@ build_cabana() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH=${INSTALL_DIR}/usr/local -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_EXAMPLES=ON -D Cabana_ENABLE_TESTING=ON -D Cabana_ENABLE_PERFORMANCE_TESTING=ON -D Cabana_ENABLE_CAJITA=ON -D Cabana_ENABLE_MPI=ON -D Cabana_REQUIRE_CUDA=ON ..
+    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH=${INSTALL_DIR}/usr/local -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D CMAKE_CXX_COMPILER=${NVCC_CXX} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_CAJITA=ON -D Cabana_ENABLE_MPI=ON -D Cabana_REQUIRE_CUDA=ON ..
     make install -j8
     cd ${MYDIR}
 }
