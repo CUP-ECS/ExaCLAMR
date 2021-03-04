@@ -7,10 +7,15 @@
 #SBATCH --output=multiprocess_%j.log # Standard output and error log
 
 module purge
-module load gcc/9
-module load cuda/11.0.2-lqua
+module load gcc/8.3.0-wbma
+module load openmpi/4.0.5-cuda-rla7
 module load cmake
-module load openmpi
+module load cuda/11.2.0-qj6z
 
-mpirun -np 2 --display-map ./build/examples/DamBreak
+mkdir -p data
+mkdir -p data/raw
+
+rm -rf data/raw/*
+
+srun -N 2 -n 2 ./build/examples/DamBreak -mcuda -n1000 -t100 -w10
 
