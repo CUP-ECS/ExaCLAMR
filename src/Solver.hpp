@@ -78,7 +78,7 @@ namespace ExaCLAMR {
                 const ExaCLAMR::BoundaryCondition &bc,
                 MPI_Comm                           comm,
                 const InitFunc &                   create_functor,
-                const Cajita::Partitioner &        partitioner,
+                const Cajita::ManualPartitioner &        partitioner,
                 ExaCLAMR::Timer &                  timer ) {
 
             MPI_Comm_rank( comm, &_rank );
@@ -132,7 +132,7 @@ namespace ExaCLAMR {
             const ExaCLAMR::BoundaryCondition &bc,
             MPI_Comm                           comm,
             const InitFunc &                   create_functor,
-            const Cajita::Partitioner &        partitioner,
+            const Cajita::ManualPartitioner &        partitioner,
             ExaCLAMR::Timer &                  timer )
             : _bc( bc )
             , _halo_size( cl.halo_size )
@@ -329,7 +329,7 @@ namespace ExaCLAMR {
         const ExaCLAMR::BoundaryCondition &bc,
         MPI_Comm                           comm,
         const InitFunc &                   create_functor,
-        const Cajita::Partitioner &        partitioner,
+        const Cajita::ManualPartitioner &        partitioner,
         ExaCLAMR::Timer &                  timer ) {
         // Serial
         if ( 0 == cl.device.compare( "serial" ) ) {
@@ -430,7 +430,7 @@ namespace ExaCLAMR {
         const ExaCLAMR::BoundaryCondition &bc,
         MPI_Comm                           comm,
         const InitFunc &                   create_functor,
-        const Cajita::Partitioner &        partitioner,
+        const Cajita::ManualPartitioner &        partitioner,
         ExaCLAMR::Timer &                  timer ) {
 
         // Serial

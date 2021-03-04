@@ -178,7 +178,7 @@ namespace ExaCLAMR {
          */
 
         template <class InitFunc>
-        ProblemManager( const ExaCLAMR::ClArgs<state_t> &cl, const Cajita::Partitioner &partitioner, MPI_Comm comm, const InitFunc &create_functor ) {
+        ProblemManager( const ExaCLAMR::ClArgs<state_t> &cl, const Cajita::ManualPartitioner &partitioner, MPI_Comm comm, const InitFunc &create_functor ) {
             // Create Mesh
             _mesh = std::make_shared<Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace>>( cl, partitioner, comm );
 
@@ -231,7 +231,7 @@ namespace ExaCLAMR {
          */
 
         template <class InitFunc>
-        ProblemManager( const ExaCLAMR::ClArgs<state_t> &cl, const Cajita::Partitioner &partitioner, MPI_Comm comm, const InitFunc &create_functor ) {
+        ProblemManager( const ExaCLAMR::ClArgs<state_t> &cl, const Cajita::ManualPartitioner &partitioner, MPI_Comm comm, const InitFunc &create_functor ) {
             // Create Mesh
             _mesh = std::make_shared<Mesh<ExaCLAMR::RegularMesh<state_t>, MemorySpace>>( cl, partitioner, comm );
 
@@ -271,7 +271,7 @@ namespace ExaCLAMR {
             _u_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UWMinus", cell_vector_layout );
 
             // Create Halo Pattern
-            auto                            halo_pattern = Cajita::HaloPattern();
+            auto                            halo_pattern = Cajita::HaloPattern<3>();
             std::vector<std::array<int, 3>> neighbors;
 
             // Setting up Stencil ( Left, Right, Top, Bottom )

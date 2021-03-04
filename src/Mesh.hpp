@@ -41,7 +41,7 @@ namespace ExaCLAMR {
     class Mesh<ExaCLAMR::AMRMesh<state_t>, MemorySpace> {
       public:
         Mesh( const ExaCLAMR::ClArgs<state_t> &cl,
-              const Cajita::Partitioner &      partitioner,
+              const Cajita::ManualPartitioner &      partitioner,
               MPI_Comm                         comm ) {
             MPI_Comm_rank( comm, &_rank );
             // DEBUG: Trace Created Mesh
@@ -73,7 +73,7 @@ namespace ExaCLAMR {
          * @param comm MPI communicator
          */
         Mesh( const ExaCLAMR::ClArgs<state_t> &cl,
-              const Cajita::Partitioner &      partitioner,
+              const Cajita::ManualPartitioner &      partitioner,
               MPI_Comm                         comm )
             : _global_bounding_box( cl.global_bounding_box )
             /* , _ordering( cl.ordering ) */ {
