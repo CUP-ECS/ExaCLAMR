@@ -36,18 +36,6 @@ namespace ExaCLAMR {
  * @brief Cell Location Type 
  **/
         struct Cell {};
-
-        /**
- * @struct Face
- * @brief Face Location Type 
- **/
-        struct Face {};
-
-        /**
- * @struct Node
- * @brief Node Location Type 
- **/
-        struct Node {};
     } // namespace Location
 
     /**
@@ -66,90 +54,6 @@ namespace ExaCLAMR {
  * @brief Height Field
  **/
         struct Height {};
-
-        /**
- * @struct HxFluxPlus
- * @brief Positive Height X-Direction Flux Field
- **/
-        struct HxFluxPlus {};
-
-        /**
- * @struct HxFluxMinus
- * @brief Negative Height X-Direction Flux Field
- **/
-        struct HxFluxMinus {};
-
-        /**
- * @struct UxFluxPlus
- * @brief Positive Momentum X-Direction Flux Field
- **/
-        struct UxFluxPlus {};
-
-        /**
- * @struct UxFluxMinus
- * @brief Negative Momentum X-Direction Flux Field
- **/
-        struct UxFluxMinus {};
-
-        /**
- * @struct HyFluxPlus
- * @brief Positive Height Y-Direction Flux Field
- **/
-        struct HyFluxPlus {};
-
-        /**
- * @struct HyFluxMinus
- * @brief Negative Height Y-Direction Flux Field
- **/
-        struct HyFluxMinus {};
-
-        /**
- * @struct UyFluxPlus
- * @brief Positive Momentum Y-Direction Flux Field
- **/
-        struct UyFluxPlus {};
-
-        /**
- * @struct UyFluxMinus
- * @brief Negative Momentum Y-Direction Flux Field
- **/
-        struct UyFluxMinus {};
-
-        /**
- * @struct HxWPlus
- * @brief Positive X-Direction Height Flux Corrector Field
- **/
-        struct HxWPlus {};
-
-        /**
- * @struct HxWMinus
- * @brief Negative X-Direction Height Flux Corrector Field
- **/
-        struct HxWMinus {};
-
-        /**
- * @struct HyWPlus
- * @brief Positive Y-Direction Height Flux Corrector Field
- **/
-        struct HyWPlus {};
-
-        /**
- * @struct HyWMinus
- * @brief Negative Y-Direction Height Flux Corrector Field
- **/
-        struct HyWMinus {};
-
-        /**
- * @struct UWPlus
- * @brief Positive Momentum Flux Corrector Field
- **/
-        struct UWPlus {};
-
-        /**
- * @struct UWMinus
- * @brief Negative Momentum Flux Corrector Field
- **/
-        struct UWMinus {};
     } // namespace Field
 
     /**
@@ -249,26 +153,6 @@ namespace ExaCLAMR {
 
             _momentum_b = Cajita::createArray<state_t, OrderingView, MemorySpace>( "momentum", cell_vector_layout );
             _height_b   = Cajita::createArray<state_t, OrderingView, MemorySpace>( "height", cell_scalar_layout );
-
-            // Initialize Flux Arrays
-            _hx_flux_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxFluxPlus", cell_scalar_layout );
-            _hx_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxFluxMinus", cell_scalar_layout );
-            _ux_flux_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UxFluxPlus", cell_vector_layout );
-            _ux_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UxFluxMinus", cell_vector_layout );
-
-            _hy_flux_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyFluxPlus", cell_scalar_layout );
-            _hy_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyFluxMinus", cell_scalar_layout );
-            _uy_flux_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UyFluxPlus", cell_vector_layout );
-            _uy_flux_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UyFluxMinus", cell_vector_layout );
-
-            // Initialize Flux Corrector Arrays
-            _hx_w_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxWPlus", cell_scalar_layout );
-            _hx_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HxWMinus", cell_scalar_layout );
-            _hy_w_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyWPlus", cell_scalar_layout );
-            _hy_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "HyWMinus", cell_scalar_layout );
-
-            _u_w_plus  = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UWPlus", cell_vector_layout );
-            _u_w_minus = Cajita::createArray<state_t, OrderingView, MemorySpace>( "UWMinus", cell_vector_layout );
 
             // Create Halo Pattern
             auto                            halo_pattern = Cajita::HaloPattern<3>();
@@ -390,146 +274,6 @@ namespace ExaCLAMR {
         };
 
         /**
-         * Return HxFluxPlus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::HxFluxPlus
-         * @return Returns HxFluxPlus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::HxFluxPlus ) const {
-            return _hx_flux_plus->view();
-        }
-
-        /**
-         * Return HxFluxMinus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::HxFluxMinus
-         * @return Returns HxFluxMinus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::HxFluxMinus ) const {
-            return _hx_flux_minus->view();
-        }
-
-        /**
-         * Return UxFluxPlus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::UxFluxPlus
-         * @return Returns UxFluxPlus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::UxFluxPlus ) const {
-            return _ux_flux_plus->view();
-        }
-
-        /**
-         * Return UxFluxMinus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::UxFluxMinus
-         * @return Returns UxFluxMinus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::UxFluxMinus ) const {
-            return _ux_flux_minus->view();
-        }
-
-        /**
-         * Return HyFluxPlus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::HyFluxPlus
-         * @return Returns HyFluxPlus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::HyFluxPlus ) const {
-            return _hy_flux_plus->view();
-        }
-
-        /**
-         * Return HyFluxMinus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::HyFluxMinus
-         * @return Returns HyFluxMinus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::HyFluxMinus ) const {
-            return _hy_flux_minus->view();
-        }
-
-        /**
-         * Return UyFluxPlus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::UyFluxPlus
-         * @return Returns UyFluxPlus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::UyFluxPlus ) const {
-            return _uy_flux_plus->view();
-        }
-
-        /**
-         * Return UyFluxMinus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::UyFluxMinus
-         * @return Returns UyFluxMinus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::UyFluxMinus ) const {
-            return _uy_flux_minus->view();
-        }
-
-        /**
-         * Return HxWPlus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::HxWPlus
-         * @return Returns HxWPlus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::HxWPlus ) const {
-            return _hx_w_plus->view();
-        }
-
-        /**
-         * Return HxWMinus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::HxWMinus
-         * @return Returns HxWMinus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::HxWMinus ) const {
-            return _hx_w_minus->view();
-        }
-
-        /**
-         * Return HyWPlus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::HyWPlus
-         * @return Returns HyWPlus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::HyWPlus ) const {
-            return _hy_w_plus->view();
-        }
-
-        /**
-         * Return HyWMinus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::HyWMinus
-         * @return Returns HyWMinus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::HyWMinus ) const {
-            return _hy_w_minus->view();
-        }
-
-        /**
-         * Return UWPlus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::UWPlus
-         * @return Returns UWPlus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::UWPlus ) const {
-            return _u_w_plus->view();
-        }
-
-        /**
-         * Return UWMinus Field at Cell Centers
-         * @param Location::Cell
-         * @param Field::UWMinus
-         * @return Returns UWMinus state array at cell centers
-         **/
-        typename cell_array::view_type get( Location::Cell, Field::UWMinus ) const {
-            return _u_w_minus->view();
-        }
-
-        /**
          * Scatter State Data to Neighbors
          * @param Location::Cell
          * @param t Toggle between state arrays
@@ -560,24 +304,6 @@ namespace ExaCLAMR {
         std::shared_ptr<cell_array> _height_a;   /**< Height state array 1 */
         std::shared_ptr<cell_array> _momentum_b; /**< Momentum state array 2 */
         std::shared_ptr<cell_array> _height_b;   /**< Height state array 2 */
-
-        std::shared_ptr<cell_array> _hx_flux_plus;  /**< Height x-direction positive flux array */
-        std::shared_ptr<cell_array> _hx_flux_minus; /**< Height x-direction negative flux array */
-        std::shared_ptr<cell_array> _ux_flux_plus;  /**< X-Momentum positive flux array */
-        std::shared_ptr<cell_array> _ux_flux_minus; /**< X-Momentum negative flux array */
-
-        std::shared_ptr<cell_array> _hy_flux_plus;  /**< Height y-direction positive flux array */
-        std::shared_ptr<cell_array> _hy_flux_minus; /**< Height y-direction negative flux array */
-        std::shared_ptr<cell_array> _uy_flux_plus;  /**< Y-Momentum positive flux array */
-        std::shared_ptr<cell_array> _uy_flux_minus; /**< Y-Momentum negative flux array */
-
-        std::shared_ptr<cell_array> _hx_w_plus;  /**< Height x-direction positive flux corrector array */
-        std::shared_ptr<cell_array> _hx_w_minus; /**< Height x-direction negative flux corrector array */
-        std::shared_ptr<cell_array> _hy_w_plus;  /**< Height y-direction positive flux corrector array */
-        std::shared_ptr<cell_array> _hy_w_minus; /**< Height y-direction negative flux corrector array */
-
-        std::shared_ptr<cell_array> _u_w_plus;  /**< Momentum positive flux corrector array */
-        std::shared_ptr<cell_array> _u_w_minus; /**< Momentum negative flux corrector array */
 
         std::shared_ptr<halo> _cell_state_halo; /**< Halo for A state arrays */
     };

@@ -2,7 +2,6 @@ Learning/
 build/
 libs/
 data/
-src/Old
 include/
 scripts/stats.sh
 scripts/docs.sh

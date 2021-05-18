@@ -70,7 +70,6 @@ namespace ExaCLAMR {
             std::cout << std::left << std::setw( 10 ) << "-g" << std::setw( 40 ) << "Gravitational Constant (default 9.80)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-m" << std::setw( 40 ) << "Thread Setting (default serial)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-n" << std::setw( 40 ) << "Number of Cells (default 50 50 1)" << std::left << "\n";
-            // std::cout << std::left << std::setw( 10 ) << "-o" << std::setw( 40 ) << "Ordering (default Regular)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-p" << std::setw( 40 ) << "Periodicity (default: false false false)" << std::left << "\n";
             std::cout << std::left << std::setw( 20 ) << "  " << std::setw( 50 ) << "-p0 (false false false) -p1 (true false false) -p2(false true false) etc\n";
             std::cout << std::left << std::setw( 10 ) << "-s" << std::setw( 40 ) << "Timestep Sigma Value (default 0.95)" << std::left << "\n";
@@ -87,7 +86,7 @@ namespace ExaCLAMR {
     void usage( const int rank, char *progname ) {
         /*
         if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-b mesh-type] [-d size-of-domain] [-g gravity] [-h help]"
-                                   << " [-m threading] [-n number-of-cells] [-o ordering] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
+                                   << " [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
         */
         if ( rank == 0 ) std::cout << "usage: " << progname << " [-a halo-size] [-b mesh-type] [-d size-of-domain] [-g gravity] [-h help]"
                                    << " [-m threading] [-n number-of-cells] [-p periodicity] [-s sigma] [-t number-time-steps] [-w write-frequency]\n";
@@ -104,8 +103,7 @@ namespace ExaCLAMR {
  */
     template <typename state_t>
     int parseInput( const int rank, const int argc, char **argv, ClArgs<state_t> &cl ) {
-        cl.meshtype = "regular"; // Default Mesh Type
-        // cl.ordering = "regular"; // Default Ordering
+        cl.meshtype = "regular"; // Default Mesh Typ
 
         cl.device = "serial";              // Default Thread Setting
         cl.nx = 50, cl.ny = 50, cl.nz = 1; // Default Cell Count
@@ -182,16 +180,6 @@ namespace ExaCLAMR {
                     return -1;
                 }
                 break;
-            /*
-            // Ordering
-            case 'o':
-                cl.ordering = optarg;
-                if ( cl.ordering.compare( "regular" ) && cl.ordering.compare( "hilbert" ) ) {
-                    if ( rank == 0 ) std::cout << "Valid ordering options are: regular and hilbert\n";
-                    return -1;
-                }
-                break;
-            */
             // Periodicity
             case 'p':
                 periodicval = atoi( optarg );

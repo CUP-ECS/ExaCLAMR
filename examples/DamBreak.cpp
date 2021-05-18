@@ -71,7 +71,7 @@ struct MeshInitFunc {
         } else if ( r <= 1.5 * threshold ) {
             height = 70.0;
         } else {
-            // DEBUG: Print Inidicating Short Height Assigned to Point
+            // DEBUG: Print Indicating Short Height Assigned to Point
             // if ( DEBUG ) std::cout << "Short\n";
             height = 10.0;
         }

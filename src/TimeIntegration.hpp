@@ -218,26 +218,6 @@ namespace ExaCLAMR {
             auto u_new = pm.get( Location::Cell(), Field::Momentum(), NEWFIELD( time_step ) );
             auto h_new = pm.get( Location::Cell(), Field::Height(), NEWFIELD( time_step ) );
 
-            // Get Flux Views
-            auto hx_flux_plus  = pm.get( Location::Cell(), Field::HxFluxPlus() );
-            auto hx_flux_minus = pm.get( Location::Cell(), Field::HxFluxMinus() );
-            auto ux_flux_plus  = pm.get( Location::Cell(), Field::UxFluxPlus() );
-            auto ux_flux_minus = pm.get( Location::Cell(), Field::UxFluxMinus() );
-
-            auto hy_flux_plus  = pm.get( Location::Cell(), Field::HyFluxPlus() );
-            auto hy_flux_minus = pm.get( Location::Cell(), Field::HyFluxMinus() );
-            auto uy_flux_plus  = pm.get( Location::Cell(), Field::UyFluxPlus() );
-            auto uy_flux_minus = pm.get( Location::Cell(), Field::UyFluxMinus() );
-
-            // Get Flux Corrector Views
-            auto hx_w_plus  = pm.get( Location::Cell(), Field::HxWPlus() );
-            auto hx_w_minus = pm.get( Location::Cell(), Field::HxWMinus() );
-            auto hy_w_plus  = pm.get( Location::Cell(), Field::HyWPlus() );
-            auto hy_w_minus = pm.get( Location::Cell(), Field::HyWMinus() );
-
-            auto u_w_plus  = pm.get( Location::Cell(), Field::UWPlus() );
-            auto u_w_minus = pm.get( Location::Cell(), Field::UWMinus() );
-
             auto domain = pm.mesh()->domainSpace();
 
             // DEBUG: Print out Domain Space Indices
@@ -319,84 +299,84 @@ namespace ExaCLAMR {
 
                     // Flux View Updates
                     // X Direction
-                    hx_flux_minus( i, j, k, 0 ) = ux_minus;
-                    ux_flux_minus( i, j, k, 0 ) = ( POW2( ux_minus ) / hx_minus + ghalf * POW2( hx_minus ) );
-                    ux_flux_minus( i, j, k, 1 ) = ux_minus * vx_minus / hx_minus;
+                    state_t hx_flux_minus = ux_minus;
+                    state_t ux_flux_minus = ( POW2( ux_minus ) / hx_minus + ghalf * POW2( hx_minus ) );
+                    state_t vx_flux_minus = ux_minus * vx_minus / hx_minus;
 
                     // DEBUG: Print hx_flux_minus, ux_flux_minus, ux_flux_minus, i, j, k
-                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_flux_minus: " << std::setw( 6 ) << hx_flux_minus( i, j, k, 0 ) << \
-                    "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus( i, j, k, 0 ) << "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus( i, j, k, 1 ) << \
+                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_flux_minus: " << std::setw( 6 ) << hx_flux_minus << \
+                    "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus << "\tux_flux_minus: " << std::setw( 6 ) << ux_flux_minus << \
                     "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
-                    hx_flux_plus( i, j, k, 0 ) = ux_plus;
-                    ux_flux_plus( i, j, k, 0 ) = ( POW2( ux_plus ) / hx_plus + ghalf * POW2( hx_plus ) );
-                    ux_flux_plus( i, j, k, 1 ) = ( ux_plus * vx_plus / hx_plus );
+                    state_t hx_flux_plus = ux_plus;
+                    state_t ux_flux_plus = ( POW2( ux_plus ) / hx_plus + ghalf * POW2( hx_plus ) );
+                    state_t vx_flux_plus = ( ux_plus * vx_plus / hx_plus );
 
                     // DEBUG: Print hx_flux_plus, ux_flux_plus, ux_flux_plus, i, j, k
-                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_flux_plus: " << std::setw( 6 ) << hx_flux_plus( i, j, k, 0 ) << \
-                    "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus( i, j, k, 0 ) << "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus( i, j, k, 1 ) << \
+                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_flux_plus: " << std::setw( 6 ) << hx_flux_plus << \
+                    "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus << "\tux_flux_plus: " << std::setw( 6 ) << ux_flux_plus << \
                     "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Y Direction
-                    hy_flux_minus( i, j, k, 0 ) = vy_minus;
-                    uy_flux_minus( i, j, k, 0 ) = ( vy_minus * uy_minus / hy_minus );
-                    uy_flux_minus( i, j, k, 1 ) = ( POW2( vy_minus ) / hy_minus + ghalf * POW2( hy_minus ) );
+                    state_t hy_flux_minus = vy_minus;
+                    state_t uy_flux_minus = ( vy_minus * uy_minus / hy_minus );
+                    state_t vy_flux_minus = ( POW2( vy_minus ) / hy_minus + ghalf * POW2( hy_minus ) );
 
                     // DEBUG: Print hy_flux_minus, uy_flux_minus, uy_flux_minus, i, j, k
-                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_flux_minus: " << std::setw( 6 ) << hy_flux_minus( i, j, k, 0 ) << \
-                    "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus( i, j, k, 0 ) << "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus( i, j, k, 1 ) << \
+                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_flux_minus: " << std::setw( 6 ) << hy_flux_minus << \
+                    "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus << "\tuy_flux_minus: " << std::setw( 6 ) << uy_flux_minus << \
                     "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
-                    hy_flux_plus( i, j, k, 0 ) = vy_plus;
-                    uy_flux_plus( i, j, k, 0 ) = ( vy_plus * uy_plus / hy_plus );
-                    uy_flux_plus( i, j, k, 1 ) = ( POW2( vy_plus ) / hy_plus + ghalf * POW2( hy_plus ) );
+                    state_t hy_flux_plus = vy_plus;
+                    state_t uy_flux_plus = ( vy_plus * uy_plus / hy_plus );
+                    state_t vy_flux_plus = ( POW2( vy_plus ) / hy_plus + ghalf * POW2( hy_plus ) );
 
                     // DEBUG: Print hy_flux_plus, uy_flux_plus, uy_flux_plus, i, j, k
-                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_flux_plus: " << std::setw( 6 ) << hy_flux_plus( i, j, k, 0 ) << \
-                    "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus( i, j, k, 0 ) << "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus( i, j, k, 1 ) << \
+                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_flux_plus: " << std::setw( 6 ) << hy_flux_plus << \
+                    "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus << "\tuy_flux_plus: " << std::setw( 6 ) << uy_flux_plus << \
                     "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Flux Corrector Calculations
                     // X Direction
-                    hx_w_minus( i, j, k, 0 ) = wCorrector( dt, dx, fabs( ux_minus / hx_minus ) + sqrt( gravity * hx_minus ), h_ic - h_left, h_left - h_left2, h_right - h_ic );
-                    hx_w_minus( i, j, k, 0 ) *= h_ic - h_left;
+                    state_t hx_w_minus = wCorrector( dt, dx, fabs( ux_minus / hx_minus ) + sqrt( gravity * hx_minus ), h_ic - h_left, h_left - h_left2, h_right - h_ic );
+                    hx_w_minus *= h_ic - h_left;
 
-                    hx_w_plus( i, j, k, 0 ) = wCorrector( dt, dx, fabs( ux_plus / hx_plus ) + sqrt( gravity * hx_plus ), h_right - h_ic, h_ic - h_left, h_right2 - h_right );
-                    hx_w_plus( i, j, k, 0 ) *= h_right - h_ic;
+                    state_t hx_w_plus = wCorrector( dt, dx, fabs( ux_plus / hx_plus ) + sqrt( gravity * hx_plus ), h_right - h_ic, h_ic - h_left, h_right2 - h_right );
+                    hx_w_plus *= h_right - h_ic;
 
-                    u_w_minus( i, j, k, 0 ) = wCorrector( dt, dx, fabs( ux_minus / hx_minus ) + sqrt( gravity * hx_minus ), u_ic - u_left, u_left - u_left2, u_right - u_ic );
-                    u_w_minus( i, j, k, 0 ) *= u_ic - u_left;
+                    state_t u_w_minus = wCorrector( dt, dx, fabs( ux_minus / hx_minus ) + sqrt( gravity * hx_minus ), u_ic - u_left, u_left - u_left2, u_right - u_ic );
+                    u_w_minus *= u_ic - u_left;
 
-                    u_w_plus( i, j, k, 0 ) = wCorrector( dt, dx, fabs( ux_plus / hx_plus ) + sqrt( gravity * hx_plus ), u_right - u_ic, u_ic - u_left, u_right2 - u_right );
-                    u_w_plus( i, j, k, 0 ) *= u_right - u_ic;
+                    state_t u_w_plus = wCorrector( dt, dx, fabs( ux_plus / hx_plus ) + sqrt( gravity * hx_plus ), u_right - u_ic, u_ic - u_left, u_right2 - u_right );
+                    u_w_plus *= u_right - u_ic;
 
                     // DEBUG: Print hx_w_minus, hx_w_plus, u_w_minus, u_w_plus, i, j, k
-                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_w_minus: " << std::setw( 6 ) << hx_w_minus( i, j, k, 0 ( i, j, k, 0 ) << "\thx_w_plus: " << std::setw( 6 ) << hx_w_plus( i, j, k, 0 ) <<\
-                    "\tu_w_minus: " << std::setw( 6 ) << u_w_minus( i, j, k, 0 ) << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus( i, j, k, 0 ) << \
+                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hx_w_minus: " << std::setw( 6 ) << hx_w_minus << "\thx_w_plus: " << std::setw( 6 ) << hx_w_plus <<\
+                    "\tu_w_minus: " << std::setw( 6 ) << u_w_minus << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus << \
                     "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Y Direction
-                    hy_w_minus( i, j, k, 0 ) = wCorrector( dt, dy, fabs( vy_minus / hy_minus ) + sqrt( gravity * hy_minus ), h_ic - h_bot, h_bot - h_bot2, h_top - h_ic );
-                    hy_w_minus( i, j, k, 0 ) *= h_ic - h_bot;
+                    state_t hy_w_minus = wCorrector( dt, dy, fabs( vy_minus / hy_minus ) + sqrt( gravity * hy_minus ), h_ic - h_bot, h_bot - h_bot2, h_top - h_ic );
+                    hy_w_minus *= h_ic - h_bot;
 
-                    hy_w_plus( i, j, k, 0 ) = wCorrector( dt, dy, fabs( vy_plus / hy_plus ) + sqrt( gravity * hy_plus ), h_top - h_ic, h_ic - h_bot, h_top2 - h_top );
-                    hy_w_plus( i, j, k, 0 ) *= h_top - h_ic;
+                    state_t hy_w_plus = wCorrector( dt, dy, fabs( vy_plus / hy_plus ) + sqrt( gravity * hy_plus ), h_top - h_ic, h_ic - h_bot, h_top2 - h_top );
+                    hy_w_plus *= h_top - h_ic;
 
-                    u_w_minus( i, j, k, 1 ) = wCorrector( dt, dy, fabs( vy_minus / hy_minus ) + sqrt( gravity * hy_minus ), v_ic - v_bot, v_bot - v_bot2, v_top - v_ic );
-                    u_w_minus( i, j, k, 1 ) *= v_ic - v_bot;
+                    state_t v_w_minus = wCorrector( dt, dy, fabs( vy_minus / hy_minus ) + sqrt( gravity * hy_minus ), v_ic - v_bot, v_bot - v_bot2, v_top - v_ic );
+                    v_w_minus *= v_ic - v_bot;
 
-                    u_w_plus( i, j, k, 1 ) = wCorrector( dt, dy, fabs( vy_plus / hy_plus ) + sqrt( gravity * hy_plus ), v_top - v_ic, v_ic - v_bot, v_top2 - v_top );
-                    u_w_plus( i, j, k, 1 ) *= v_top - v_ic;
+                    state_t v_w_plus = wCorrector( dt, dy, fabs( vy_plus / hy_plus ) + sqrt( gravity * hy_plus ), v_top - v_ic, v_ic - v_bot, v_top2 - v_top );
+                    v_w_plus *= v_top - v_ic;
 
                     // DEBUG: Print hy_w_minus, hy_w_plus, u_w_minus, u_w_plus, i, j, k
-                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_w_minus: " << std::setw( 6 ) << hy_w_minus( i, j, k, 0 ( i, j, k, 0 ) << "\thy_w_plus: " << std::setw( 6 ) << hy_w_plus( i, j, k, 0 ) <<\
-                    "\tu_w_minus: " << std::setw( 6 ) << u_w_minus( i, j, k, 1 ) << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus( i, j, k, 1 ) << \
+                    // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "hy_w_minus: " << std::setw( 6 ) << hy_w_minus << "\thy_w_plus: " << std::setw( 6 ) << hy_w_plus <<\
+                    "\tu_w_minus: " << std::setw( 6 ) << u_w_minus << "\tu_w_plus: " << std::setw( 6 ) << u_w_plus << \
                     "\ti: " << i << "\tj: " << j << "\tk: " << k << "\n";
 
                     // Full Step Update
-                    h_new( i, j, k, 0 ) = uFullStep( dt, dx, h_ic, hx_flux_plus( i, j, k, 0 ), hx_flux_minus( i, j, k, 0 ), hy_flux_plus( i, j, k, 0 ), hy_flux_minus( i, j, k, 0 ) ) - hx_w_minus( i, j, k, 0 ) + hx_w_plus( i, j, k, 0 ) - hy_w_minus( i, j, k, 0 ) + hy_w_plus( i, j, k, 0 );
-                    u_new( i, j, k, 0 ) = uFullStep( dt, dx, u_ic, ux_flux_plus( i, j, k, 0 ), ux_flux_minus( i, j, k, 0 ), uy_flux_plus( i, j, k, 0 ), uy_flux_minus( i, j, k, 0 ) ) - u_w_minus( i, j, k, 0 ) + u_w_plus( i, j, k, 0 );
-                    u_new( i, j, k, 1 ) = uFullStep( dt, dy, v_ic, ux_flux_plus( i, j, k, 1 ), ux_flux_minus( i, j, k, 1 ), uy_flux_plus( i, j, k, 1 ), uy_flux_minus( i, j, k, 1 ) ) - u_w_minus( i, j, k, 1 ) + u_w_plus( i, j, k, 1 );
+                    h_new( i, j, k, 0 ) = uFullStep( dt, dx, h_ic, hx_flux_plus, hx_flux_minus, hy_flux_plus, hy_flux_minus ) - hx_w_minus + hx_w_plus - hy_w_minus + hy_w_plus;
+                    u_new( i, j, k, 0 ) = uFullStep( dt, dx, u_ic, ux_flux_plus, ux_flux_minus, uy_flux_plus, uy_flux_minus ) - u_w_minus + u_w_plus;
+                    u_new( i, j, k, 1 ) = uFullStep( dt, dy, v_ic, vx_flux_plus, vx_flux_minus, vy_flux_plus, vy_flux_minus ) - v_w_minus + v_w_plus;
 
                     // DEBUG: Print h_new, u_new, v_new, i, j, k
                     // if ( DEBUG ) std::cout << std::left << std::setw( 10 ) << "h_new: " << std::setw( 6 ) << h_new( i, j, k, 0 ) << \
