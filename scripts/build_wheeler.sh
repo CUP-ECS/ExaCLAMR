@@ -9,10 +9,9 @@ CABANA_GIT=https://github.com/ECP-copa/Cabana.git
 #CABANA_GIT=https://github.com/JDTruj2018/Cabana.git
 
 # Load Modules
-module load cmake-3.15.4-gcc-8.3.0-rmxifnl
+module load cmake-3.19.2-gcc-9.3.0-27lqgaf
 module load openmpi-3.1.4-gcc-8.3.0-w3pkrvv
 module load gcc-8.3.0-gcc-4.8.5-wwpinbr
-module load hypre-2.14.0-gcc-7.3.0-openmpi-mkl-zndhsgh
 
 # Abnormal Exit Message
 exit_abnormal() {
@@ -23,10 +22,10 @@ exit_abnormal() {
 # Get Silo
 get_silo() {
     cd ${MYDIR}/libs
-    wget https://wci.llnl.gov/content/assets/docs/simulation/computer-codes/silo/silo-4.10.2/silo-4.10.2-bsd.tar.gz
-    tar -xvf silo-4.10.2-bsd.tar.gz
-    mv silo-4.10.2-bsd silo
-    rm silo-4.10.2-bsd.tar.gz
+    wget https://wci.llnl.gov/sites/wci/files/2021-01/silo-4.10.2.tgz
+    tar -xvf silo-4.10.2.tgz
+    mv silo-4.10.2 silo
+    rm silo-4.10.2.tgz
     cd ${MYDIR}
 }
 
@@ -55,7 +54,7 @@ build_cabana() {
     rm -rf build
     mkdir -p build
     cd build
-    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH="${INSTALL_DIR};${INSTALL_DIR}/usr/local;/opt/spack/opt/spack/linux-centos7-x86_64/gcc-7.3.0/hypre-2.14.0-zndhsgh6unz72fqbnz5aa6axkxzdtlw2" -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_EXAMPLES=ON -D Cabana_ENABLE_TESTING=ON -D Cabana_ENABLE_PERFORMANCE_TESTING=ON -D Cabana_ENABLE_CAJITA=ON -D Cabana_ENABLE_MPI=ON -D Cabana_REQUIRE_HYPRE=ON ..
+    cmake -D CMAKE_BUILD_TYPE="Debug" -D CMAKE_PREFIX_PATH="${INSTALL_DIR};${INSTALL_DIR}/usr/local" -D CMAKE_INSTALL_PREFIX=${INSTALL_DIR} -D Cabana_REQUIRE_OPNEMP=ON -D Cabana_ENABLE_EXAMPLES=ON -D Cabana_ENABLE_TESTING=ON -D Cabana_ENABLE_PERFORMANCE_TESTING=ON -D Cabana_ENABLE_CAJITA=ON -D Cabana_ENABLE_MPI=ON ..
     make install -j8
     cd ${MYDIR}
 }

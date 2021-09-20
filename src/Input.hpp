@@ -65,15 +65,15 @@ namespace ExaCLAMR {
             std::cout << "Usage: " << progname << "\n";
             std::cout << std::left << std::setw( 10 ) << "-a" << std::setw( 40 ) << "Halo Size (default 2)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-b" << std::setw( 40 ) << "Mesh Type (default Regular)" << std::left << "\n";
-            std::cout << std::left << std::setw( 10 ) << "-d" << std::setw( 40 ) << "Size of Domain (default 50 50 1)" << std::left << "\n";
+            std::cout << std::left << std::setw( 10 ) << "-d" << std::setw( 40 ) << "Size of Domain (default 500 500 1)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-h" << std::setw( 40 ) << "Print Help Message" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-g" << std::setw( 40 ) << "Gravitational Constant (default 9.80)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-m" << std::setw( 40 ) << "Thread Setting (default serial)" << std::left << "\n";
-            std::cout << std::left << std::setw( 10 ) << "-n" << std::setw( 40 ) << "Number of Cells (default 50 50 1)" << std::left << "\n";
+            std::cout << std::left << std::setw( 10 ) << "-n" << std::setw( 40 ) << "Number of Cells (default 500 500 1)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-p" << std::setw( 40 ) << "Periodicity (default: false false false)" << std::left << "\n";
             std::cout << std::left << std::setw( 20 ) << "  " << std::setw( 50 ) << "-p0 (false false false) -p1 (true false false) -p2(false true false) etc\n";
             std::cout << std::left << std::setw( 10 ) << "-s" << std::setw( 40 ) << "Timestep Sigma Value (default 0.95)" << std::left << "\n";
-            std::cout << std::left << std::setw( 10 ) << "-t" << std::setw( 40 ) << "Number of Time Steps (default 3000)" << std::left << "\n";
+            std::cout << std::left << std::setw( 10 ) << "-t" << std::setw( 40 ) << "Number of Time Steps (default 1000)" << std::left << "\n";
             std::cout << std::left << std::setw( 10 ) << "-w" << std::setw( 40 ) << "Write Frequency (default 100)" << std::left << "\n";
         }
     }
@@ -106,16 +106,16 @@ namespace ExaCLAMR {
         cl.meshtype = "regular"; // Default Mesh Typ
 
         cl.device = "serial";              // Default Thread Setting
-        cl.nx = 50, cl.ny = 50, cl.nz = 1; // Default Cell Count
+        cl.nx = 500, cl.ny = 500, cl.nz = 1; // Default Cell Count
 
-        cl.hx = 50.0, cl.hy = 50.0, cl.hz = 1.0; // Default Domain Size
+        cl.hx = 500.0, cl.hy = 500.0, cl.hz = 1.0; // Default Domain Size
 
         cl.periodic = { false, false, false }; // Default Periodicity
 
         cl.halo_size  = 2;    // Default Halo Size = 2
         cl.gravity    = 9.80; // Default Gravitational Constant = 9.80
         cl.sigma      = 0.95; // Default Timestep Sigma Value
-        cl.time_steps = 3000; // Default Time Steps = 3000
+        cl.time_steps = 1000; // Default Time Steps = 1000
         cl.write_freq = 100;  // Default Write Frequency = 10
 
         // Initialize
